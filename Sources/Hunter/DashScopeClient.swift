@@ -14,6 +14,7 @@ struct DashScopeClient {
     }
 
     var secrets = SecretStore()
+    var audioCache = AudioCache()
 
     func generateRoast(context: FrontmostContext, settings: ProviderSettings, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) async throws -> String {
         let endpoint = settings.llm
@@ -104,6 +105,15 @@ struct DashScopeClient {
         guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
+        let cacheKey = AudioCache.Key(
+            model: endpoint.model,
+            voice: settings.voice,
+            languageCode: languageCode,
+            text: text
+        )
+        if let cached = audioCache.data(for: cacheKey) {
+            return cached
+        }
 
         let body: [String: Any] = [
             "model": endpoint.model,
@@ -137,6 +147,7 @@ struct DashScopeClient {
         guard let http = audioResponse as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw ProviderError.invalidResponse
         }
+        audioCache.store(audio, for: cacheKey)
         return audio
     }
 

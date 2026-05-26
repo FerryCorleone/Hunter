@@ -129,4 +129,22 @@ struct DurationParserTests {
         #expect(session.duration == 50 * 60)
         #expect(session.endsAt == started.addingTimeInterval(55 * 60))
     }
+
+    @Test func audioCacheStoresByVoiceModelLanguageAndText() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("hunter-audio-cache-test-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        let cache = AudioCache(directory: directory)
+        let key = AudioCache.Key(model: "m", voice: "v", languageCode: "zh", text: "测试")
+        let otherVoice = AudioCache.Key(model: "m", voice: "other", languageCode: "zh", text: "测试")
+        let payload = Data([1, 2, 3, 4])
+
+        #expect(cache.data(for: key) == nil)
+        cache.store(payload, for: key)
+        #expect(cache.data(for: key) == payload)
+        #expect(cache.data(for: otherVoice) == nil)
+    }
 }

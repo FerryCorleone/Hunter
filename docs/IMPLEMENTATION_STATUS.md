@@ -25,6 +25,7 @@
 - 阿里 Paraformer WebSocket ASR 代码路径。
 - 阿里 Qwen Turbo LLM 抓包吐槽和语音回击代码路径。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
+- TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
 - ASR / LLM / TTS Provider 配置在设置页可编辑：provider 名称、base URL、model、API key 环境变量名、鉴权 scheme、额外 headers、region、语言提示、流式能力、TTS 音色 ID。
 - Provider 面板提供测试 LLM、测试 TTS、测试 ASR（选择本地音频文件）和端到端测试入口。
 - 设置页可把 API Key 按环境变量名写入 macOS Keychain。
@@ -41,7 +42,7 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配和 Provider headers。
+- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers 和 TTS 缓存。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。

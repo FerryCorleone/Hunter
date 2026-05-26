@@ -49,6 +49,7 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 swift build
 swift test
 ./scripts/package_app.sh
+./scripts/package_dmg.sh
 open build/Hunter.app
 ```
 

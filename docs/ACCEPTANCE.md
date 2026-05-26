@@ -14,6 +14,7 @@
 | 单元测试通过 | Pass | `swift test`，14 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、Provider headers、TTS 缓存和禁用词过滤 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
+| DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
 | App 可启动并创建窗口 | Pass | `open build/Hunter.app` 后 CoreGraphics 可见 `Hunter` 设置窗和悬浮窗 |
 | 权限引导 | Pass | 设置页展示辅助功能、麦克风、通知状态，并提供系统设置/通知请求入口 |
 | 界面中英文切换 | Partial | 设置页、菜单栏、悬浮窗和主要运行时状态已跟随语言切换，后续可升级为正式 strings 资源 |
@@ -50,5 +51,8 @@ afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-voice-focus /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-current-context
 ./scripts/package_app.sh
+./scripts/package_dmg.sh
+codesign --verify --deep --strict build/Hunter.app
+hdiutil verify build/Hunter.dmg
 open build/Hunter.app
 ```

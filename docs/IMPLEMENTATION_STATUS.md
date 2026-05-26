@@ -7,6 +7,7 @@
 
 - Swift Package 原生 macOS 工程骨架。
 - 可打包 `.app`：`./scripts/package_app.sh` -> `build/Hunter.app`。
+- 可打包 DMG：`./scripts/package_dmg.sh` -> `build/Hunter.dmg`。
 - 菜单栏状态入口。
 - SwiftUI 设置窗口：General、Watchlist、AI、Voice、History。
 - AppKit 浮动监督窗：悬浮球、抓包卡片、时长任务 toast。
@@ -46,6 +47,8 @@
 - `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers、TTS 缓存和禁用词过滤。
 - `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
+- `./scripts/package_dmg.sh` 可产出 `build/Hunter.dmg`。
+- `hdiutil verify build/Hunter.dmg` 通过。
 - `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。

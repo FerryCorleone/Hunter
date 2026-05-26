@@ -15,13 +15,13 @@ struct DashScopeClient {
 
     var secrets = SecretStore()
 
-    func generateRoast(context: FrontmostContext, settings: ProviderSettings, intensity: RoastIntensity, languageCode: String) async throws -> String {
+    func generateRoast(context: FrontmostContext, settings: ProviderSettings, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) async throws -> String {
         let endpoint = settings.llm
         guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
 
-        let prompt = buildRoastPrompt(context: context, intensity: intensity, languageCode: languageCode)
+        let prompt = buildRoastPrompt(context: context, intensity: intensity, persona: persona, languageCode: languageCode)
         let body: [String: Any] = [
             "model": endpoint.model,
             "messages": [
@@ -50,7 +50,7 @@ struct DashScopeClient {
         return content
     }
 
-    func generateReply(userText: String, incident: Incident, settings: ProviderSettings, intensity: RoastIntensity, languageCode: String) async throws -> String {
+    func generateReply(userText: String, incident: Incident, settings: ProviderSettings, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) async throws -> String {
         let endpoint = settings.llm
         guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
@@ -63,7 +63,7 @@ struct DashScopeClient {
                 [
                     "role": "system",
                     "content": """
-                    You are Hunter, a personal macOS focus supervisor. The user is talking back after being caught slacking. Reply with one short, funny comeback. \(languageInstruction) Keep it under 24 words or 42 Chinese characters. No protected-class insults, real threats, or self-harm content.
+                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) The user is talking back after being caught slacking. Reply with one short, funny comeback. \(languageInstruction) Keep it under 24 words or 42 Chinese characters. No protected-class insults, real threats, or self-harm content.
                     """
                 ],
                 [
@@ -73,6 +73,7 @@ struct DashScopeClient {
                     Previous roast: \(incident.roast)
                     User reply: \(userText)
                     Intensity: \(intensity.label)
+                    Persona: \(persona.label)
                     """
                 ]
             ],
@@ -139,7 +140,7 @@ struct DashScopeClient {
         return audio
     }
 
-    private func buildRoastPrompt(context: FrontmostContext, intensity: RoastIntensity, languageCode: String) -> (system: String, user: String) {
+    private func buildRoastPrompt(context: FrontmostContext, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) -> (system: String, user: String) {
         let languageInstruction = languageCode == "en"
             ? "Write in English."
             : "用中文输出。"
@@ -154,12 +155,13 @@ struct DashScopeClient {
 
         return (
             system: """
-            You are Hunter, a personal macOS focus supervisor. Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction) \(intensityInstruction) Keep it under 26 words or 45 Chinese characters. Mention the target. No protected-class insults, real threats, or self-harm content.
+            You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction) \(intensityInstruction) Keep it under 26 words or 45 Chinese characters. Mention the target. No protected-class insults, real threats, or self-harm content.
             """,
             user: """
             Target: \(context.displayTarget)
             App: \(context.appName)
             URL: \(context.url ?? "none")
+            Persona: \(persona.label)
             """
         )
     }

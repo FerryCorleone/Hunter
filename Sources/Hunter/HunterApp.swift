@@ -65,6 +65,10 @@ final class HunterApp: NSObject, NSApplicationDelegate {
     }
 
     private func pauseForFiveMinutes() {
+        if state.focusSession?.isActive == true {
+            state.pauseFocusSession(minutes: 5)
+            return
+        }
         state.toastMessage = state.interfaceLanguage == .english ? "Paused for 5 minutes" : "已暂停 5 分钟"
         state.isMonitoring = false
         state.persist()

@@ -37,6 +37,11 @@ final class StatusMenuController {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
+
+        state.$focusSession
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
     }
 
     private func rebuildMenu() {
@@ -55,6 +60,11 @@ final class StatusMenuController {
 
         menu.addItem(NSMenuItem(title: state.isMonitoring ? state.copy("暂停监督", "Pause Monitoring") : state.copy("开始监督", "Start Monitoring"), action: #selector(toggleMonitoring), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: state.copy("开始 40 分钟监督", "Start 40-minute Focus"), action: #selector(startFortyMinuteFocus), keyEquivalent: ""))
+        if state.focusSession?.isActive == true {
+            menu.addItem(NSMenuItem(title: state.focusSession?.isPaused == true ? state.copy("恢复时长任务", "Resume Focus") : state.copy("暂停时长任务", "Pause Focus"), action: #selector(toggleFocusPause), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: state.copy("延长 10 分钟", "Extend 10 minutes"), action: #selector(extendFocus), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: state.copy("结束时长任务", "End Focus"), action: #selector(endFocus), keyEquivalent: ""))
+        }
         menu.addItem(NSMenuItem(title: state.copy("录制语音指令", "Record Voice Command"), action: #selector(recordCommand), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: state.copy("演示抓包", "Demo Catch"), action: #selector(triggerDemoCatch), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: state.copy("设置...", "Settings..."), action: #selector(openSettings), keyEquivalent: ","))
@@ -74,6 +84,25 @@ final class StatusMenuController {
 
     @objc private func startFortyMinuteFocus() {
         startFocus()
+        rebuildMenu()
+    }
+
+    @objc private func toggleFocusPause() {
+        if state.focusSession?.isPaused == true {
+            state.resumeFocusSession()
+        } else {
+            state.pauseFocusSession()
+        }
+        rebuildMenu()
+    }
+
+    @objc private func extendFocus() {
+        state.extendFocusSession(minutes: 10)
+        rebuildMenu()
+    }
+
+    @objc private func endFocus() {
+        state.endFocusSession()
         rebuildMenu()
     }
 

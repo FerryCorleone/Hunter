@@ -15,7 +15,7 @@ enum CommandLineRunner {
                 let client = DashScopeClient()
                 let settings = ProviderSettings()
                 let context = FrontmostContext(appName: "Smoke Test", bundleID: nil, url: "https://www.youtube.com/")
-                let roast = try await client.generateRoast(context: context, settings: settings, intensity: .gentle, languageCode: "zh")
+                let roast = try await client.generateRoast(context: context, settings: settings, intensity: .gentle, persona: .officeBoss, languageCode: "zh")
                 print("llm_ok=true")
                 print("llm_text=\(roast.prefix(80))")
                 let audio = try await client.synthesizeSpeech(text: "测试", settings: settings, languageCode: "zh")

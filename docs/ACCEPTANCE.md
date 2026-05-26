@@ -11,7 +11,7 @@
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，10 个测试覆盖时长解析、工作时段、黑名单匹配和 Provider headers |
+| 单元测试通过 | Pass | `swift test`，12 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配和 Provider headers |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | App 可启动并创建窗口 | Pass | `open build/Hunter.app` 后 CoreGraphics 可见 `Hunter` 设置窗和悬浮窗 |
 | 权限引导 | Pass | 设置页展示辅助功能、麦克风、通知状态，并提供系统设置/通知请求入口 |
@@ -20,10 +20,12 @@
 | 网站/App 黑名单配置 | Pass | 设置页支持新增、删除、启用/停用规则，并提供常见平台预设 |
 | 悬浮球/小组件 | Pass | App 启动时创建悬浮窗；截图受当前环境屏幕录制权限限制 |
 | 语音快速创建监督时长 | Pass | `--smoke-voice-focus`：WAV -> ASR -> `focus_minutes=40` |
+| 时长任务暂停/延长/结束 | Pass | 设置页和菜单栏提供暂停/恢复/延长/结束；单测覆盖 pause/resume/extend |
 | ASR 默认链路 | Pass | `paraformer-realtime-v2` 识别 `监督我接下来的40分钟。` |
 | LLM 默认链路 | Pass | `qwen-turbo` 生成抓包吐槽 |
 | TTS 默认链路 | Pass | `cosyvoice-v3-flash + longanyang` 返回 WAV 音频字节 |
-| Provider 可配置 | Partial | 设置页可编辑端点、鉴权 scheme、额外 headers、region 和 Keychain key；完全异构供应商还需新增 adapter |
+| Provider 可配置 | Partial | 设置页可编辑端点、鉴权 scheme、额外 headers、region 和 Keychain key，提供 LLM/TTS/ASR/端到端测试入口；完全异构供应商还需新增 adapter |
+| AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
 | 语音对喷链路 | Partial | ASR/LLM/TTS 子链路已测，真实麦克风权限和快捷键需桌面授权后验收 |
 | 前台 App 检测 | Partial | 代码使用 `NSWorkspace`；真实黑名单命中需桌面交互验收 |
 | Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 代码使用 AppleScript；需浏览器自动化授权后验收 |

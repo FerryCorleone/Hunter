@@ -11,6 +11,7 @@
 - SwiftUI 设置窗口：General、Watchlist、AI、Voice、History。
 - AppKit 浮动监督窗：悬浮球、抓包卡片、时长任务 toast。
 - 工作时段配置：支持全天监督或多个开始/结束时间段，支持工作日/周末开关，跨午夜时段可用。
+- 时长任务控制：支持暂停、恢复、延长 10 分钟和结束；语音指令可识别暂停/恢复/结束/延长。
 - 黑名单配置：支持新增、删除、启用/停用网站和 App 规则，内置常见平台预设。
 - 前台 App 检测：`NSWorkspace.shared.frontmostApplication`。
 - Chrome/Safari/Brave/Edge/Arc URL 读取：AppleScript/ScriptingBridge 起步。
@@ -25,9 +26,11 @@
 - 阿里 Qwen Turbo LLM 抓包吐槽和语音回击代码路径。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - ASR / LLM / TTS Provider 配置在设置页可编辑：provider 名称、base URL、model、API key 环境变量名、鉴权 scheme、额外 headers、region、语言提示、流式能力、TTS 音色 ID。
+- Provider 面板提供测试 LLM、测试 TTS、测试 ASR（选择本地音频文件）和端到端测试入口。
 - 设置页可把 API Key 按环境变量名写入 macOS Keychain。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
 - 设置页、菜单栏、悬浮小组件和主要运行时状态文案支持中文/英文切换。
+- AI 监工角色：自律教练、办公室老板、冷面助理、脱口秀损友。
 - 登录时启动：已接 `SMAppService` 注册/取消。
 - 命令行烟测入口：
   - `./.build/debug/Hunter --smoke-llm-tts`
@@ -38,13 +41,14 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析、多时段工作时段、工作日/周末开关、黑名单匹配和 Provider headers。
+- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配和 Provider headers。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
 - 语音时长任务烟测通过：同一段 WAV -> ASR -> `DurationParser` -> `focus_minutes=40`。
+- 阿里 LLM/TTS 烟测已验证角色 prompt 生效：老板口吻输出可用。
 - 默认 Provider 配置改为可编辑后，阿里默认链路再次通过 LLM/TTS/ASR 烟测。
 
 ## 未完成 / 下一步

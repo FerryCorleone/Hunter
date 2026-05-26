@@ -9,6 +9,7 @@ final class AppState: ObservableObject {
     @Published var interfaceLanguage: AppLanguage = .zhHans
     @Published var aiLanguage: AppLanguage = .zhHans
     @Published var intensity: RoastIntensity = .sarcastic
+    @Published var persona: RoastPersona = .officeBoss
     @Published var rules: [BlacklistRule] = BlacklistRule.defaultRules
     @Published var providers: ProviderSettings = ProviderSettings()
     @Published var focusSession: FocusSession?
@@ -35,6 +36,7 @@ final class AppState: ObservableObject {
         interfaceLanguage = snapshot.interfaceLanguage
         aiLanguage = snapshot.aiLanguage
         intensity = snapshot.intensity
+        persona = snapshot.persona
         rules = snapshot.rules
         providers = snapshot.providers
         focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
@@ -49,6 +51,7 @@ final class AppState: ObservableObject {
             interfaceLanguage: interfaceLanguage,
             aiLanguage: aiLanguage,
             intensity: intensity,
+            persona: persona,
             rules: rules,
             providers: providers,
             focusSession: focusSession,
@@ -76,11 +79,48 @@ final class AppState: ObservableObject {
     }
 
     func clearExpiredFocusSessionIfNeeded() {
+        let resumed = focusSession?.resumeIfPauseElapsed() ?? false
         if focusSession?.isActive == false {
             focusSession = nil
             toastMessage = interfaceLanguage == .english ? "Focus session ended" : "监督时长已结束"
             persist()
+        } else if resumed {
+            persist()
         }
+    }
+
+    func pauseFocusSession(minutes: Int? = nil) {
+        guard var session = focusSession, session.isActive else { return }
+        let duration = minutes.map { TimeInterval($0 * 60) }
+        session.pause(duration: duration)
+        focusSession = session
+        toastMessage = minutes.map {
+            copy("监督已暂停 \($0) 分钟", "Focus paused for \($0) minutes")
+        } ?? copy("监督已暂停", "Focus paused")
+        persist()
+    }
+
+    func resumeFocusSession() {
+        guard var session = focusSession else { return }
+        session.resume()
+        focusSession = session.isActive ? session : nil
+        toastMessage = copy("监督已恢复", "Focus resumed")
+        persist()
+    }
+
+    func extendFocusSession(minutes: Int) {
+        guard var session = focusSession, session.isActive else { return }
+        session.extend(by: TimeInterval(minutes * 60))
+        focusSession = session
+        toastMessage = copy("已延长 \(minutes) 分钟", "Extended by \(minutes) minutes")
+        persist()
+    }
+
+    func endFocusSession() {
+        focusSession = nil
+        currentIncident = nil
+        toastMessage = copy("监督已结束", "Focus session ended")
+        persist()
     }
 
     func recordIncident(_ incident: Incident) {

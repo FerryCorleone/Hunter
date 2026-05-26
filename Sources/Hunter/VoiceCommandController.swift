@@ -124,6 +124,11 @@ final class VoiceCommandController {
     }
 
     private func handleTranscript(_ transcript: String) {
+        if let command = parser.parseCommand(transcript) {
+            handleFocusCommand(command)
+            return
+        }
+
         if let duration = parser.parse(transcript) {
             state.startFocusSession(duration: duration, source: "voice")
             return
@@ -133,6 +138,21 @@ final class VoiceCommandController {
             incidents.handleUserReply(transcript)
         } else {
             state.toastMessage = transcript
+        }
+    }
+
+    private func handleFocusCommand(_ command: FocusVoiceCommand) {
+        switch command {
+        case .start(let duration):
+            state.startFocusSession(duration: duration, source: "voice")
+        case .extend(let duration):
+            state.extendFocusSession(minutes: Int(duration / 60))
+        case .pause:
+            state.pauseFocusSession()
+        case .resume:
+            state.resumeFocusSession()
+        case .end:
+            state.endFocusSession()
         }
     }
 }

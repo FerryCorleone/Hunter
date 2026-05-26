@@ -1,25 +1,55 @@
 import Foundation
 
+enum FocusVoiceCommand: Equatable {
+    case start(TimeInterval)
+    case extend(TimeInterval)
+    case pause
+    case resume
+    case end
+}
+
 struct DurationParser {
     func parse(_ text: String) -> TimeInterval? {
+        guard case let .start(duration) = parseCommand(text) else {
+            return nil
+        }
+        return duration
+    }
+
+    func parseCommand(_ text: String) -> FocusVoiceCommand? {
         let normalized = text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
             .replacingOccurrences(of: "，", with: ",")
             .replacingOccurrences(of: "。", with: ".")
 
-        guard containsFocusIntent(normalized) else {
+        if containsAny(["结束监督", "停止监督", "结束专注", "stop focus", "end focus", "finish focus"], in: normalized) {
+            return .end
+        }
+        if containsAny(["恢复监督", "继续监督", "恢复专注", "resume focus", "continue focus"], in: normalized) {
+            return .resume
+        }
+        if containsAny(["暂停监督", "暂停专注", "pause focus", "pause supervision"], in: normalized) {
+            return .pause
+        }
+
+        if containsAny(["延长", "加钟", "extend", "add"], in: normalized), let duration = duration(in: normalized) {
+            return .extend(duration)
+        }
+
+        guard containsFocusIntent(normalized), let duration = duration(in: normalized) else {
             return nil
         }
+        return .start(duration)
+    }
 
-        if let minutes = numberBeforeMinuteUnit(in: normalized) {
+    private func duration(in text: String) -> TimeInterval? {
+        if let minutes = numberBeforeMinuteUnit(in: text) {
             return TimeInterval(minutes * 60)
         }
-
-        if let hours = numberBeforeHourUnit(in: normalized) {
+        if let hours = numberBeforeHourUnit(in: text) {
             return TimeInterval(hours * 3600)
         }
-
         return nil
     }
 
@@ -28,6 +58,10 @@ struct DurationParser {
             "监督", "盯我", "看着我", "专注", "focus", "focused", "supervise", "watch me", "keep me"
         ]
         return triggers.contains { text.contains($0) }
+    }
+
+    private func containsAny(_ needles: [String], in text: String) -> Bool {
+        needles.contains { text.contains($0) }
     }
 
     private func numberBeforeMinuteUnit(in text: String) -> Int? {

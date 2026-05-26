@@ -35,6 +35,7 @@ final class IncidentController {
                     context: context,
                     settings: state.providers,
                     intensity: state.intensity,
+                    persona: state.persona,
                     languageCode: state.targetLanguageCode()
                 )
                 await MainActor.run {
@@ -109,6 +110,7 @@ final class IncidentController {
                     incident: incident,
                     settings: state.providers,
                     intensity: state.intensity,
+                    persona: state.persona,
                     languageCode: state.targetLanguageCode()
                 )
                 let responseIncident = Incident(

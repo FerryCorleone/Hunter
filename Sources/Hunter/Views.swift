@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
@@ -232,13 +233,34 @@ struct GeneralPanel: View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
             VStack(spacing: 16) {
                 SettingCard(icon: "clock", title: state.copy("时长任务", "Focus session"), subtitle: state.copy("可以语音或手动开启一段监督。", "Start a focus session by voice or manually.")) {
-                    HStack {
+                    VStack(alignment: .trailing, spacing: 8) {
                         Text(focusLabel)
                             .font(.system(size: 16, weight: .medium))
-                        Button(state.copy("40 分钟", "40 min")) {
-                            onStartFocus()
+                        HStack(spacing: 8) {
+                            Button(state.copy("40 分钟", "40 min")) {
+                                onStartFocus()
+                            }
+                            .buttonStyle(.bordered)
+                            Button(state.focusSession?.isPaused == true ? state.copy("恢复", "Resume") : state.copy("暂停", "Pause")) {
+                                if state.focusSession?.isPaused == true {
+                                    state.resumeFocusSession()
+                                } else {
+                                    state.pauseFocusSession()
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(state.focusSession?.isActive != true)
+                            Button(state.copy("+10 分钟", "+10 min")) {
+                                state.extendFocusSession(minutes: 10)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(state.focusSession?.isActive != true)
+                            Button(state.copy("结束", "End")) {
+                                state.endFocusSession()
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(state.focusSession?.isActive != true)
                         }
-                        .buttonStyle(.bordered)
                     }
                 }
 
@@ -362,6 +384,9 @@ struct GeneralPanel: View {
             return state.copy("未运行", "Not running")
         }
         let minutes = Int(ceil(session.remaining / 60))
+        if session.isPaused {
+            return state.copy("已暂停，剩余 \(minutes) 分钟", "Paused, \(minutes) min left")
+        }
         return state.copy("\(minutes) 分钟", "\(minutes) min")
     }
 
@@ -561,6 +586,25 @@ struct ProvidersPanel: View {
                 }
                 .textFieldStyle(.roundedBorder)
 
+                HStack(spacing: 10) {
+                    Button(state.copy("测试 LLM", "Test LLM")) {
+                        testLLM()
+                    }
+                    .buttonStyle(.bordered)
+                    Button(state.copy("测试 TTS", "Test TTS")) {
+                        testTTS()
+                    }
+                    .buttonStyle(.bordered)
+                    Button(state.copy("测试 ASR", "Test ASR")) {
+                        testASR()
+                    }
+                    .buttonStyle(.bordered)
+                    Button(state.copy("端到端测试", "End-to-end test")) {
+                        testEndToEnd()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+
                 if !saveMessage.isEmpty {
                     Text(saveMessage)
                         .font(.footnote)
@@ -595,6 +639,83 @@ struct ProvidersPanel: View {
             saveMessage = state.copy("钥匙串保存失败：\(error.localizedDescription)", "Keychain save failed: \(error.localizedDescription)")
         }
     }
+
+    private func testLLM() {
+        state.providerStatus = state.copy("正在测试 LLM...", "Testing LLM...")
+        Task {
+            do {
+                let context = FrontmostContext(appName: "Hunter", bundleID: nil, url: "https://www.youtube.com/")
+                let text = try await DashScopeClient().generateRoast(
+                    context: context,
+                    settings: state.providers,
+                    intensity: .gentle,
+                    persona: state.persona,
+                    languageCode: state.targetLanguageCode()
+                )
+                state.providerStatus = state.copy("LLM 正常：\(text.prefix(40))", "LLM OK: \(text.prefix(40))")
+            } catch {
+                state.providerStatus = state.copy("LLM 测试失败：\(error.localizedDescription)", "LLM test failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func testTTS() {
+        state.providerStatus = state.copy("正在测试 TTS...", "Testing TTS...")
+        Task {
+            do {
+                let audio = try await DashScopeClient().synthesizeSpeech(
+                    text: state.copy("测试", "test"),
+                    settings: state.providers,
+                    languageCode: state.targetLanguageCode()
+                )
+                state.providerStatus = state.copy("TTS 正常：\(audio.count) bytes", "TTS OK: \(audio.count) bytes")
+            } catch {
+                state.providerStatus = state.copy("TTS 测试失败：\(error.localizedDescription)", "TTS test failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func testASR() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.wav, .mpeg4Audio, .mp3, .audio]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        state.providerStatus = state.copy("正在测试 ASR...", "Testing ASR...")
+        Task {
+            do {
+                let data = try Data(contentsOf: url)
+                let text = try await ParaformerClient().transcribeWAV(data, settings: state.providers, languageHint: state.targetLanguageCode())
+                state.providerStatus = state.copy("ASR 正常：\(text)", "ASR OK: \(text)")
+            } catch {
+                state.providerStatus = state.copy("ASR 测试失败：\(error.localizedDescription)", "ASR test failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func testEndToEnd() {
+        state.providerStatus = state.copy("正在端到端测试...", "Testing end-to-end...")
+        Task {
+            do {
+                let context = FrontmostContext(appName: "Hunter", bundleID: nil, url: "https://www.youtube.com/")
+                let text = try await DashScopeClient().generateRoast(
+                    context: context,
+                    settings: state.providers,
+                    intensity: state.intensity,
+                    persona: state.persona,
+                    languageCode: state.targetLanguageCode()
+                )
+                let audio = try await DashScopeClient().synthesizeSpeech(
+                    text: text,
+                    settings: state.providers,
+                    languageCode: state.targetLanguageCode()
+                )
+                state.providerStatus = state.copy("端到端正常：\(audio.count) bytes", "End-to-end OK: \(audio.count) bytes")
+            } catch {
+                state.providerStatus = state.copy("端到端测试失败：\(error.localizedDescription)", "End-to-end test failed: \(error.localizedDescription)")
+            }
+        }
+    }
 }
 
 struct VoicePanel: View {
@@ -617,6 +738,11 @@ struct VoicePanel: View {
                         Text(intensity.label).tag(intensity)
                     }
                 }
+                Picker(state.copy("监工角色", "Persona"), selection: $state.persona) {
+                    ForEach(RoastPersona.allCases) { persona in
+                        Text(persona.label).tag(persona)
+                    }
+                }
                 Text(state.copy("声音克隆：在提供授权样本前暂不启用。", "Voice clone: disabled until authorized samples are provided."))
                     .foregroundStyle(.secondary)
             }
@@ -629,6 +755,9 @@ struct VoicePanel: View {
                 state.persist()
             }
             .onChange(of: state.intensity) {
+                state.persist()
+            }
+            .onChange(of: state.persona) {
                 state.persist()
             }
         }

@@ -48,6 +48,9 @@ final class MonitorService {
 
     private var shouldMonitorNow: Bool {
         if state.focusSession?.isActive == true {
+            if state.focusSession?.isPaused == true {
+                return false
+            }
             return true
         }
         return state.workSchedule.contains()

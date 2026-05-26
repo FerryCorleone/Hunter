@@ -17,6 +17,13 @@ struct DurationParserTests {
         #expect(parser.parse("Keep me focused for one hour") == TimeInterval(60 * 60))
     }
 
+    @Test func parsesFocusControlCommands() {
+        #expect(parser.parseCommand("暂停监督") == .pause)
+        #expect(parser.parseCommand("恢复监督") == .resume)
+        #expect(parser.parseCommand("结束监督") == .end)
+        #expect(parser.parseCommand("延长 10 分钟") == .extend(TimeInterval(10 * 60)))
+    }
+
     @Test func ignoresNonFocusSpeech() {
         #expect(parser.parse("我就看两分钟怎么了") == nil)
     }
@@ -104,5 +111,22 @@ struct DurationParserTests {
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Token secret")
         #expect(request.value(forHTTPHeaderField: "X-Region") == "cn-test")
         #expect(request.value(forHTTPHeaderField: "X-Trace") == "hunter")
+    }
+
+    @Test func focusSessionPauseResumeAndExtendKeepsRemainingStable() {
+        let calendar = Calendar(identifier: .gregorian)
+        let started = DateComponents(calendar: calendar, year: 2026, month: 5, day: 27, hour: 10, minute: 0).date!
+        let paused = started.addingTimeInterval(10 * 60)
+        let resumed = paused.addingTimeInterval(5 * 60)
+        var session = FocusSession(startedAt: started, duration: 40 * 60)
+
+        session.pause(now: paused)
+        #expect(session.isPaused)
+        session.resume(now: resumed)
+        session.extend(by: 10 * 60)
+
+        #expect(session.accumulatedPause == 5 * 60)
+        #expect(session.duration == 50 * 60)
+        #expect(session.endsAt == started.addingTimeInterval(55 * 60))
     }
 }

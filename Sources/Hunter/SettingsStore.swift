@@ -7,6 +7,7 @@ struct SettingsSnapshot: Codable {
     var interfaceLanguage: AppLanguage
     var aiLanguage: AppLanguage
     var intensity: RoastIntensity
+    var persona: RoastPersona
     var rules: [BlacklistRule]
     var providers: ProviderSettings
     var focusSession: FocusSession?
@@ -19,6 +20,7 @@ struct SettingsSnapshot: Codable {
         interfaceLanguage: .zhHans,
         aiLanguage: .zhHans,
         intensity: .sarcastic,
+        persona: .officeBoss,
         rules: BlacklistRule.defaultRules,
         providers: ProviderSettings(),
         focusSession: nil,
@@ -32,6 +34,7 @@ struct SettingsSnapshot: Codable {
         case interfaceLanguage
         case aiLanguage
         case intensity
+        case persona
         case rules
         case providers
         case focusSession
@@ -45,6 +48,7 @@ struct SettingsSnapshot: Codable {
         interfaceLanguage: AppLanguage,
         aiLanguage: AppLanguage,
         intensity: RoastIntensity,
+        persona: RoastPersona,
         rules: [BlacklistRule],
         providers: ProviderSettings,
         focusSession: FocusSession?,
@@ -56,6 +60,7 @@ struct SettingsSnapshot: Codable {
         self.interfaceLanguage = interfaceLanguage
         self.aiLanguage = aiLanguage
         self.intensity = intensity
+        self.persona = persona
         self.rules = rules
         self.providers = providers
         self.focusSession = focusSession
@@ -70,6 +75,7 @@ struct SettingsSnapshot: Codable {
         interfaceLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .interfaceLanguage) ?? .zhHans
         aiLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .aiLanguage) ?? .zhHans
         intensity = try container.decodeIfPresent(RoastIntensity.self, forKey: .intensity) ?? .sarcastic
+        persona = try container.decodeIfPresent(RoastPersona.self, forKey: .persona) ?? .officeBoss
         rules = try container.decodeIfPresent([BlacklistRule].self, forKey: .rules) ?? BlacklistRule.defaultRules
         providers = try container.decodeIfPresent(ProviderSettings.self, forKey: .providers) ?? ProviderSettings()
         focusSession = try container.decodeIfPresent(FocusSession.self, forKey: .focusSession)

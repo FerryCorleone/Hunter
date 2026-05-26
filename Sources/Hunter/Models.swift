@@ -34,6 +34,37 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+enum RoastPersona: String, CaseIterable, Codable, Identifiable {
+    case focusCoach
+    case officeBoss
+    case deadpanAssistant
+    case comedyRoaster
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .focusCoach: "自律教练"
+        case .officeBoss: "办公室老板"
+        case .deadpanAssistant: "冷面助理"
+        case .comedyRoaster: "脱口秀损友"
+        }
+    }
+
+    var promptInstruction: String {
+        switch self {
+        case .focusCoach:
+            "Persona: a sharp focus coach who pushes the user back to work."
+        case .officeBoss:
+            "Persona: a theatrical office boss catching the user slacking, funny but office-safe."
+        case .deadpanAssistant:
+            "Persona: a dry, deadpan assistant with minimalist sarcasm."
+        case .comedyRoaster:
+            "Persona: a stand-up style roaster, playful and punchy without protected-class insults."
+        }
+    }
+}
+
 enum RuleKind: String, CaseIterable, Codable, Identifiable {
     case website
     case app
@@ -274,9 +305,12 @@ struct WorkSchedule: Codable, Equatable {
 struct FocusSession: Codable, Equatable {
     var startedAt: Date
     var duration: TimeInterval
+    var accumulatedPause: TimeInterval = 0
+    var pausedAt: Date?
+    var pauseEndsAt: Date?
 
     var endsAt: Date {
-        startedAt.addingTimeInterval(duration)
+        startedAt.addingTimeInterval(duration + accumulatedPause + currentPauseDuration)
     }
 
     var remaining: TimeInterval {
@@ -285,6 +319,73 @@ struct FocusSession: Codable, Equatable {
 
     var isActive: Bool {
         remaining > 0
+    }
+
+    var isPaused: Bool {
+        guard pausedAt != nil else { return false }
+        guard let pauseEndsAt else { return true }
+        return pauseEndsAt > Date()
+    }
+
+    init(
+        startedAt: Date,
+        duration: TimeInterval,
+        accumulatedPause: TimeInterval = 0,
+        pausedAt: Date? = nil,
+        pauseEndsAt: Date? = nil
+    ) {
+        self.startedAt = startedAt
+        self.duration = duration
+        self.accumulatedPause = accumulatedPause
+        self.pausedAt = pausedAt
+        self.pauseEndsAt = pauseEndsAt
+    }
+
+    mutating func pause(duration: TimeInterval? = nil, now: Date = Date()) {
+        guard pausedAt == nil else { return }
+        pausedAt = now
+        pauseEndsAt = duration.map { now.addingTimeInterval($0) }
+    }
+
+    mutating func resume(now: Date = Date()) {
+        guard let pausedAt else { return }
+        accumulatedPause += max(0, now.timeIntervalSince(pausedAt))
+        self.pausedAt = nil
+        pauseEndsAt = nil
+    }
+
+    mutating func resumeIfPauseElapsed(now: Date = Date()) -> Bool {
+        guard let pauseEndsAt, pauseEndsAt <= now else { return false }
+        resume(now: pauseEndsAt)
+        return true
+    }
+
+    mutating func extend(by extraDuration: TimeInterval) {
+        duration += max(0, extraDuration)
+    }
+
+    private var currentPauseDuration: TimeInterval {
+        guard let pausedAt else { return 0 }
+        let now = Date()
+        let effectiveNow = pauseEndsAt.map { min(now, $0) } ?? now
+        return max(0, effectiveNow.timeIntervalSince(pausedAt))
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case startedAt
+        case duration
+        case accumulatedPause
+        case pausedAt
+        case pauseEndsAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        duration = try container.decode(TimeInterval.self, forKey: .duration)
+        accumulatedPause = try container.decodeIfPresent(TimeInterval.self, forKey: .accumulatedPause) ?? 0
+        pausedAt = try container.decodeIfPresent(Date.self, forKey: .pausedAt)
+        pauseEndsAt = try container.decodeIfPresent(Date.self, forKey: .pauseEndsAt)
     }
 }
 

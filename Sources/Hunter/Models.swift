@@ -32,6 +32,18 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
         case .savage: "破防模式"
         }
     }
+
+    func label(language: AppLanguage) -> String {
+        if language != .english {
+            return label
+        }
+        return switch self {
+        case .gentle: "Gentle"
+        case .sarcastic: "Sarcastic"
+        case .boss: "Boss mode"
+        case .savage: "Savage"
+        }
+    }
 }
 
 enum RoastPersona: String, CaseIterable, Codable, Identifiable {
@@ -48,6 +60,18 @@ enum RoastPersona: String, CaseIterable, Codable, Identifiable {
         case .officeBoss: "办公室老板"
         case .deadpanAssistant: "冷面助理"
         case .comedyRoaster: "脱口秀损友"
+        }
+    }
+
+    func label(language: AppLanguage) -> String {
+        if language != .english {
+            return label
+        }
+        return switch self {
+        case .focusCoach: "Focus coach"
+        case .officeBoss: "Office boss"
+        case .deadpanAssistant: "Deadpan assistant"
+        case .comedyRoaster: "Comedy roaster"
         }
     }
 
@@ -74,6 +98,16 @@ enum RuleKind: String, CaseIterable, Codable, Identifiable {
     var label: String {
         switch self {
         case .website: "Website"
+        case .app: "App"
+        }
+    }
+
+    func label(language: AppLanguage) -> String {
+        if language == .english {
+            return label
+        }
+        return switch self {
+        case .website: "网站"
         case .app: "App"
         }
     }

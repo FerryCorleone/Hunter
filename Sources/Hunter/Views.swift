@@ -189,7 +189,7 @@ struct SettingsView: View {
 
             Spacer()
 
-            Button(state.isMonitoring ? "Pause" : "Start") {
+            Button(state.isMonitoring ? state.copy("暂停", "Pause") : state.copy("开始", "Start")) {
                 state.isMonitoring ? state.stopMonitoring() : state.startMonitoring()
             }
             .buttonStyle(BlueCapsuleButtonStyle())
@@ -454,7 +454,7 @@ struct WatchlistPanel: View {
                 HStack(spacing: 10) {
                     Picker("", selection: $newKind) {
                         ForEach(RuleKind.allCases) { kind in
-                            Text(kind.label).tag(kind)
+                            Text(kind.label(language: state.interfaceLanguage)).tag(kind)
                         }
                     }
                     .labelsHidden()
@@ -502,7 +502,7 @@ struct WatchlistPanel: View {
                             Text(rule.pattern).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(rule.kind.label)
+                        Text(rule.kind.label(language: state.interfaceLanguage))
                             .foregroundStyle(.secondary)
                         Toggle("", isOn: $rule.isEnabled)
                             .toggleStyle(.switch)
@@ -566,9 +566,9 @@ struct ProvidersPanel: View {
     var body: some View {
         PanelContainer(title: state.copy("AI", "AI"), subtitle: state.copy("配置 ASR、LLM 和 TTS 的服务商。", "Configurable ASR, LLM, and TTS providers.")) {
             VStack(spacing: 14) {
-                ProviderEditor(kind: "ASR", provider: $state.providers.asr)
-                ProviderEditor(kind: "LLM", provider: $state.providers.llm)
-                ProviderEditor(kind: "TTS", provider: $state.providers.tts)
+                ProviderEditor(kind: "ASR", provider: $state.providers.asr, language: state.interfaceLanguage)
+                ProviderEditor(kind: "LLM", provider: $state.providers.llm, language: state.interfaceLanguage)
+                ProviderEditor(kind: "TTS", provider: $state.providers.tts, language: state.interfaceLanguage)
 
                 HStack(spacing: 10) {
                     SecureField(state.copy("API Key 会按上方环境变量名保存到钥匙串", "API key saved to Keychain for the env names above"), text: $apiKey)
@@ -739,12 +739,12 @@ struct VoicePanel: View {
                 }
                 Picker(state.copy("吐槽强度", "Intensity"), selection: $state.intensity) {
                     ForEach(RoastIntensity.allCases) { intensity in
-                        Text(intensity.label).tag(intensity)
+                        Text(intensity.label(language: state.interfaceLanguage)).tag(intensity)
                     }
                 }
                 Picker(state.copy("监工角色", "Persona"), selection: $state.persona) {
                     ForEach(RoastPersona.allCases) { persona in
-                        Text(persona.label).tag(persona)
+                        Text(persona.label(language: state.interfaceLanguage)).tag(persona)
                     }
                 }
                 Toggle(state.copy("允许轻度粗口", "Allow mild profanity"), isOn: $state.allowProfanity)
@@ -945,6 +945,7 @@ struct SettingCard<Trailing: View>: View {
 struct ProviderEditor: View {
     var kind: String
     @Binding var provider: ProviderEndpoint
+    var language: AppLanguage
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -953,35 +954,39 @@ struct ProviderEditor: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                TextField("Provider", text: $provider.providerName)
+                TextField(copy("服务商", "Provider"), text: $provider.providerName)
                     .frame(width: 150)
-                TextField("Base URL", text: $provider.baseURL)
-                TextField("Model", text: $provider.model)
+                TextField(copy("Base URL", "Base URL"), text: $provider.baseURL)
+                TextField(copy("模型", "Model"), text: $provider.model)
                     .frame(width: 180)
             }
             .textFieldStyle(.roundedBorder)
 
             HStack(spacing: 10) {
-                TextField("API key env", text: $provider.apiKeyEnvironmentName)
+                TextField(copy("API Key 环境变量", "API key env"), text: $provider.apiKeyEnvironmentName)
                     .frame(width: 240)
-                TextField("Auth scheme", text: $provider.authorizationScheme)
+                TextField(copy("鉴权 scheme", "Auth scheme"), text: $provider.authorizationScheme)
                     .frame(width: 140)
-                TextField("Language hint", text: $provider.languageHint)
-                Toggle("Streaming", isOn: $provider.supportsStreaming)
+                TextField(copy("语言提示", "Language hint"), text: $provider.languageHint)
+                Toggle(copy("流式", "Streaming"), isOn: $provider.supportsStreaming)
                     .toggleStyle(.checkbox)
             }
             .textFieldStyle(.roundedBorder)
 
             HStack(spacing: 10) {
-                TextField("Region", text: $provider.region)
+                TextField(copy("区域", "Region"), text: $provider.region)
                     .frame(width: 160)
-                TextField("Extra headers: Header: value, one per line", text: $provider.extraHeaders, axis: .vertical)
+                TextField(copy("额外 headers：每行 Header: value", "Extra headers: Header: value, one per line"), text: $provider.extraHeaders, axis: .vertical)
                     .lineLimit(1...3)
             }
             .textFieldStyle(.roundedBorder)
         }
         .padding()
         .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func copy(_ zhHans: String, _ english: String) -> String {
+        language == .english ? english : zhHans
     }
 }
 

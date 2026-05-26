@@ -157,4 +157,11 @@ struct DurationParserTests {
         #expect(!sanitized.contains("笨蛋"))
         #expect(sanitized.contains("..."))
     }
+
+    @Test func visibleLabelsFollowInterfaceLanguage() {
+        #expect(RoastIntensity.boss.label(language: .english) == "Boss mode")
+        #expect(RoastPersona.officeBoss.label(language: .english) == "Office boss")
+        #expect(RuleKind.website.label(language: .zhHans) == "网站")
+        #expect(RuleKind.app.label(language: .english) == "App")
+    }
 }

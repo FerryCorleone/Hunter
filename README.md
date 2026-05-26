@@ -10,6 +10,7 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 - [设计稿](docs/DESIGN.md)
 - [模型/API 技术评估](docs/TECHNICAL_EVALUATION.md)
 - [实现状态](docs/IMPLEMENTATION_STATUS.md)
+- [MVP 验收清单](docs/ACCEPTANCE.md)
 - [HTML 设计稿](docs/design-prototype/index.html)
 - [设计稿预览图](docs/design-prototype/hunter-preview.png)
 - [图像生成参考稿](docs/design-prototype/generated-ui-reference.png)

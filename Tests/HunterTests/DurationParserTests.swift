@@ -86,4 +86,23 @@ struct DurationParserTests {
         #expect(app.matches(appName: "Steam", bundleID: "com.valvesoftware.steam", url: nil))
         #expect(!app.matches(appName: "Xcode", bundleID: "com.apple.dt.Xcode", url: nil))
     }
+
+    @Test func providerHeadersApplyAuthAndExtraHeaders() {
+        let endpoint = ProviderEndpoint(
+            providerName: "Test",
+            baseURL: "https://example.com",
+            model: "test-model",
+            apiKeyEnvironmentName: "TEST_KEY",
+            authorizationScheme: "Token",
+            extraHeaders: "X-Region: cn-test\nX-Trace: hunter",
+            region: "cn-test",
+            supportsStreaming: false,
+            languageHint: "auto"
+        )
+        var request = URLRequest(url: URL(string: "https://example.com")!)
+        request.applyProviderHeaders(endpoint: endpoint, apiKey: "secret")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Token secret")
+        #expect(request.value(forHTTPHeaderField: "X-Region") == "cn-test")
+        #expect(request.value(forHTTPHeaderField: "X-Trace") == "hunter")
+    }
 }

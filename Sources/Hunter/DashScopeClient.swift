@@ -34,7 +34,7 @@ struct DashScopeClient {
 
         var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.applyProviderHeaders(endpoint: endpoint, apiKey: apiKey)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 20
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -82,7 +82,7 @@ struct DashScopeClient {
 
         var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.applyProviderHeaders(endpoint: endpoint, apiKey: apiKey)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 20
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -119,7 +119,7 @@ struct DashScopeClient {
 
         var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "services/audio/tts/SpeechSynthesizer"))
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.applyProviderHeaders(endpoint: endpoint, apiKey: apiKey)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
         request.httpBody = try JSONSerialization.data(withJSONObject: body)

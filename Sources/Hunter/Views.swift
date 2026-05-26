@@ -820,9 +820,19 @@ struct ProviderEditor: View {
             HStack(spacing: 10) {
                 TextField("API key env", text: $provider.apiKeyEnvironmentName)
                     .frame(width: 240)
+                TextField("Auth scheme", text: $provider.authorizationScheme)
+                    .frame(width: 140)
                 TextField("Language hint", text: $provider.languageHint)
                 Toggle("Streaming", isOn: $provider.supportsStreaming)
                     .toggleStyle(.checkbox)
+            }
+            .textFieldStyle(.roundedBorder)
+
+            HStack(spacing: 10) {
+                TextField("Region", text: $provider.region)
+                    .frame(width: 160)
+                TextField("Extra headers: Header: value, one per line", text: $provider.extraHeaders, axis: .vertical)
+                    .lineLimit(1...3)
             }
             .textFieldStyle(.roundedBorder)
         }

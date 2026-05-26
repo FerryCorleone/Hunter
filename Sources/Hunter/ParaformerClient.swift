@@ -26,7 +26,7 @@ struct ParaformerClient {
         }
 
         var request = URLRequest(url: websocketURL(for: endpoint))
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.applyProviderHeaders(endpoint: endpoint, apiKey: apiKey)
         request.setValue("Hunter-macOS/0.1", forHTTPHeaderField: "user-agent")
 
         let session = URLSession(configuration: .default)

@@ -67,4 +67,4 @@ afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-current-context
 ```
 
-ASR / LLM / TTS 的 provider 名称、base URL、model、API key 环境变量名和 TTS 音色 ID 都可以在设置页编辑。当前内置 adapter 覆盖阿里默认链路和 OpenAI-compatible LLM；接入完全不同协议的供应商时，需要新增 adapter。
+ASR / LLM / TTS 的 provider 名称、base URL、model、API key 环境变量名、鉴权 scheme、额外 headers、region、语言提示和 TTS 音色 ID 都可以在设置页编辑。当前内置 adapter 覆盖阿里默认链路和 OpenAI-compatible LLM；接入完全不同协议的供应商时，需要新增 adapter。

@@ -74,6 +74,9 @@ struct ProviderEndpoint: Codable, Equatable {
     var baseURL: String
     var model: String
     var apiKeyEnvironmentName: String
+    var authorizationScheme: String
+    var extraHeaders: String
+    var region: String
     var supportsStreaming: Bool
     var languageHint: String
 
@@ -82,6 +85,9 @@ struct ProviderEndpoint: Codable, Equatable {
         baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
         model: "qwen-turbo",
         apiKeyEnvironmentName: "DASHSCOPE_API_KEY",
+        authorizationScheme: "Bearer",
+        extraHeaders: "",
+        region: "cn-beijing",
         supportsStreaming: true,
         languageHint: "zh-CN,en-US,mixed"
     )
@@ -91,6 +97,9 @@ struct ProviderEndpoint: Codable, Equatable {
         baseURL: "wss://dashscope.aliyuncs.com/api-ws/v1/inference",
         model: "paraformer-realtime-v2",
         apiKeyEnvironmentName: "DASHSCOPE_API_KEY",
+        authorizationScheme: "Bearer",
+        extraHeaders: "",
+        region: "cn-beijing",
         supportsStreaming: true,
         languageHint: "zh-CN,en-US,mixed"
     )
@@ -100,9 +109,59 @@ struct ProviderEndpoint: Codable, Equatable {
         baseURL: "https://dashscope.aliyuncs.com/api/v1",
         model: "cosyvoice-v3-flash",
         apiKeyEnvironmentName: "DASHSCOPE_API_KEY",
+        authorizationScheme: "Bearer",
+        extraHeaders: "",
+        region: "cn-beijing",
         supportsStreaming: true,
         languageHint: "zh-CN,en-US"
     )
+
+    enum CodingKeys: String, CodingKey {
+        case providerName
+        case baseURL
+        case model
+        case apiKeyEnvironmentName
+        case authorizationScheme
+        case extraHeaders
+        case region
+        case supportsStreaming
+        case languageHint
+    }
+
+    init(
+        providerName: String,
+        baseURL: String,
+        model: String,
+        apiKeyEnvironmentName: String,
+        authorizationScheme: String,
+        extraHeaders: String,
+        region: String,
+        supportsStreaming: Bool,
+        languageHint: String
+    ) {
+        self.providerName = providerName
+        self.baseURL = baseURL
+        self.model = model
+        self.apiKeyEnvironmentName = apiKeyEnvironmentName
+        self.authorizationScheme = authorizationScheme
+        self.extraHeaders = extraHeaders
+        self.region = region
+        self.supportsStreaming = supportsStreaming
+        self.languageHint = languageHint
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        providerName = try container.decodeIfPresent(String.self, forKey: .providerName) ?? ""
+        baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL) ?? ""
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? ""
+        apiKeyEnvironmentName = try container.decodeIfPresent(String.self, forKey: .apiKeyEnvironmentName) ?? "DASHSCOPE_API_KEY"
+        authorizationScheme = try container.decodeIfPresent(String.self, forKey: .authorizationScheme) ?? "Bearer"
+        extraHeaders = try container.decodeIfPresent(String.self, forKey: .extraHeaders) ?? ""
+        region = try container.decodeIfPresent(String.self, forKey: .region) ?? ""
+        supportsStreaming = try container.decodeIfPresent(Bool.self, forKey: .supportsStreaming) ?? true
+        languageHint = try container.decodeIfPresent(String.self, forKey: .languageHint) ?? ""
+    }
 }
 
 struct ProviderSettings: Codable, Equatable {

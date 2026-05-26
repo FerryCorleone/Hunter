@@ -13,6 +13,8 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 - [设计稿预览图](docs/design-prototype/hunter-preview.png)
 - [图像生成参考稿](docs/design-prototype/generated-ui-reference.png)
 
+说明：HTML 设计稿里的 macOS 壁纸、Dock、系统菜单栏只作为审稿展示背景，不属于 Hunter 要开发的产品 UI。开发范围是悬浮球、小组件、时长任务 toast、设置窗口和菜单栏状态入口。
+
 ## MVP Target
 
 第一版目标是跑通节目效果闭环：

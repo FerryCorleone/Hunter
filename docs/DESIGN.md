@@ -175,6 +175,12 @@ TTS  Aliyun / cosyvoice-v3.5-flash     Voice set   Test
 - `docs/design-prototype/index.html`
 - 图像生成参考稿：`docs/design-prototype/generated-ui-reference.png`
 
+重要边界：
+
+- HTML 里的 macOS 桌面壁纸、系统菜单栏、Dock 只是为了让设计稿更接近参考图的展示外壳。
+- 开发时不要复刻或控制系统桌面背景、Dock、Finder 菜单栏。
+- 实际产品界面只包含 Hunter 悬浮球、抓包小组件、时长任务 toast、设置主窗口和菜单栏状态入口。
+
 原型需要体现：
 
 - Apple-like 浅色、高级、简约风格。

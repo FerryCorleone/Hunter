@@ -28,6 +28,7 @@ final class HunterApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         state.launchAtLogin = LoginItemController().isEnabled
+        state.refreshPermissions()
         floatingWindow = FloatingWindowController(
             state: state,
             onReply: { [weak self] in self?.voiceCommands.recordShortCommand() },

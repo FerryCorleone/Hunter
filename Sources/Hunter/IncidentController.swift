@@ -5,6 +5,7 @@ final class IncidentController {
     private let state: AppState
     private let dashScope = DashScopeClient()
     private let speechPlayer = SpeechPlayer()
+    private let notifications = NotificationController()
     private var lastIncidentByRule: [UUID: Date] = [:]
     private let cooldown: TimeInterval = 45
 
@@ -56,6 +57,9 @@ final class IncidentController {
                     )
                     await MainActor.run {
                         state.providerStatus = "LLM + cloud TTS OK"
+                        Task {
+                            await notifications.notifyCatch(target: incident.targetName, roast: roast)
+                        }
                         do {
                             try speechPlayer.play(audioData: audio)
                         } catch {
@@ -66,12 +70,18 @@ final class IncidentController {
                 } catch {
                     await MainActor.run {
                         state.providerStatus = "Cloud TTS fallback: \(error.localizedDescription)"
+                        Task {
+                            await notifications.notifyCatch(target: incident.targetName, roast: roast)
+                        }
                         speechPlayer.speak(roast)
                     }
                 }
             } catch {
                 await MainActor.run {
                     state.providerStatus = "LLM fallback: \(error.localizedDescription)"
+                    Task {
+                        await notifications.notifyCatch(target: incident.targetName, roast: fallback)
+                    }
                     speechPlayer.speak(fallback)
                 }
             }
@@ -118,8 +128,11 @@ final class IncidentController {
                         languageCode: state.targetLanguageCode()
                     )
                     await MainActor.run {
-                        state.providerStatus = "ASR + LLM + cloud TTS reply OK"
-                        do {
+                    state.providerStatus = "ASR + LLM + cloud TTS reply OK"
+                    Task {
+                        await notifications.notifyCatch(target: responseIncident.targetName, roast: responseIncident.roast)
+                    }
+                    do {
                             try speechPlayer.play(audioData: audio)
                         } catch {
                             state.providerStatus = "Reply audio playback failed: \(error.localizedDescription)"

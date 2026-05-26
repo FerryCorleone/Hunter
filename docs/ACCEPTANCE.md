@@ -14,6 +14,7 @@
 | 单元测试通过 | Pass | `swift test`，9 个测试覆盖时长解析、工作时段和黑名单匹配 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | App 可启动并创建窗口 | Pass | `open build/Hunter.app` 后 CoreGraphics 可见 `Hunter` 设置窗和悬浮窗 |
+| 权限引导 | Pass | 设置页展示辅助功能、麦克风、通知状态，并提供系统设置/通知请求入口 |
 | 界面中英文切换 | Partial | 设置页和悬浮窗主文案已跟随语言切换，后续可升级为正式 strings 资源 |
 | 工作时段配置 | Pass | 设置页支持多个时段、工作日/周末开关，单测覆盖日间、跨午夜、多时段和周末排除 |
 | 网站/App 黑名单配置 | Pass | 设置页支持新增、删除、启用/停用规则，并提供常见平台预设 |
@@ -27,6 +28,7 @@
 | 前台 App 检测 | Partial | 代码使用 `NSWorkspace`；真实黑名单命中需桌面交互验收 |
 | Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 代码使用 AppleScript；需浏览器自动化授权后验收 |
 | 今日历史统计与清理 | Pass | 历史页展示今日抓包、Top 对象，支持复制语录和清除日志 |
+| 本地通知降级反馈 | Pass | 通知授权后，抓包/回击成功会发送无声本地通知 |
 | 安全与隐私 | Pass | `.env.local` 被忽略，API Key 可写 Keychain，仓库未发现明文 key |
 | 音色克隆 | Not in MVP | 需要用户授权样本或选择声音设计方案 |
 | 登录时启动 | Pass | 设置页开关接入 `SMAppService.mainApp.register/unregister` |

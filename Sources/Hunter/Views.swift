@@ -233,6 +233,7 @@ struct GeneralPanel: View {
     @ObservedObject var state: AppState
     let onStartFocus: () -> Void
     @State private var loginItemMessage = ""
+    @State private var permissionMessage = ""
 
     var body: some View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
@@ -310,6 +311,43 @@ struct GeneralPanel: View {
                     }
                 }
 
+                SettingCard(icon: "lock.shield", title: state.copy("权限", "Permissions"), subtitle: state.copy("辅助功能、麦克风和通知状态。", "Accessibility, microphone, and notification status.")) {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        PermissionRow(
+                            title: state.copy("辅助功能", "Accessibility"),
+                            state: state.permissions.accessibility,
+                            language: state.interfaceLanguage,
+                            actionTitle: state.copy("打开设置", "Open")
+                        ) {
+                            PermissionCenter().openAccessibilitySettings()
+                        }
+                        PermissionRow(
+                            title: state.copy("麦克风", "Microphone"),
+                            state: state.permissions.microphone,
+                            language: state.interfaceLanguage,
+                            actionTitle: state.copy("打开设置", "Open")
+                        ) {
+                            PermissionCenter().openMicrophoneSettings()
+                        }
+                        PermissionRow(
+                            title: state.copy("通知", "Notifications"),
+                            state: state.permissions.notifications,
+                            language: state.interfaceLanguage,
+                            actionTitle: state.copy("请求", "Request")
+                        ) {
+                            requestNotifications()
+                        }
+                        if !permissionMessage.isEmpty {
+                            Text(permissionMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .task {
+                        state.refreshPermissions()
+                    }
+                }
+
                 SettingCard(icon: "person", title: state.copy("登录时启动", "Launch at login"), subtitle: state.copy("登录 macOS 后自动运行 Hunter。", "Automatically run Hunter when you log in.")) {
                     VStack(alignment: .trailing, spacing: 6) {
                         Toggle("", isOn: launchAtLoginBinding)
@@ -373,6 +411,16 @@ struct GeneralPanel: View {
                 }
             }
         )
+    }
+
+    private func requestNotifications() {
+        Task {
+            let granted = await PermissionCenter().requestNotifications()
+            state.refreshPermissions()
+            permissionMessage = granted
+                ? state.copy("通知已允许", "Notifications allowed")
+                : state.copy("通知未允许", "Notifications not allowed")
+        }
     }
 }
 
@@ -679,6 +727,30 @@ struct StatPill: View {
         .frame(minWidth: 132, alignment: .leading)
         .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+    }
+}
+
+struct PermissionRow: View {
+    var title: String
+    var state: PermissionState
+    var language: AppLanguage
+    var actionTitle: String
+    var action: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(state == .allowed ? Color.green : Color.orange)
+                .frame(width: 8, height: 8)
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+            Text(state.label(language: language))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            Button(actionTitle, action: action)
+                .buttonStyle(.bordered)
+                .disabled(state == .allowed)
+        }
     }
 }
 

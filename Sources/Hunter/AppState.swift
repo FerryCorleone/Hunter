@@ -18,6 +18,7 @@ final class AppState: ObservableObject {
     @Published var events: [Incident] = []
     @Published var providerStatus: String = "Provider not tested"
     @Published var permissionStatus: String = "Waiting for permissions"
+    @Published var permissions = PermissionSnapshot()
 
     private let store: SettingsStore
 
@@ -97,6 +98,12 @@ final class AppState: ObservableObject {
 
     func eventsForToday(calendar: Calendar = .current) -> [Incident] {
         events.filter { calendar.isDateInToday($0.date) }
+    }
+
+    func refreshPermissions() {
+        Task {
+            permissions = await PermissionCenter().snapshot()
+        }
     }
 
     func targetLanguageCode() -> String {

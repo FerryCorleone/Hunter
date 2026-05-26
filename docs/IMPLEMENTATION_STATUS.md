@@ -19,6 +19,8 @@
 - 语音时长任务解析：中文/英文样例已加测试。
 - Option+Space 全局事件监听入口，未授权时提示需要辅助功能权限。
 - 麦克风 4 秒短录音入口。
+- 权限引导：设置页展示辅助功能、麦克风、通知状态；支持打开对应系统设置或请求通知权限。
+- 本地通知：如果用户授权通知，抓包/回击成功时会发送无声本地通知作为可见降级反馈。
 - 阿里 Paraformer WebSocket ASR 代码路径。
 - 阿里 Qwen Turbo LLM 抓包吐槽和语音回击代码路径。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
@@ -48,8 +50,8 @@
 ## 未完成 / 下一步
 
 - 当前运行环境截图返回黑图，需在已授权屏幕录制/已解锁桌面环境中补完整 UI 截图、浮窗交互和状态栏菜单验收。
-- 验证 Option+Space 辅助功能授权流程；当前已接 `AXIsProcessTrustedWithOptions` 主动弹出辅助功能权限提示。
-- 验证麦克风权限弹窗、录音、Paraformer ASR 返回文本。
+- 验证 Option+Space 辅助功能授权后的真实按住说话流程。
+- 验证麦克风权限弹窗、真实录音、Paraformer ASR 返回文本。
 - 端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
 - Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。

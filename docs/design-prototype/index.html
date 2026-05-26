@@ -1,28 +1,26 @@
 <!doctype html>
-<html lang="zh-Hans">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hunter Apple-like Prototype</title>
+    <title>Hunter Apple-like Reference Replica</title>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f5f5f7;
-        --desktop: #eef0f4;
-        --window: rgba(255, 255, 255, 0.76);
-        --window-strong: rgba(255, 255, 255, 0.92);
-        --line: rgba(0, 0, 0, 0.09);
-        --line-strong: rgba(0, 0, 0, 0.14);
-        --text: #1d1d1f;
-        --muted: #6e6e73;
-        --blue: #007aff;
-        --green: #34c759;
-        --red: #ff3b30;
-        --yellow: #ffcc00;
-        --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.12);
-        --shadow-window: 0 30px 80px rgba(0, 0, 0, 0.16);
-        --radius: 18px;
-        --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+        --ink: #17181c;
+        --muted: #69707b;
+        --muted-2: #8b929d;
+        --line: rgba(28, 31, 36, 0.12);
+        --line-soft: rgba(28, 31, 36, 0.08);
+        --glass: rgba(255, 255, 255, 0.74);
+        --glass-strong: rgba(255, 255, 255, 0.9);
+        --blue: #4f82ff;
+        --blue-strong: #2f6df3;
+        --red: #ff3535;
+        --green: #37c759;
+        --shadow-window: 0 28px 72px rgba(25, 39, 58, 0.2);
+        --shadow-card: 0 12px 30px rgba(30, 42, 60, 0.12);
+        --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
       }
 
       * {
@@ -31,1116 +29,974 @@
 
       body {
         margin: 0;
-        min-width: 1120px;
-        min-height: 100vh;
-        background: var(--bg);
-        color: var(--text);
+        min-width: 1600px;
+        min-height: 960px;
+        overflow: hidden;
+        background: #d9e4ed;
+        color: var(--ink);
         font-family: var(--font);
         font-size: 14px;
-        line-height: 1.45;
+        letter-spacing: 0;
       }
 
       button,
-      input,
       select {
         font: inherit;
       }
 
       button {
+        border: 0;
         cursor: pointer;
-      }
-
-      .stage {
-        min-height: 100vh;
-        padding: 28px;
-      }
-
-      .hero {
-        display: grid;
-        grid-template-columns: 1.08fr 0.92fr;
-        gap: 22px;
-        max-width: 1360px;
-        margin: 0 auto;
       }
 
       .desktop {
         position: relative;
-        min-height: 720px;
+        width: 1600px;
+        height: 960px;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 28px;
         background:
-          linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.16)),
-          var(--desktop);
-        box-shadow: var(--shadow-window);
+          radial-gradient(circle at 62% 12%, rgba(255, 255, 255, 0.84) 0 16%, transparent 34%),
+          linear-gradient(180deg, #dbeafb 0%, #eaf4fb 30%, #b9cedb 58%, #83abc1 100%);
       }
 
-      .menubar {
+      .desktop::before {
+        content: "";
+        position: absolute;
+        left: -120px;
+        top: 322px;
+        width: 760px;
+        height: 510px;
+        clip-path: polygon(0 100%, 0 22%, 20% 12%, 34% 22%, 45% 6%, 60% 24%, 72% 14%, 84% 32%, 100% 40%, 100% 100%);
+        background:
+          linear-gradient(135deg, rgba(58, 49, 45, 0.82), rgba(176, 151, 125, 0.68) 42%, rgba(79, 91, 93, 0.72)),
+          linear-gradient(180deg, #8c755f, #3d494f);
+        filter: saturate(0.92);
+      }
+
+      .desktop::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 455px;
+        background:
+          repeating-linear-gradient(174deg, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 34px),
+          linear-gradient(180deg, rgba(147, 179, 196, 0.9), rgba(92, 144, 169, 0.94));
+      }
+
+      .haze {
+        position: absolute;
+        inset: 38px 0 0;
+        background:
+          radial-gradient(ellipse at 45% 54%, rgba(255, 255, 255, 0.58) 0 12%, transparent 36%),
+          linear-gradient(90deg, transparent 0 22%, rgba(255, 255, 255, 0.22) 34% 75%, transparent 100%);
+        pointer-events: none;
+      }
+
+      .menu-bar {
+        position: absolute;
+        z-index: 20;
+        left: 0;
+        top: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 34px;
-        padding: 0 16px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        background: rgba(255, 255, 255, 0.58);
+        width: 100%;
+        height: 38px;
+        background: rgba(236, 246, 255, 0.58);
         backdrop-filter: blur(24px);
-        color: rgba(29, 29, 31, 0.76);
-        font-size: 12px;
+        color: #111217;
+        font-size: 15px;
+        font-weight: 520;
+        padding: 0 26px;
       }
 
-      .desktop-note {
-        position: absolute;
-        left: 34px;
-        top: 70px;
-        width: 270px;
-        color: rgba(29, 29, 31, 0.56);
-        font-size: 13px;
+      .menu-left,
+      .menu-right {
+        display: flex;
+        align-items: center;
+        gap: 26px;
       }
 
-      .orb {
+      .menu-left .apple {
+        font-size: 20px;
+        transform: translateY(-1px);
+      }
+
+      .status-icons {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: #111217;
+      }
+
+      .status-icons svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .desktop-orb {
         position: absolute;
-        left: 46px;
-        bottom: 42px;
+        z-index: 5;
+        left: 196px;
+        top: 183px;
         display: grid;
         place-items: center;
-        width: 58px;
-        height: 58px;
-        border: 1px solid rgba(255, 255, 255, 0.84);
+        width: 86px;
+        height: 86px;
+        border: 1px solid rgba(255, 255, 255, 0.9);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.72);
-        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.16);
-        backdrop-filter: blur(28px);
-        color: var(--text);
-        font-size: 19px;
-        font-weight: 760;
+        background: rgba(246, 249, 252, 0.74);
+        box-shadow: 0 18px 36px rgba(57, 75, 92, 0.23), inset 0 0 0 9px rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(26px);
+        color: #4a4d55;
+        font-size: 32px;
+        font-weight: 740;
       }
 
-      .orb::after {
+      .desktop-orb::after {
         content: "";
         position: absolute;
-        right: 6px;
-        top: 6px;
-        width: 10px;
-        height: 10px;
-        border: 2px solid rgba(255, 255, 255, 0.86);
+        right: 13px;
+        bottom: 12px;
+        width: 16px;
+        height: 16px;
+        border: 4px solid rgba(255, 255, 255, 0.86);
         border-radius: 999px;
         background: var(--green);
       }
 
-      .catch-widget {
+      .catch-card {
         position: absolute;
-        right: 34px;
-        bottom: 42px;
+        z-index: 7;
+        left: 186px;
+        top: 289px;
         width: 350px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.82);
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.78);
-        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.18);
-        backdrop-filter: blur(32px);
+        min-height: 268px;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 22px;
+        background: rgba(247, 250, 253, 0.78);
+        box-shadow: 0 22px 52px rgba(52, 66, 78, 0.24);
+        backdrop-filter: blur(32px) saturate(1.14);
+        padding: 22px 20px 18px;
       }
 
-      .session-toast {
-        position: absolute;
-        left: 118px;
-        bottom: 38px;
-        display: grid;
-        grid-template-columns: 28px 1fr auto;
-        gap: 12px;
+      .caught-head {
+        display: flex;
         align-items: center;
-        width: 302px;
-        min-height: 64px;
-        border: 1px solid rgba(255, 255, 255, 0.82);
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.78);
-        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.14);
-        backdrop-filter: blur(30px);
-        padding: 12px 14px;
+        justify-content: space-between;
+        margin-bottom: 22px;
+      }
+
+      .caught-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 17px;
+        font-weight: 690;
+      }
+
+      .youtube {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 22px;
+        border-radius: 7px;
+        background: #ff0f0f;
+        color: #fff;
+      }
+
+      .youtube svg {
+        width: 13px;
+        height: 13px;
+        fill: currentColor;
+      }
+
+      .caught-title em {
+        color: var(--red);
+        font-style: normal;
+      }
+
+      .close-dot {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.06);
+        color: rgba(30, 34, 39, 0.52);
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .roast-copy {
+        width: 292px;
+        color: #202127;
+        font-size: 15px;
+        line-height: 1.42;
+      }
+
+      .voice-wave {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        margin: 25px 0 20px;
+      }
+
+      .voice-wave span {
+        width: 4px;
+        border-radius: 999px;
+        background: #809cff;
+      }
+
+      .voice-wave span:nth-child(1) { height: 11px; opacity: .55; }
+      .voice-wave span:nth-child(2) { height: 21px; opacity: .72; }
+      .voice-wave span:nth-child(3) { height: 30px; opacity: .96; }
+      .voice-wave span:nth-child(4) { height: 18px; opacity: .65; }
+      .voice-wave span:nth-child(5) { height: 16px; opacity: .55; }
+      .voice-wave span:nth-child(6) { height: 20px; opacity: .68; }
+      .voice-wave span:nth-child(7) { height: 14px; opacity: .48; }
+      .voice-wave span:nth-child(8) { height: 18px; opacity: .62; }
+      .voice-wave span:nth-child(9) { height: 26px; opacity: .9; }
+      .voice-wave span:nth-child(10) { height: 31px; opacity: .92; }
+      .voice-wave span:nth-child(11) { height: 15px; opacity: .54; }
+      .voice-wave span:nth-child(12) { height: 20px; opacity: .66; }
+      .voice-wave span:nth-child(13) { height: 13px; opacity: .46; }
+      .voice-wave span:nth-child(14) { height: 32px; opacity: .94; }
+      .voice-wave span:nth-child(15) { height: 24px; opacity: .78; }
+      .voice-wave span:nth-child(16) { height: 9px; opacity: .42; }
+      .voice-wave span:nth-child(17) { height: 10px; opacity: .42; }
+      .voice-wave span:nth-child(18) { height: 8px; opacity: .36; }
+
+      .catch-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .reply-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 174px;
+        min-height: 50px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, #6f98ff, #4b7dff);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 22px rgba(61, 105, 238, 0.28);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 640;
+      }
+
+      .reply-button svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .pause-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        width: 128px;
+        min-height: 50px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.82);
+        color: #1b1d22;
+        font-size: 14px;
+        font-weight: 610;
+      }
+
+      .focus-toast {
+        position: absolute;
+        z-index: 6;
+        left: 186px;
+        top: 656px;
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        align-items: center;
+        gap: 16px;
+        width: 296px;
+        min-height: 86px;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 21px;
+        background: rgba(247, 250, 253, 0.76);
+        box-shadow: 0 18px 42px rgba(52, 66, 78, 0.18);
+        backdrop-filter: blur(28px) saturate(1.12);
+        padding: 0 18px;
       }
 
       .toast-check {
         display: grid;
         place-items: center;
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         border-radius: 999px;
         background: var(--green);
         color: #fff;
-        font-weight: 800;
+        font-weight: 780;
       }
 
       .toast-copy {
-        font-weight: 650;
-        line-height: 1.28;
+        color: #1d2026;
+        font-size: 15px;
+        font-weight: 590;
+        line-height: 1.32;
       }
 
-      .toast-close {
-        color: var(--muted);
-        font-size: 20px;
-        line-height: 1;
-      }
-
-      .widget-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.07);
-        padding: 15px 16px 12px;
-      }
-
-      .widget-kicker {
-        color: var(--red);
-        font-size: 12px;
-        font-weight: 720;
-        letter-spacing: 0;
-      }
-
-      .widget-target {
-        margin-top: 2px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .widget-time {
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .widget-body {
-        display: grid;
-        gap: 15px;
-        padding: 16px;
-      }
-
-      .roast {
-        min-height: 74px;
-        color: var(--text);
-        font-size: 21px;
-        font-weight: 760;
-        line-height: 1.28;
-        letter-spacing: 0;
-      }
-
-      .wave {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        height: 24px;
-      }
-
-      .wave span {
-        width: 4px;
-        border-radius: 999px;
-        background: var(--red);
-      }
-
-      .wave span:nth-child(1) { height: 8px; opacity: 0.42; }
-      .wave span:nth-child(2) { height: 16px; opacity: 0.55; }
-      .wave span:nth-child(3) { height: 22px; opacity: 0.92; }
-      .wave span:nth-child(4) { height: 13px; opacity: 0.7; }
-      .wave span:nth-child(5) { height: 20px; opacity: 0.86; }
-      .wave span:nth-child(6) { height: 10px; opacity: 0.48; }
-      .wave span:nth-child(7) { height: 17px; opacity: 0.7; }
-
-      .widget-actions {
-        display: flex;
-        gap: 10px;
-      }
-
-      .pill-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 34px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.78);
-        color: var(--text);
-        padding: 0 14px;
-        white-space: nowrap;
-      }
-
-      .pill-button.primary {
-        border-color: rgba(0, 122, 255, 0.24);
-        background: rgba(0, 122, 255, 0.1);
-        color: #0057b8;
-      }
-
-      .pill-button.danger {
-        border-color: rgba(255, 59, 48, 0.26);
-        background: rgba(255, 59, 48, 0.1);
-        color: #b6231d;
+      .toast-x {
+        color: rgba(40, 44, 50, 0.45);
+        font-size: 24px;
+        transform: translateY(-1px);
       }
 
       .app-window {
-        min-height: 720px;
+        position: absolute;
+        z-index: 8;
+        left: 640px;
+        top: 122px;
+        width: 900px;
+        height: 660px;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 28px;
-        background: var(--window);
+        border: 1px solid rgba(30, 34, 40, 0.14);
+        border-radius: 16px;
+        background: rgba(249, 250, 252, 0.78);
         box-shadow: var(--shadow-window);
-        backdrop-filter: blur(36px);
+        backdrop-filter: blur(32px) saturate(1.06);
       }
 
       .window-toolbar {
         position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 62px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        padding: 0 18px;
-      }
-
-      .window-title {
-        color: rgba(29, 29, 31, 0.82);
-        font-size: 13px;
-        font-weight: 680;
+        height: 64px;
+        border-bottom: 1px solid rgba(30, 34, 40, 0.1);
       }
 
       .traffic {
         position: absolute;
-        left: 18px;
+        left: 23px;
+        top: 25px;
         display: flex;
-        gap: 8px;
+        gap: 9px;
       }
 
       .traffic span {
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
         border-radius: 999px;
       }
 
-      .traffic span:nth-child(1) { background: #ff5f57; }
+      .traffic span:nth-child(1) { background: #ff6159; }
       .traffic span:nth-child(2) { background: #ffbd2e; }
       .traffic span:nth-child(3) { background: #28c840; }
 
-      .title-block {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .app-icon {
-        display: grid;
-        place-items: center;
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        background: #1d1d1f;
-        color: #fff;
-        font-weight: 760;
-      }
-
-      h1,
-      h2,
-      h3,
-      p {
-        margin: 0;
-      }
-
-      h1 {
+      .window-title {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 23px;
+        text-align: center;
+        color: #3d4047;
         font-size: 16px;
-        line-height: 1.2;
-        font-weight: 760;
-      }
-
-      h2 {
-        font-size: 20px;
-        line-height: 1.18;
-        font-weight: 760;
-      }
-
-      h3 {
-        font-size: 13px;
-        color: var(--muted);
-        font-weight: 720;
-      }
-
-      .subtle {
-        color: var(--muted);
-      }
-
-      .toolbar-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .segmented {
-        display: flex;
-        gap: 3px;
-        min-height: 34px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.04);
-        padding: 3px;
-      }
-
-      .segmented button {
-        min-width: 52px;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--muted);
-        padding: 0 12px;
-      }
-
-      .segmented button.active {
-        background: var(--window-strong);
-        color: var(--text);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-      }
-
-      .select {
-        min-height: 34px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.72);
-        color: var(--text);
-        padding: 0 14px;
+        font-weight: 650;
       }
 
       .window-body {
         display: grid;
-        grid-template-columns: 182px 1fr;
-        min-height: 658px;
+        grid-template-columns: 216px 1fr;
+        height: 596px;
       }
 
       .sidebar {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 22px;
-        border-right: 1px solid rgba(0, 0, 0, 0.08);
-        background: rgba(255, 255, 255, 0.34);
-        padding: 18px 12px;
-      }
-
-      .sidebar-brand {
-        display: grid;
-        gap: 8px;
-        padding: 0 8px 14px;
-      }
-
-      .brand-line {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .sidebar-controls {
-        display: grid;
-        gap: 10px;
-        padding: 14px 4px 0;
-        border-top: 1px solid rgba(0, 0, 0, 0.07);
-      }
-
-      .sidebar-control-label {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 700;
-      }
-
-      .sidebar .segmented,
-      .sidebar .select,
-      .sidebar .pill-button {
-        width: 100%;
-      }
-
-      .sidebar .segmented button {
-        flex: 1;
-        min-width: 0;
-        padding: 0 8px;
+        border-right: 1px solid rgba(30, 34, 40, 0.1);
+        background: rgba(244, 247, 250, 0.62);
+        padding: 25px 10px 20px 12px;
       }
 
       .nav {
         display: grid;
-        gap: 4px;
+        gap: 16px;
       }
 
       .nav button {
-        width: 100%;
-        min-height: 34px;
-        border: 0;
-        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 17px;
+        width: 194px;
+        height: 52px;
+        border-radius: 9px;
         background: transparent;
-        color: var(--text);
+        color: #383c44;
+        padding: 0 17px;
         text-align: left;
-        padding: 0 10px;
+        font-size: 16px;
+        font-weight: 500;
       }
 
       .nav button.active {
-        background: rgba(0, 122, 255, 0.12);
-        color: #0057b8;
-        font-weight: 700;
+        background: rgba(40, 48, 60, 0.08);
+      }
+
+      .nav svg {
+        width: 25px;
+        height: 25px;
+        stroke: #4a5059;
+        stroke-width: 1.9;
+      }
+
+      .content {
+        padding: 22px 34px 0 34px;
       }
 
       .panel {
         display: none;
-        padding: 28px;
       }
 
       .panel.active {
         display: block;
       }
 
-      .panel-title {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
-        margin-bottom: 24px;
+      .page-title {
+        margin: 0;
+        color: #181a20;
+        font-size: 27px;
+        font-weight: 720;
+        line-height: 1.05;
       }
 
-      .panel-title p {
-        margin-top: 6px;
-        max-width: 520px;
-        color: var(--muted);
+      .page-subtitle {
+        margin: 11px 0 28px;
+        color: #717784;
+        font-size: 14px;
       }
 
-      .settings-list {
+      .cards {
         display: grid;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: var(--radius);
-        background: rgba(255, 255, 255, 0.64);
-        overflow: hidden;
-      }
-
-      .setting-row {
-        display: grid;
-        grid-template-columns: 190px 1fr auto;
         gap: 16px;
+      }
+
+      .setting-card {
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
         align-items: center;
-        min-height: 66px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.07);
-        padding: 12px 16px;
+        gap: 18px;
+        min-height: 108px;
+        border: 1px solid rgba(30, 34, 40, 0.1);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.54);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.62), 0 8px 22px rgba(30, 42, 60, 0.06);
+        padding: 0 25px;
       }
 
-      .setting-row:last-child {
-        border-bottom: 0;
+      .setting-card.compact {
+        grid-template-columns: 1fr auto;
       }
 
-      .setting-label strong {
+      .setting-icon {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        color: #555c66;
+      }
+
+      .setting-icon svg {
+        width: 34px;
+        height: 34px;
+        stroke: currentColor;
+        stroke-width: 1.8;
+      }
+
+      .setting-main strong {
         display: block;
-        color: var(--text);
+        color: #202228;
+        font-size: 15px;
+        font-weight: 700;
       }
 
-      .setting-label span {
+      .setting-main span {
         display: block;
-        margin-top: 2px;
-        color: var(--muted);
-        font-size: 12px;
+        margin-top: 7px;
+        color: #717784;
+        font-size: 13px;
       }
 
-      .value-line {
-        color: var(--text);
+      .setting-value {
+        color: #3b4048;
+        font-size: 16px;
+        font-weight: 500;
       }
 
-      .badge-row {
+      .change {
+        min-width: 88px;
+        height: 31px;
+        border: 1px solid rgba(25, 29, 36, 0.1);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #3d4149;
+        font-size: 13px;
+        box-shadow: 0 2px 5px rgba(20, 30, 42, 0.06);
+      }
+
+      .shortcut-pills {
         display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .keycap {
+        display: grid;
+        place-items: center;
+        min-width: 70px;
+        height: 39px;
+        border: 1px solid rgba(25, 29, 36, 0.1);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.7);
+        color: #3b4048;
+        font-size: 16px;
+        box-shadow: 0 2px 5px rgba(20, 30, 42, 0.05);
+      }
+
+      .toggle {
+        position: relative;
+        width: 52px;
+        height: 30px;
+        border-radius: 999px;
+        background: rgba(156, 161, 170, 0.5);
+      }
+
+      .toggle.on {
+        background: var(--blue-strong);
+      }
+
+      .toggle::after {
+        content: "";
+        position: absolute;
+        right: 3px;
+        top: 3px;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      }
+
+      .toggle:not(.on)::after {
+        left: 3px;
+        right: auto;
+      }
+
+      .provider-grid,
+      .history-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .provider-card,
+      .history-card {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        align-items: center;
+        gap: 16px;
+        min-height: 82px;
+        border: 1px solid rgba(30, 34, 40, 0.1);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.54);
+        padding: 0 20px;
+      }
+
+      .provider-type {
+        font-size: 16px;
+        font-weight: 740;
+        color: #22252b;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
       }
 
       .badge {
         display: inline-flex;
         align-items: center;
-        min-height: 24px;
+        justify-content: center;
+        height: 28px;
         border-radius: 999px;
-        background: rgba(0, 0, 0, 0.05);
-        color: var(--muted);
-        padding: 0 9px;
-        font-size: 12px;
-        white-space: nowrap;
-      }
-
-      .badge.green {
-        background: rgba(52, 199, 89, 0.12);
-        color: #167c32;
-      }
-
-      .badge.blue {
-        background: rgba(0, 122, 255, 0.1);
-        color: #0057b8;
-      }
-
-      .badge.red {
-        background: rgba(255, 59, 48, 0.1);
-        color: #b6231d;
-      }
-
-      .history {
-        display: grid;
-        gap: 10px;
-      }
-
-      .history-row {
-        display: grid;
-        grid-template-columns: 54px 118px 1fr auto;
-        gap: 12px;
-        align-items: center;
-        min-height: 54px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.6);
-        padding: 0 14px;
-      }
-
-      .copy-line {
-        overflow-wrap: anywhere;
-      }
-
-      .small-button {
-        min-height: 30px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.78);
-        color: var(--text);
+        background: rgba(55, 199, 89, 0.13);
+        color: #197b35;
         padding: 0 12px;
-        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 640;
       }
 
-      .provider-summary {
+      .dock {
+        position: absolute;
+        z-index: 12;
+        left: 121px;
+        bottom: 16px;
+        display: flex;
+        align-items: flex-end;
+        gap: 22px;
+        width: 1382px;
+        height: 76px;
+        border: 1px solid rgba(255, 255, 255, 0.54);
+        border-radius: 20px;
+        background: rgba(235, 242, 247, 0.58);
+        box-shadow: 0 12px 36px rgba(30, 44, 60, 0.2);
+        backdrop-filter: blur(30px) saturate(1.15);
+        padding: 10px 24px;
+      }
+
+      .dock-icon {
         display: grid;
-        gap: 12px;
-      }
-
-      .provider-row {
-        display: grid;
-        grid-template-columns: 54px 1fr auto auto;
-        gap: 12px;
-        align-items: center;
-        min-height: 64px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.62);
-        padding: 0 14px;
-      }
-
-      .provider-name {
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        border-radius: 13px;
+        background: linear-gradient(180deg, #ffffff, #dce6f0);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 7px 12px rgba(20, 30, 44, 0.14);
+        color: #fff;
+        font-size: 24px;
         font-weight: 760;
       }
 
-      .provider-detail {
-        color: var(--muted);
-        font-size: 12px;
+      .dock-icon.finder { background: linear-gradient(90deg, #68caff 0 50%, #f2f6ff 50%); color: #17243a; }
+      .dock-icon.launch { background: linear-gradient(135deg, #b7f280, #ffd65a 33%, #ff816c 66%, #6cbcff); }
+      .dock-icon.safari { background: radial-gradient(circle, #ffffff 0 18%, #2ea9ff 19% 100%); }
+      .dock-icon.messages { background: linear-gradient(180deg, #72f274, #17c644); }
+      .dock-icon.mail { background: linear-gradient(180deg, #68b9ff, #317eea); }
+      .dock-icon.calendar { background: linear-gradient(180deg, #fff 0 28%, #ff5f52 29% 100%); color: #fff; font-size: 15px; }
+      .dock-icon.notes { background: linear-gradient(180deg, #ffd958 0 30%, #fff 31%); color: #494d55; }
+      .dock-icon.maps { background: linear-gradient(135deg, #58d27d, #f7f6e8 44%, #4f8fff 45%); }
+      .dock-icon.photos { background: conic-gradient(#ff4b6c, #ffcb3d, #43d46b, #45a2ff, #b653ff, #ff4b6c); }
+      .dock-icon.facetime { background: linear-gradient(180deg, #66ef76, #1ac957); }
+      .dock-icon.music { background: linear-gradient(180deg, #ff6d85, #f23558); }
+      .dock-icon.tv { background: #17181d; font-size: 18px; }
+      .dock-icon.podcast { background: linear-gradient(180deg, #d569ff, #8b35dd); }
+      .dock-icon.news { background: #f6f7f9; color: #ff3156; }
+      .dock-icon.appstore { background: linear-gradient(180deg, #52c5ff, #1678ed); }
+      .dock-icon.settings { background: linear-gradient(180deg, #dfe4ea, #aeb6c1); color: #59606a; }
+      .dock-icon.trash { background: linear-gradient(180deg, #f8f9fb, #dfe5eb); color: #8b929c; }
+
+      .dock-spacer {
+        width: 1px;
+        height: 52px;
+        background: rgba(72, 82, 94, 0.22);
+        margin: 0 2px;
       }
 
-      .mini-form {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 18px;
-      }
-
-      .field {
-        display: grid;
-        gap: 6px;
-      }
-
-      .field label {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .input {
-        width: 100%;
-        min-height: 38px;
-        border: 1px solid rgba(0, 0, 0, 0.09);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.76);
-        color: var(--text);
-        padding: 0 11px;
-      }
-
-      @media (max-width: 980px) {
-        body {
-          min-width: 0;
-        }
-
-        .stage {
-          padding: 16px;
-        }
-
-        .hero {
-          grid-template-columns: 1fr;
-        }
-
-        .desktop,
-        .app-window {
-          min-height: 650px;
-        }
-
-        .window-body {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-          border-right: 0;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        }
-
-        .nav {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
-
-        .setting-row,
-        .provider-row,
-        .history-row {
-          grid-template-columns: 1fr;
-          align-items: start;
-          padding: 14px;
-        }
-
-        .mini-form {
-          grid-template-columns: 1fr;
-        }
+      .icon-stroke {
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
     </style>
   </head>
   <body>
-    <main class="stage">
-      <section class="hero">
-        <div class="desktop" aria-label="Floating supervisor preview">
-          <div class="menubar">
-            <span>Finder&nbsp;&nbsp;File&nbsp;&nbsp;Edit&nbsp;&nbsp;View&nbsp;&nbsp;Window</span>
-            <span>Wed 10:21 AM</span>
+    <main class="desktop" aria-label="Hunter macOS design replica">
+      <div class="haze"></div>
+      <header class="menu-bar" aria-label="macOS menu bar">
+        <div class="menu-left">
+          <span class="apple"></span>
+          <strong>Finder</strong>
+          <span>File</span>
+          <span>Edit</span>
+          <span>View</span>
+          <span>Go</span>
+          <span>Window</span>
+          <span>Help</span>
+        </div>
+        <div class="menu-right">
+          <div class="status-icons">
+            <svg viewBox="0 0 24 24" aria-label="Wi-Fi">
+              <path d="M5 9.5a11 11 0 0 1 14 0" />
+              <path d="M8.5 13a6 6 0 0 1 7 0" />
+              <path d="M12 17h.01" />
+            </svg>
+            <svg viewBox="0 0 24 24" aria-label="Battery">
+              <rect x="3" y="7" width="16" height="10" rx="2" />
+              <path d="M21 11v2" />
+              <path d="M6 10h8v4H6z" />
+            </svg>
+            <svg viewBox="0 0 24 24" aria-label="Search">
+              <circle cx="11" cy="11" r="6" />
+              <path d="m16 16 4 4" />
+            </svg>
+            <svg viewBox="0 0 24 24" aria-label="Control">
+              <rect x="6" y="5" width="12" height="14" rx="2" />
+              <path d="M9 9h6M9 13h6" />
+            </svg>
           </div>
-          <p class="desktop-note" data-i18n="desktop_note">
-            日常只保留一个轻量悬浮球；抓到摸鱼时，它才展开成语音小组件。
-          </p>
-          <div class="orb" aria-label="Hunter floating orb">H</div>
-          <div class="session-toast" aria-label="Focus session started">
-            <div class="toast-check">✓</div>
-            <div>
-              <div class="toast-copy" data-i18n="session_started">40 分钟监督已开始</div>
-              <div class="widget-target" data-i18n="session_source">语音指令创建</div>
-            </div>
-            <div class="toast-close">×</div>
+          <span>Mon May 26&nbsp;&nbsp;10:41 AM</span>
+        </div>
+      </header>
+
+      <div class="desktop-orb" aria-label="Hunter floating orb">H</div>
+
+      <section class="catch-card" aria-label="Caught widget">
+        <div class="caught-head">
+          <div class="caught-title">
+            <span class="youtube" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 7.7v8.6l7-4.3z" /></svg>
+            </span>
+            <span>Caught on <em>YouTube</em></span>
           </div>
-          <div class="catch-widget">
-            <div class="widget-head">
-              <div>
-                <div class="widget-kicker" data-i18n="caught">Caught</div>
-                <div class="widget-target" id="widgetTarget">bilibili.com</div>
-              </div>
-              <div class="widget-time">10:21</div>
-            </div>
-            <div class="widget-body">
-              <div class="roast" id="roastText">你又来了？今天的 KPI 是把推荐算法喂饱吗？</div>
-              <div class="wave" aria-label="Speaking">
-                <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-              </div>
-              <div class="widget-actions">
-                <button class="pill-button danger" data-i18n="reply_hotkey">按住 Option Space 回击</button>
-                <button class="pill-button" data-i18n="pause_short">暂停 5 分钟</button>
-              </div>
-            </div>
-          </div>
+          <button class="close-dot" aria-label="Close">×</button>
+        </div>
+        <p class="roast-copy">
+          Seriously? Another cat video marathon? Your future self is facepalming right now.
+        </p>
+        <div class="voice-wave" aria-label="Speaking waveform">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="catch-actions">
+          <button class="reply-button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path class="icon-stroke" d="M12 3v9" />
+              <path class="icon-stroke" d="M8 7v5a4 4 0 0 0 8 0V7" />
+              <path class="icon-stroke" d="M5 11v1a7 7 0 0 0 14 0v-1" />
+              <path class="icon-stroke" d="M12 19v2" />
+            </svg>
+            <span>Hold Option Space<br />to reply</span>
+          </button>
+          <button class="pause-button">
+            <span>Ⅱ</span>
+            <span>Pause 5 min</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="focus-toast" aria-label="Focus session confirmation">
+        <div class="toast-check">✓</div>
+        <div class="toast-copy">40-minute focus session<br />started</div>
+        <div class="toast-x">×</div>
+      </section>
+
+      <section class="app-window" aria-label="Hunter settings window">
+        <div class="window-toolbar">
+          <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="window-title">Hunter</div>
         </div>
 
-        <div class="app-window">
-          <div class="window-toolbar">
-            <div class="traffic"><span></span><span></span><span></span></div>
-            <div class="window-title">Hunter</div>
-          </div>
+        <div class="window-body">
+          <aside class="sidebar">
+            <nav class="nav" aria-label="Settings sections">
+              <button class="active" data-panel-target="general">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="icon-stroke" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                  <path class="icon-stroke" d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05a2 2 0 0 1-2.83 2.83l-.05-.05a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 0 1-4 0v-.07A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.05.05a2 2 0 0 1-2.83-2.83l.05-.05A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 0 1 0-4h.07A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.05-.05a2 2 0 0 1 2.83-2.83l.05.05A1.7 1.7 0 0 0 9 4.63 1.7 1.7 0 0 0 10 3.07V3a2 2 0 0 1 4 0v.07A1.7 1.7 0 0 0 15 4.63a1.7 1.7 0 0 0 1.88-.34l.05-.05a2 2 0 0 1 2.83 2.83l-.05.05A1.7 1.7 0 0 0 19.37 9c.16.62.65 1 1.56 1H21a2 2 0 0 1 0 4h-.07A1.7 1.7 0 0 0 19.4 15Z" />
+                </svg>
+                <span>General</span>
+              </button>
+              <button data-panel-target="watchlist">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="icon-stroke" d="M12 3 20 6v6c0 5-3.3 7.8-8 9-4.7-1.2-8-4-8-9V6l8-3Z" />
+                  <path class="icon-stroke" d="m9 12 2 2 4-5" />
+                </svg>
+                <span>Watchlist</span>
+              </button>
+              <button data-panel-target="providers">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="icon-stroke" d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+                  <path class="icon-stroke" d="m4 7.5 8 4.5 8-4.5" />
+                  <path class="icon-stroke" d="M12 12v9" />
+                </svg>
+                <span>AI</span>
+              </button>
+              <button data-panel-target="voice">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="icon-stroke" d="M11 5 6 9H3v6h3l5 4V5Z" />
+                  <path class="icon-stroke" d="M16 9.5a4 4 0 0 1 0 5" />
+                  <path class="icon-stroke" d="M19 7a8 8 0 0 1 0 10" />
+                </svg>
+                <span>Voice</span>
+              </button>
+              <button data-panel-target="history">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="icon-stroke" d="M12 21a9 9 0 1 0-8.4-12.2" />
+                  <path class="icon-stroke" d="M3 4v5h5" />
+                  <path class="icon-stroke" d="M12 7v5l3 2" />
+                </svg>
+                <span>History</span>
+              </button>
+            </nav>
+          </aside>
 
-          <div class="window-body">
-            <aside class="sidebar">
-              <div>
-                <div class="sidebar-brand">
-                  <div class="brand-line">
-                    <div class="app-icon">H</div>
-                    <div>
-                      <h1>Hunter</h1>
-                      <p class="subtle" data-i18n="app_subtitle">简约 AI 监督器</p>
-                    </div>
-                  </div>
-                </div>
-                <nav class="nav" aria-label="Settings sections">
-                  <button class="active" data-panel-target="general" data-i18n="nav_general">通用</button>
-                  <button data-panel-target="watchlist" data-i18n="nav_watchlist">黑名单</button>
-                  <button data-panel-target="providers" data-i18n="nav_providers">AI</button>
-                  <button data-panel-target="voice" data-i18n="nav_voice">声音</button>
-                  <button data-panel-target="history" data-i18n="nav_history">历史</button>
-                </nav>
-              </div>
-              <div class="sidebar-controls">
-                <div class="sidebar-control-label" data-i18n="interface_language">界面语言</div>
-                <div class="segmented" aria-label="Interface language">
-                  <button class="active" data-locale="zh">中文</button>
-                  <button data-locale="en">EN</button>
-                </div>
-                <div class="sidebar-control-label" data-i18n="ai_language_short">AI 语言</div>
-                <select class="select" id="aiLanguage" aria-label="AI language">
-                  <option value="zh">AI: 中文</option>
-                  <option value="en">AI: English</option>
-                  <option value="follow">AI: Follow UI</option>
-                </select>
-                <button class="pill-button primary" data-i18n="start">开始</button>
-              </div>
-            </aside>
-
+          <main class="content">
             <section class="panel active" id="general">
-              <div class="panel-title">
-                <div>
-                  <h2 data-i18n="general_title">悬浮监督器</h2>
-                  <p data-i18n="general_desc">把 Hunter 保持在桌面边缘，平时安静，抓包时才展开。</p>
+              <h1 class="page-title">General</h1>
+              <p class="page-subtitle">Basic settings for your focus sessions.</p>
+              <div class="cards">
+                <div class="setting-card">
+                  <div class="setting-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="icon-stroke" cx="12" cy="12" r="9" />
+                      <path class="icon-stroke" d="M12 7v6l4 2" />
+                    </svg>
+                  </div>
+                  <div class="setting-main">
+                    <strong>Focus session</strong>
+                    <span>Start a focus session by voice or manually.</span>
+                  </div>
+                  <div class="shortcut-pills">
+                    <span class="setting-value">40 min</span>
+                    <button class="change">Change...</button>
+                  </div>
                 </div>
-                <span class="badge green" data-i18n="monitoring">正在监督</span>
-              </div>
-              <div class="settings-list">
-                <div class="setting-row">
-                  <div class="setting-label">
-                    <strong data-i18n="focus_session">时长任务</strong>
-                    <span data-i18n="focus_session_hint">语音创建的临时监督</span>
+
+                <div class="setting-card">
+                  <div class="setting-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="icon-stroke" cx="12" cy="12" r="9" />
+                      <circle class="icon-stroke" cx="12" cy="12" r="4" />
+                    </svg>
                   </div>
-                  <div>
-                    <div class="value-line" data-i18n="focus_session_value">40 分钟监督中</div>
-                    <div class="provider-detail" data-i18n="focus_session_command">语音指令：监督我接下来的 40 分钟</div>
+                  <div class="setting-main">
+                    <strong>Floating widget</strong>
+                    <span>Show the floating widget on desktop.</span>
                   </div>
-                  <button class="small-button" data-i18n="change">更改</button>
+                  <button class="toggle on" aria-label="Floating widget on"></button>
                 </div>
-                <div class="setting-row">
-                  <div class="setting-label">
-                    <strong data-i18n="work_hours">工作时间</strong>
-                    <span data-i18n="work_hours_hint">只在这些时间段监督</span>
+
+                <div class="setting-card">
+                  <div class="setting-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path class="icon-stroke" d="M8 4v16M16 4v16M4 8h16M4 16h16" />
+                    </svg>
                   </div>
-                  <div class="value-line">09:30-12:00, 14:00-18:30</div>
-                  <button class="small-button" data-i18n="edit">编辑</button>
+                  <div class="setting-main">
+                    <strong>Reply shortcut</strong>
+                    <span>Hold to talk and reply to Hunter.</span>
+                  </div>
+                  <div class="shortcut-pills">
+                    <span class="keycap">Option</span>
+                    <span class="keycap">Space</span>
+                    <button class="change">Change...</button>
+                  </div>
                 </div>
-                <div class="setting-row">
-                  <div class="setting-label">
-                    <strong data-i18n="floating_widget">悬浮小组件</strong>
-                    <span data-i18n="floating_widget_hint">默认 58px，抓包时展开</span>
+
+                <div class="setting-card">
+                  <div class="setting-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="icon-stroke" cx="12" cy="8" r="4" />
+                      <path class="icon-stroke" d="M5 21a7 7 0 0 1 14 0" />
+                    </svg>
                   </div>
-                  <div class="badge-row">
-                    <span class="badge blue" data-i18n="minimal">简约</span>
-                    <span class="badge">58px</span>
-                    <span class="badge" data-i18n="edge_snap">边缘吸附</span>
+                  <div class="setting-main">
+                    <strong>Launch at login</strong>
+                    <span>Automatically run Hunter when you log in.</span>
                   </div>
-                  <button class="small-button" data-i18n="preview">预览</button>
-                </div>
-                <div class="setting-row">
-                  <div class="setting-label">
-                    <strong data-i18n="hotkey">语音回击快捷键</strong>
-                    <span data-i18n="hotkey_hint">按住说话，松开发送</span>
-                  </div>
-                  <div class="value-line">Option Space</div>
-                  <button class="small-button" data-i18n="change">更改</button>
-                </div>
-                <div class="setting-row">
-                  <div class="setting-label">
-                    <strong data-i18n="launch">开机启动</strong>
-                    <span data-i18n="launch_hint">登录后自动开始监督</span>
-                  </div>
-                  <div class="value-line" data-i18n="off">关闭</div>
-                  <button class="small-button" data-i18n="turn_on">开启</button>
+                  <button class="toggle" aria-label="Launch at login off"></button>
                 </div>
               </div>
             </section>
 
             <section class="panel" id="watchlist">
-              <div class="panel-title">
-                <div>
-                  <h2 data-i18n="watchlist_title">黑名单</h2>
-                  <p data-i18n="watchlist_desc">只保留最常摸鱼的网站和 App，规则越少越准。</p>
+              <h1 class="page-title">Watchlist</h1>
+              <p class="page-subtitle">Sites and apps that trigger the floating supervisor.</p>
+              <div class="cards">
+                <div class="setting-card compact">
+                  <div class="setting-main"><strong>YouTube</strong><span>youtube.com</span></div>
+                  <span class="badge">Enabled</span>
                 </div>
-                <button class="pill-button primary" data-i18n="add_rule">添加</button>
-              </div>
-              <div class="settings-list">
-                <div class="setting-row">
-                  <div class="setting-label"><strong>Bilibili</strong><span>Website</span></div>
-                  <div class="value-line">bilibili.com</div>
-                  <span class="badge green" data-i18n="enabled">启用</span>
+                <div class="setting-card compact">
+                  <div class="setting-main"><strong>Bilibili</strong><span>bilibili.com</span></div>
+                  <span class="badge">Enabled</span>
                 </div>
-                <div class="setting-row">
-                  <div class="setting-label"><strong>YouTube</strong><span>Website</span></div>
-                  <div class="value-line">youtube.com</div>
-                  <span class="badge green" data-i18n="enabled">启用</span>
-                </div>
-                <div class="setting-row">
-                  <div class="setting-label"><strong>Steam</strong><span>App</span></div>
-                  <div class="value-line">com.valvesoftware.steam</div>
-                  <span class="badge green" data-i18n="enabled">启用</span>
+                <div class="setting-card compact">
+                  <div class="setting-main"><strong>Steam</strong><span>com.valvesoftware.steam</span></div>
+                  <span class="badge">Enabled</span>
                 </div>
               </div>
             </section>
 
             <section class="panel" id="providers">
-              <div class="panel-title">
-                <div>
-                  <h2 data-i18n="providers_title">AI Provider</h2>
-                  <p data-i18n="providers_desc">ASR、LLM、TTS 分开配置。普通用户只需要填 API Key，高级字段可展开。</p>
+              <h1 class="page-title">AI</h1>
+              <p class="page-subtitle">Configurable ASR, LLM, and TTS providers.</p>
+              <div class="provider-grid">
+                <div class="provider-card">
+                  <div class="provider-type">ASR</div>
+                  <div><strong>Aliyun Bailian</strong><div class="muted">paraformer-realtime-v2</div></div>
+                  <span class="badge">Connected</span>
                 </div>
-                <button class="pill-button primary" data-i18n="test_all">端到端测试</button>
-              </div>
-              <div class="provider-summary">
-                <div class="provider-row">
-                  <div class="provider-name">ASR</div>
-                  <div>
-                    <div>Aliyun Bailian</div>
-                    <div class="provider-detail">paraformer-realtime-v2</div>
-                  </div>
-                  <span class="badge green" data-i18n="connected">已连接</span>
-                  <button class="small-button" data-i18n="test">测试</button>
+                <div class="provider-card">
+                  <div class="provider-type">LLM</div>
+                  <div><strong>Aliyun Bailian</strong><div class="muted">qwen-turbo</div></div>
+                  <span class="badge">Connected</span>
                 </div>
-                <div class="provider-row">
-                  <div class="provider-name">LLM</div>
-                  <div>
-                    <div>Aliyun Bailian</div>
-                    <div class="provider-detail">qwen-turbo</div>
-                  </div>
-                  <span class="badge green" data-i18n="connected">已连接</span>
-                  <button class="small-button" data-i18n="test">测试</button>
-                </div>
-                <div class="provider-row">
-                  <div class="provider-name">TTS</div>
-                  <div>
-                    <div>Aliyun Bailian</div>
-                    <div class="provider-detail">cosyvoice-v3.5-flash · longxiaochun</div>
-                  </div>
-                  <span class="badge blue" data-i18n="voice_set">音色已设</span>
-                  <button class="small-button" data-i18n="test">测试</button>
-                </div>
-              </div>
-              <div class="mini-form">
-                <div class="field">
-                  <label>Base URL</label>
-                  <input class="input" value="https://dashscope.aliyuncs.com/compatible-mode/v1" />
-                </div>
-                <div class="field">
-                  <label>API Key</label>
-                  <input class="input" value="Stored in Keychain" />
+                <div class="provider-card">
+                  <div class="provider-type">TTS</div>
+                  <div><strong>Aliyun Bailian</strong><div class="muted">cosyvoice-v3.5-flash</div></div>
+                  <span class="badge">Voice set</span>
                 </div>
               </div>
             </section>
 
             <section class="panel" id="voice">
-              <div class="panel-title">
-                <div>
-                  <h2 data-i18n="voice_title">声音与语言</h2>
-                  <p data-i18n="voice_desc">界面语言和 AI 对喷语言可以分开设置。</p>
+              <h1 class="page-title">Voice</h1>
+              <p class="page-subtitle">Language, persona, and voice style.</p>
+              <div class="cards">
+                <div class="setting-card compact">
+                  <div class="setting-main"><strong>Interface language</strong><span>Chinese / English</span></div>
+                  <button class="change">Edit</button>
                 </div>
-              </div>
-              <div class="settings-list">
-                <div class="setting-row">
-                  <div class="setting-label"><strong data-i18n="ui_language">界面语言</strong><span>Interface</span></div>
-                  <div class="value-line">中文 / English</div>
-                  <button class="small-button" data-i18n="edit">编辑</button>
+                <div class="setting-card compact">
+                  <div class="setting-main"><strong>Roast language</strong><span>Follow UI / Chinese / English</span></div>
+                  <button class="change">Edit</button>
                 </div>
-                <div class="setting-row">
-                  <div class="setting-label"><strong data-i18n="ai_language">AI 监督语言</strong><span>Roast language</span></div>
-                  <div class="value-line">中文 / English / Follow UI</div>
-                  <button class="small-button" data-i18n="edit">编辑</button>
-                </div>
-                <div class="setting-row">
-                  <div class="setting-label"><strong data-i18n="role">角色</strong><span>Persona</span></div>
-                  <div class="value-line" data-i18n="role_value">毒舌同事 · 阴阳怪气</div>
-                  <button class="small-button" data-i18n="preview">预览</button>
-                </div>
-                <div class="setting-row">
-                  <div class="setting-label"><strong data-i18n="voice_clone">音色复刻</strong><span>Consent required</span></div>
-                  <div class="value-line" data-i18n="voice_clone_value">未启用，需上传授权样本</div>
-                  <button class="small-button" data-i18n="setup">设置</button>
+                <div class="setting-card compact">
+                  <div class="setting-main"><strong>Voice clone</strong><span>Consent sample required.</span></div>
+                  <button class="change">Set up</button>
                 </div>
               </div>
             </section>
 
             <section class="panel" id="history">
-              <div class="panel-title">
-                <div>
-                  <h2 data-i18n="history_title">历史记录</h2>
-                  <p data-i18n="history_desc">只记录抓包摘要和名场面，默认不保存原始音频。</p>
-                </div>
-                <button class="pill-button" data-i18n="clear">清除</button>
-              </div>
-              <div class="history">
-                <div class="history-row">
-                  <span class="subtle">10:21</span>
-                  <strong>Bilibili</strong>
-                  <div class="copy-line" data-i18n="history_1">你又来了？今天的 KPI 是把推荐算法喂饱吗？</div>
-                  <button class="small-button" data-i18n="copy">复制</button>
-                </div>
-                <div class="history-row">
-                  <span class="subtle">10:07</span>
-                  <strong>WeChat</strong>
-                  <div class="copy-line" data-i18n="history_2">摸鱼摸到聊天框里了是吧，键盘都替你心虚。</div>
-                  <button class="small-button" data-i18n="copy">复制</button>
-                </div>
-                <div class="history-row">
-                  <span class="subtle">09:48</span>
-                  <strong>Steam</strong>
-                  <div class="copy-line" data-i18n="history_3">你上班开 Steam 的勇气比你的 OKR 还完整。</div>
-                  <button class="small-button" data-i18n="copy">复制</button>
-                </div>
+              <h1 class="page-title">History</h1>
+              <p class="page-subtitle">Recent catches and replayable one-liners.</p>
+              <div class="history-list">
+                <div class="history-card"><div class="muted">10:41</div><strong>YouTube</strong><button class="change">Copy</button></div>
+                <div class="history-card"><div class="muted">10:12</div><strong>WeChat</strong><button class="change">Copy</button></div>
+                <div class="history-card"><div class="muted">09:48</div><strong>Steam</strong><button class="change">Copy</button></div>
               </div>
             </section>
-          </div>
+          </main>
         </div>
       </section>
+
+      <footer class="dock" aria-label="macOS Dock">
+        <div class="dock-icon finder">⌘</div>
+        <div class="dock-icon launch">▦</div>
+        <div class="dock-icon safari"></div>
+        <div class="dock-icon messages">●</div>
+        <div class="dock-icon mail">✉</div>
+        <div class="dock-icon calendar">MAY<br />26</div>
+        <div class="dock-icon notes"></div>
+        <div class="dock-icon maps"></div>
+        <div class="dock-icon photos"></div>
+        <div class="dock-icon facetime">▶</div>
+        <div class="dock-icon music">♪</div>
+        <div class="dock-icon tv">tv</div>
+        <div class="dock-icon podcast">◎</div>
+        <div class="dock-icon news">N</div>
+        <div class="dock-icon appstore">A</div>
+        <div class="dock-icon settings">⚙</div>
+        <div class="dock-spacer"></div>
+        <div class="dock-icon trash">□</div>
+      </footer>
     </main>
 
     <script>
-      const copy = {
-        zh: {
-          desktop_note: "日常只保留一个轻量悬浮球；按住快捷键说“监督我接下来的 40 分钟”即可立刻开启时长任务。",
-          caught: "Caught",
-          session_started: "40 分钟监督已开始",
-          session_source: "语音指令创建",
-          reply_hotkey: "按住 Option Space 回击",
-          pause_short: "暂停 5 分钟",
-          app_subtitle: "简约 AI 监督器",
-          interface_language: "界面语言",
-          ai_language_short: "AI 语言",
-          start: "开始",
-          nav_general: "通用",
-          nav_watchlist: "黑名单",
-          nav_providers: "AI",
-          nav_voice: "声音",
-          nav_history: "历史",
-          general_title: "悬浮监督器",
-          general_desc: "把 Hunter 保持在桌面边缘，平时安静，抓包时才展开。",
-          monitoring: "正在监督",
-          focus_session: "时长任务",
-          focus_session_hint: "语音创建的临时监督",
-          focus_session_value: "40 分钟监督中",
-          focus_session_command: "语音指令：监督我接下来的 40 分钟",
-          work_hours: "工作时间",
-          work_hours_hint: "只在这些时间段监督",
-          edit: "编辑",
-          floating_widget: "悬浮小组件",
-          floating_widget_hint: "默认 58px，抓包时展开",
-          minimal: "简约",
-          edge_snap: "边缘吸附",
-          preview: "预览",
-          hotkey: "语音回击快捷键",
-          hotkey_hint: "按住说话，松开发送",
-          change: "更改",
-          launch: "开机启动",
-          launch_hint: "登录后自动开始监督",
-          off: "关闭",
-          turn_on: "开启",
-          watchlist_title: "黑名单",
-          watchlist_desc: "只保留最常摸鱼的网站和 App，规则越少越准。",
-          add_rule: "添加",
-          enabled: "启用",
-          providers_title: "AI Provider",
-          providers_desc: "ASR、LLM、TTS 分开配置。普通用户只需要填 API Key，高级字段可展开。",
-          test_all: "端到端测试",
-          connected: "已连接",
-          test: "测试",
-          voice_set: "音色已设",
-          voice_title: "声音与语言",
-          voice_desc: "界面语言和 AI 对喷语言可以分开设置。",
-          ui_language: "界面语言",
-          ai_language: "AI 监督语言",
-          role: "角色",
-          role_value: "毒舌同事 · 阴阳怪气",
-          voice_clone: "音色复刻",
-          voice_clone_value: "未启用，需上传授权样本",
-          setup: "设置",
-          history_title: "历史记录",
-          history_desc: "只记录抓包摘要和名场面，默认不保存原始音频。",
-          clear: "清除",
-          history_1: "你又来了？今天的 KPI 是把推荐算法喂饱吗？",
-          history_2: "摸鱼摸到聊天框里了是吧，键盘都替你心虚。",
-          history_3: "你上班开 Steam 的勇气比你的 OKR 还完整。",
-          copy: "复制"
-        },
-        en: {
-          desktop_note: "Day to day, Hunter is just a quiet floating orb. Hold the shortcut and say “keep me focused for 40 minutes” to start a timed session.",
-          caught: "Caught",
-          session_started: "40-minute focus session started",
-          session_source: "Created from voice command",
-          reply_hotkey: "Hold Option Space to reply",
-          pause_short: "Pause 5 min",
-          app_subtitle: "Minimal AI supervisor",
-          interface_language: "Interface",
-          ai_language_short: "AI language",
-          start: "Start",
-          nav_general: "General",
-          nav_watchlist: "Watchlist",
-          nav_providers: "AI",
-          nav_voice: "Voice",
-          nav_history: "History",
-          general_title: "Floating supervisor",
-          general_desc: "Keep Hunter on the edge of your desktop. Quiet by default, expressive when it catches you.",
-          monitoring: "Monitoring",
-          focus_session: "Focus session",
-          focus_session_hint: "Temporary supervision from voice",
-          focus_session_value: "40 minutes remaining",
-          focus_session_command: "Voice command: keep me focused for 40 minutes",
-          work_hours: "Work hours",
-          work_hours_hint: "Only supervise during these blocks",
-          edit: "Edit",
-          floating_widget: "Floating widget",
-          floating_widget_hint: "58px by default, expands on catch",
-          minimal: "Minimal",
-          edge_snap: "Edge snap",
-          preview: "Preview",
-          hotkey: "Voice reply shortcut",
-          hotkey_hint: "Hold to talk, release to send",
-          change: "Change",
-          launch: "Launch at login",
-          launch_hint: "Start monitoring after login",
-          off: "Off",
-          turn_on: "Turn on",
-          watchlist_title: "Watchlist",
-          watchlist_desc: "Keep only the sites and apps that actually distract you.",
-          add_rule: "Add",
-          enabled: "Enabled",
-          providers_title: "AI Provider",
-          providers_desc: "Configure ASR, LLM, and TTS separately. Most users only need an API key.",
-          test_all: "End-to-end test",
-          connected: "Connected",
-          test: "Test",
-          voice_set: "Voice set",
-          voice_title: "Voice and language",
-          voice_desc: "The app interface and AI roast language can be configured separately.",
-          ui_language: "Interface language",
-          ai_language: "AI roast language",
-          role: "Persona",
-          role_value: "Sarcastic coworker · Dry wit",
-          voice_clone: "Voice clone",
-          voice_clone_value: "Disabled. Consent sample required.",
-          setup: "Set up",
-          history_title: "History",
-          history_desc: "Only incident summaries and best lines are saved by default.",
-          clear: "Clear",
-          history_1: "Back again? Is today's KPI to feed the recommendation algorithm?",
-          history_2: "You made it all the way into the chat box. Even your keyboard looks embarrassed.",
-          history_3: "Opening Steam at work is bold for someone being chased by deadlines.",
-          copy: "Copy"
-        }
-      };
-
-      const roasts = {
-        zh: "你又来了？今天的 KPI 是把推荐算法喂饱吗？",
-        en: "Back to YouTube? Bold choice for someone losing to a deadline."
-      };
-
-      let locale = "zh";
-
-      function applyLocale(nextLocale) {
-        locale = nextLocale;
-        document.documentElement.lang = nextLocale === "zh" ? "zh-Hans" : "en";
-        document.querySelectorAll("[data-i18n]").forEach((node) => {
-          const key = node.getAttribute("data-i18n");
-          if (copy[nextLocale][key]) node.textContent = copy[nextLocale][key];
-        });
-        document.querySelectorAll("[data-locale]").forEach((button) => {
-          button.classList.toggle("active", button.dataset.locale === nextLocale);
-        });
-        const aiValue = document.getElementById("aiLanguage").value;
-        const aiLocale = aiValue === "follow" ? nextLocale : aiValue;
-        document.getElementById("roastText").textContent = roasts[aiLocale];
-        document.getElementById("widgetTarget").textContent = aiLocale === "zh" ? "bilibili.com" : "youtube.com";
-      }
-
       document.querySelectorAll("[data-panel-target]").forEach((button) => {
         button.addEventListener("click", () => {
           document.querySelectorAll("[data-panel-target]").forEach((item) => item.classList.remove("active"));
@@ -1149,13 +1005,6 @@
           document.getElementById(button.dataset.panelTarget).classList.add("active");
         });
       });
-
-      document.querySelectorAll("[data-locale]").forEach((button) => {
-        button.addEventListener("click", () => applyLocale(button.dataset.locale));
-      });
-
-      document.getElementById("aiLanguage").addEventListener("change", () => applyLocale(locale));
-      applyLocale("zh");
     </script>
   </body>
 </html>

@@ -25,7 +25,7 @@ final class VoiceCommandController {
                 finishRecording()
             } catch {
                 stopRecordingSilently()
-                state.toastMessage = "Voice command failed: \(error.localizedDescription)"
+                state.toastMessage = state.copy("语音指令失败：\(error.localizedDescription)", "Voice command failed: \(error.localizedDescription)")
             }
         }
     }
@@ -37,7 +37,7 @@ final class VoiceCommandController {
                 try await beginRecordingAsync()
             } catch {
                 stopRecordingSilently()
-                state.toastMessage = "Voice command failed: \(error.localizedDescription)"
+                state.toastMessage = state.copy("语音指令失败：\(error.localizedDescription)", "Voice command failed: \(error.localizedDescription)")
             }
         }
     }
@@ -52,19 +52,19 @@ final class VoiceCommandController {
                     let transcript = try await asr.transcribeWAV(audio, settings: state.providers, languageHint: state.targetLanguageCode())
                     handleTranscript(transcript)
                 } catch {
-                    state.toastMessage = "Voice command failed: \(error.localizedDescription)"
+                    state.toastMessage = state.copy("语音指令失败：\(error.localizedDescription)", "Voice command failed: \(error.localizedDescription)")
                 }
             }
         } catch {
             stopRecordingSilently()
-            state.toastMessage = "Voice command failed: \(error.localizedDescription)"
+            state.toastMessage = state.copy("语音指令失败：\(error.localizedDescription)", "Voice command failed: \(error.localizedDescription)")
         }
     }
 
     private func beginRecordingAsync() async throws {
         let allowed = await requestMicrophoneAccess()
         guard allowed else {
-            state.toastMessage = "Microphone permission is required"
+            state.toastMessage = state.copy("需要麦克风权限", "Microphone permission is required")
             return
         }
         try startRecording()

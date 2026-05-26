@@ -27,7 +27,7 @@
 - ASR / LLM / TTS Provider 配置在设置页可编辑：provider 名称、base URL、model、API key 环境变量名、语言提示、流式能力、TTS 音色 ID。
 - 设置页可把 API Key 按环境变量名写入 macOS Keychain。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
-- 设置页和悬浮小组件主要文案支持中文/英文切换。
+- 设置页、菜单栏、悬浮小组件和主要运行时状态文案支持中文/英文切换。
 - 登录时启动：已接 `SMAppService` 注册/取消。
 - 命令行烟测入口：
   - `./.build/debug/Hunter --smoke-llm-tts`

@@ -47,7 +47,7 @@ final class IncidentController {
                         roast: roast
                     )
                     state.recordIncident(upgraded)
-                    state.providerStatus = "LLM OK, TTS pending"
+                    state.providerStatus = state.copy("LLM 正常，等待 TTS", "LLM OK, TTS pending")
                 }
                 do {
                     let audio = try await dashScope.synthesizeSpeech(
@@ -56,20 +56,20 @@ final class IncidentController {
                         languageCode: state.targetLanguageCode()
                     )
                     await MainActor.run {
-                        state.providerStatus = "LLM + cloud TTS OK"
+                        state.providerStatus = state.copy("LLM + 云端 TTS 正常", "LLM + cloud TTS OK")
                         Task {
                             await notifications.notifyCatch(target: incident.targetName, roast: roast)
                         }
                         do {
                             try speechPlayer.play(audioData: audio)
                         } catch {
-                            state.providerStatus = "Cloud TTS audio playback failed: \(error.localizedDescription)"
+                            state.providerStatus = state.copy("云端 TTS 播放失败：\(error.localizedDescription)", "Cloud TTS audio playback failed: \(error.localizedDescription)")
                             speechPlayer.speak(roast)
                         }
                     }
                 } catch {
                     await MainActor.run {
-                        state.providerStatus = "Cloud TTS fallback: \(error.localizedDescription)"
+                        state.providerStatus = state.copy("云端 TTS 降级：\(error.localizedDescription)", "Cloud TTS fallback: \(error.localizedDescription)")
                         Task {
                             await notifications.notifyCatch(target: incident.targetName, roast: roast)
                         }
@@ -78,7 +78,7 @@ final class IncidentController {
                 }
             } catch {
                 await MainActor.run {
-                    state.providerStatus = "LLM fallback: \(error.localizedDescription)"
+                    state.providerStatus = state.copy("LLM 降级：\(error.localizedDescription)", "LLM fallback: \(error.localizedDescription)")
                     Task {
                         await notifications.notifyCatch(target: incident.targetName, roast: fallback)
                     }
@@ -101,7 +101,7 @@ final class IncidentController {
             return
         }
 
-        state.toastMessage = "You: \(transcript)"
+        state.toastMessage = state.copy("你：\(transcript)", "You: \(transcript)")
         Task {
             do {
                 let reply = try await dashScope.generateReply(
@@ -119,7 +119,7 @@ final class IncidentController {
                 )
                 await MainActor.run {
                     state.recordIncident(responseIncident)
-                    state.providerStatus = "ASR + LLM reply OK, TTS pending"
+                    state.providerStatus = state.copy("ASR + LLM 回击正常，等待 TTS", "ASR + LLM reply OK, TTS pending")
                 }
                 do {
                     let audio = try await dashScope.synthesizeSpeech(
@@ -128,26 +128,26 @@ final class IncidentController {
                         languageCode: state.targetLanguageCode()
                     )
                     await MainActor.run {
-                    state.providerStatus = "ASR + LLM + cloud TTS reply OK"
+                    state.providerStatus = state.copy("ASR + LLM + 云端 TTS 回击正常", "ASR + LLM + cloud TTS reply OK")
                     Task {
                         await notifications.notifyCatch(target: responseIncident.targetName, roast: responseIncident.roast)
                     }
                     do {
                             try speechPlayer.play(audioData: audio)
                         } catch {
-                            state.providerStatus = "Reply audio playback failed: \(error.localizedDescription)"
+                            state.providerStatus = state.copy("回击音频播放失败：\(error.localizedDescription)", "Reply audio playback failed: \(error.localizedDescription)")
                             speechPlayer.speak(reply)
                         }
                     }
                 } catch {
                     await MainActor.run {
-                        state.providerStatus = "Reply cloud TTS fallback: \(error.localizedDescription)"
+                        state.providerStatus = state.copy("回击云端 TTS 降级：\(error.localizedDescription)", "Reply cloud TTS fallback: \(error.localizedDescription)")
                         speechPlayer.speak(reply)
                     }
                 }
             } catch {
                 await MainActor.run {
-                    state.providerStatus = "Voice reply failed: \(error.localizedDescription)"
+                    state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")
                 }
             }
         }

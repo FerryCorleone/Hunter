@@ -16,7 +16,7 @@ final class AppState: ObservableObject {
     @Published var currentIncident: Incident?
     @Published var toastMessage: String?
     @Published var events: [Incident] = []
-    @Published var providerStatus: String = "Provider not tested"
+    @Published var providerStatus: String = ""
     @Published var permissionStatus: String = "Waiting for permissions"
     @Published var permissions = PermissionSnapshot()
 
@@ -109,6 +109,10 @@ final class AppState: ObservableObject {
     func targetLanguageCode() -> String {
         let resolved = aiLanguage == .followInterface ? interfaceLanguage : aiLanguage
         return resolved == .english ? "en" : "zh"
+    }
+
+    func copy(_ zhHans: String, _ english: String) -> String {
+        interfaceLanguage == .english ? english : zhHans
     }
 
     private func focusStartedMessage(duration: TimeInterval, source: String) -> String {

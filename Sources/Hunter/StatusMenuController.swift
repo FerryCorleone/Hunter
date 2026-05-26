@@ -32,23 +32,34 @@ final class StatusMenuController {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildMenu() }
             .store(in: &cancellables)
+
+        state.$interfaceLanguage
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildMenu() }
+            .store(in: &cancellables)
     }
 
     private func rebuildMenu() {
         let menu = NSMenu()
 
-        let stateItem = NSMenuItem(title: state.isMonitoring ? "Hunter is monitoring" : "Hunter is paused", action: nil, keyEquivalent: "")
+        let stateItem = NSMenuItem(
+            title: state.isMonitoring
+                ? state.copy("Hunter 正在监督", "Hunter is monitoring")
+                : state.copy("Hunter 已暂停", "Hunter is paused"),
+            action: nil,
+            keyEquivalent: ""
+        )
         stateItem.isEnabled = false
         menu.addItem(stateItem)
         menu.addItem(.separator())
 
-        menu.addItem(NSMenuItem(title: state.isMonitoring ? "Pause Monitoring" : "Start Monitoring", action: #selector(toggleMonitoring), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Start 40-minute Focus", action: #selector(startFortyMinuteFocus), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Record Voice Command", action: #selector(recordCommand), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Demo Catch", action: #selector(triggerDemoCatch), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: state.isMonitoring ? state.copy("暂停监督", "Pause Monitoring") : state.copy("开始监督", "Start Monitoring"), action: #selector(toggleMonitoring), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: state.copy("开始 40 分钟监督", "Start 40-minute Focus"), action: #selector(startFortyMinuteFocus), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: state.copy("录制语音指令", "Record Voice Command"), action: #selector(recordCommand), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: state.copy("演示抓包", "Demo Catch"), action: #selector(triggerDemoCatch), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: state.copy("设置...", "Settings..."), action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Hunter", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: state.copy("退出 Hunter", "Quit Hunter"), action: #selector(quit), keyEquivalent: "q"))
 
         for item in menu.items {
             item.target = self

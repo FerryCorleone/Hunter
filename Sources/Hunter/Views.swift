@@ -1,13 +1,6 @@
 import AppKit
 import SwiftUI
 
-@MainActor
-private extension AppState {
-    func copy(_ zhHans: String, _ english: String) -> String {
-        interfaceLanguage == .english ? english : zhHans
-    }
-}
-
 struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
     let onReply: () -> Void
@@ -575,7 +568,7 @@ struct ProvidersPanel: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text(state.providerStatus)
+                Text(state.providerStatus.isEmpty ? state.copy("Provider 尚未测试", "Provider not tested") : state.providerStatus)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

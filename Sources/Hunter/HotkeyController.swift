@@ -18,7 +18,7 @@ final class HotkeyController {
         guard eventTap == nil else { return }
         let promptOptions: NSDictionary = ["AXTrustedCheckOptionPrompt": true]
         guard AXIsProcessTrustedWithOptions(promptOptions) else {
-            state.permissionStatus = "Accessibility permission needed for Option Space hotkey"
+            state.permissionStatus = state.copy("需要辅助功能权限才能使用 Option Space", "Accessibility permission needed for Option Space hotkey")
             return
         }
 
@@ -39,7 +39,7 @@ final class HotkeyController {
             },
             userInfo: refcon
         ) else {
-            state.permissionStatus = "Accessibility permission needed for Option Space hotkey"
+            state.permissionStatus = state.copy("需要辅助功能权限才能使用 Option Space", "Accessibility permission needed for Option Space hotkey")
             return
         }
 
@@ -48,7 +48,7 @@ final class HotkeyController {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-        state.permissionStatus = "Option Space hotkey active"
+        state.permissionStatus = state.copy("Option Space 快捷键已启用", "Option Space hotkey active")
     }
 
     func stop() {

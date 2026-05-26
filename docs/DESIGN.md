@@ -142,7 +142,7 @@ Hunter：40 分钟监督已开始
 ```text
 ASR  Aliyun / paraformer-realtime-v2   Connected   Test
 LLM  Aliyun / qwen-turbo               Connected   Test
-TTS  Aliyun / cosyvoice-v3.5-flash     Voice set   Test
+TTS  Aliyun / cosyvoice-v3-flash       Voice set   Test
 ```
 
 展开后才显示 base URL、model id、API Key、headers 等高级字段。API Key 只显示“Stored in Keychain”。

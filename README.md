@@ -4,11 +4,12 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 
 ## Current Stage
 
-当前仓库处于产品定义阶段，已产出第一版：
+当前仓库已进入原生 macOS MVP 开发阶段，包含产品文档、HTML 审稿原型和可编译的 SwiftUI/AppKit 应用骨架：
 
 - [PRD](docs/PRD.md)
 - [设计稿](docs/DESIGN.md)
 - [模型/API 技术评估](docs/TECHNICAL_EVALUATION.md)
+- [实现状态](docs/IMPLEMENTATION_STATUS.md)
 - [HTML 设计稿](docs/design-prototype/index.html)
 - [设计稿预览图](docs/design-prototype/hunter-preview.png)
 - [图像生成参考稿](docs/design-prototype/generated-ui-reference.png)
@@ -37,6 +38,17 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 - 前台 App 检测：`NSWorkspace`
 - Chrome/Safari URL 检测：AppleScript/ScriptingBridge 起步
 - 语音链路：用户可配置 ASR 云端 API -> LLM 云端 API -> TTS 云端 API
-- 默认测试模板：阿里云百炼 `paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3.5-flash`
+- 默认测试模板：阿里云百炼 `paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3-flash`
 - 本地存储：SQLite 或 SwiftData
 - 密钥存储：macOS Keychain
+
+## Local Build
+
+```bash
+swift build
+swift test
+./scripts/package_app.sh
+open build/Hunter.app
+```
+
+本地开发密钥放在 `.env.local` 或 macOS Keychain，不要提交。

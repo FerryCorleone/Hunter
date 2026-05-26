@@ -12,10 +12,10 @@
 
 - ASR：`paraformer-realtime-v2`
 - LLM：`qwen-turbo` 或 `qwen-turbo-latest`
-- TTS：`cosyvoice-v3.5-flash`
+- TTS：`cosyvoice-v3-flash` + 系统音色 `longanyang`
 - 音色复刻/设计：`qwen-voice-enrollment` / `qwen-voice-design`
 
-理由：价格低、中英文能力够用、音色相关能力明确、API 归属统一，适合先把 MVP 闭环跑通。火山引擎作为第二候选，尤其适合后续追求更强语音表现力；腾讯云声音复刻能力完整，但对 MVP 来说训练和复刻 TTS 成本更重。
+理由：价格低、中英文能力够用、音色相关能力明确、API 归属统一，适合先把 MVP 闭环跑通。`cosyvoice-v3.5-flash` 无系统预置音色，仅支持声音设计/复刻音色，放到授权音色能力接入后再启用。火山引擎作为第二候选，尤其适合后续追求更强语音表现力；腾讯云声音复刻能力完整，但对 MVP 来说训练和复刻 TTS 成本更重。
 
 ## Requirements
 
@@ -113,11 +113,12 @@ MVP 内置模板只提供默认字段，不提供密钥：
 
 ### TTS
 
-内部测试首选：阿里云百炼 `cosyvoice-v3.5-flash`
+内部测试首选：阿里云百炼 `cosyvoice-v3-flash`
 
 - 用途：抓包播报和 AI 回怼。
-- 官方计费：中国内地按输入字符计费，`cosyvoice-v3.5-flash` 为 0.8 元/万字符。
+- 官方计费：中国内地按输入字符计费，`cosyvoice-v3-flash` 为 0.8 元/万字符。
 - MVP 建议：单句吐槽控制在 40-120 个中文字符，既便宜又有节奏。
+- 默认音色：`longanyang`，支持普通话和英文，适合先跑通系统音色闭环。
 
 音色复刻/指定音色：
 

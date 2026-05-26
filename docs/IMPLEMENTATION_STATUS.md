@@ -34,6 +34,7 @@
 - `swift build` 通过。
 - `swift test` 通过，覆盖时长任务解析和工作时段判断。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
+- `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
@@ -41,7 +42,7 @@
 
 ## 未完成 / 下一步
 
-- 在已解锁桌面环境中完整验收 UI 截图、浮窗交互和状态栏菜单。
+- 当前运行环境截图返回黑图，需在已授权屏幕录制/已解锁桌面环境中补完整 UI 截图、浮窗交互和状态栏菜单验收。
 - 验证 Option+Space 辅助功能授权流程。
 - 验证麦克风权限弹窗、录音、Paraformer ASR 返回文本。
 - 端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。

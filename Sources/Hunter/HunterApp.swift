@@ -3,6 +3,8 @@ import AppKit
 @main
 @MainActor
 final class HunterApp: NSObject, NSApplicationDelegate {
+    private static var retainedDelegate: HunterApp?
+
     private let state = AppState()
     private lazy var incidents = IncidentController(state: state)
     private lazy var voiceCommands = VoiceCommandController(state: state, incidents: incidents)
@@ -18,6 +20,7 @@ final class HunterApp: NSObject, NSApplicationDelegate {
         }
         let app = NSApplication.shared
         let delegate = HunterApp()
+        retainedDelegate = delegate
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         app.run()

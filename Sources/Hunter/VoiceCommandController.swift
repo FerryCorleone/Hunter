@@ -49,7 +49,7 @@ final class VoiceCommandController {
             state.toastMessage = state.interfaceLanguage == .english ? "Transcribing..." : "正在识别..."
             Task {
                 do {
-                    let transcript = try await asr.transcribeWAV(audio, languageHint: state.targetLanguageCode())
+                    let transcript = try await asr.transcribeWAV(audio, settings: state.providers, languageHint: state.targetLanguageCode())
                     handleTranscript(transcript)
                 } catch {
                     state.toastMessage = "Voice command failed: \(error.localizedDescription)"

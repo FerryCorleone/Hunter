@@ -32,9 +32,18 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-enum RuleKind: String, Codable {
+enum RuleKind: String, CaseIterable, Codable, Identifiable {
     case website
     case app
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .website: "Website"
+        case .app: "App"
+        }
+    }
 }
 
 struct BlacklistRule: Identifiable, Codable, Equatable {
@@ -77,7 +86,7 @@ struct ProviderEndpoint: Codable, Equatable {
 
     static let aliyunASR = ProviderEndpoint(
         providerName: "Aliyun Bailian",
-        baseURL: "https://dashscope.aliyuncs.com/api/v1",
+        baseURL: "wss://dashscope.aliyuncs.com/api-ws/v1/inference",
         model: "paraformer-realtime-v2",
         apiKeyEnvironmentName: "DASHSCOPE_API_KEY",
         supportsStreaming: true,
@@ -99,6 +108,46 @@ struct ProviderSettings: Codable, Equatable {
     var llm: ProviderEndpoint = .aliyunLLM
     var tts: ProviderEndpoint = .aliyunTTS
     var voice: String = "longanyang"
+}
+
+struct WorkSchedule: Codable, Equatable {
+    var isEnabled: Bool = false
+    var startMinuteOfDay: Int = 9 * 60
+    var endMinuteOfDay: Int = 18 * 60
+
+    static let `default` = WorkSchedule()
+
+    func contains(_ date: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard isEnabled else { return true }
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        let minute = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+        let start = clampedMinute(startMinuteOfDay)
+        let end = clampedMinute(endMinuteOfDay)
+        guard start != end else { return true }
+        if start < end {
+            return minute >= start && minute < end
+        }
+        return minute >= start || minute < end
+    }
+
+    static func date(forMinuteOfDay minute: Int, calendar: Calendar = .current) -> Date {
+        let clamped = clampedMinute(minute)
+        let startOfDay = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .minute, value: clamped, to: startOfDay) ?? Date()
+    }
+
+    static func minuteOfDay(from date: Date, calendar: Calendar = .current) -> Int {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return clampedMinute((components.hour ?? 0) * 60 + (components.minute ?? 0))
+    }
+
+    private static func clampedMinute(_ minute: Int) -> Int {
+        min(max(minute, 0), 23 * 60 + 59)
+    }
+
+    private func clampedMinute(_ minute: Int) -> Int {
+        Self.clampedMinute(minute)
+    }
 }
 
 struct FocusSession: Codable, Equatable {

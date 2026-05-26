@@ -50,6 +50,6 @@ final class MonitorService {
         if state.focusSession?.isActive == true {
             return true
         }
-        return state.isMonitoring
+        return state.workSchedule.contains()
     }
 }

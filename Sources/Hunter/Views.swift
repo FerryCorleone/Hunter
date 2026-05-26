@@ -1,5 +1,12 @@
 import SwiftUI
 
+@MainActor
+private extension AppState {
+    func copy(_ zhHans: String, _ english: String) -> String {
+        interfaceLanguage == .english ? english : zhHans
+    }
+}
+
 struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
     let onReply: () -> Void
@@ -77,7 +84,7 @@ struct FloatingOverlayView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "play.rectangle.fill")
                         .foregroundStyle(.red)
-                    Text("Caught on ")
+                    Text(state.copy("抓到你在 ", "Caught on "))
                         .foregroundStyle(.primary)
                     + Text(incident.targetName)
                         .foregroundStyle(.red)
@@ -110,7 +117,7 @@ struct FloatingOverlayView: View {
 
             HStack(spacing: 12) {
                 Button(action: onReply) {
-                    Label("Hold Option Space\nto reply", systemImage: "mic.fill")
+                    Label(state.copy("按住 Option Space\n语音回击", "Hold Option Space\nto reply"), systemImage: "mic.fill")
                         .labelStyle(.titleAndIcon)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
@@ -121,7 +128,7 @@ struct FloatingOverlayView: View {
                 .buttonStyle(.plain)
 
                 Button(action: onPause) {
-                    Label("Pause 5 min", systemImage: "pause.fill")
+                    Label(state.copy("暂停 5 分钟", "Pause 5 min"), systemImage: "pause.fill")
                         .font(.system(size: 13, weight: .semibold))
                         .frame(width: 124, height: 50)
                         .background(.white.opacity(0.7), in: Capsule())
@@ -175,7 +182,7 @@ struct SettingsView: View {
                 Button {
                     selectedPanel = panel
                 } label: {
-                    Label(panel.title, systemImage: panel.icon)
+                    Label(panel.title(language: state.interfaceLanguage), systemImage: panel.icon)
                         .font(.system(size: 16, weight: .medium))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 16)
@@ -192,7 +199,7 @@ struct SettingsView: View {
             }
             .buttonStyle(BlueCapsuleButtonStyle())
 
-            Button("Demo catch") {
+            Button(state.copy("演示抓包", "Demo catch")) {
                 onDemoCatch()
             }
             .buttonStyle(.bordered)
@@ -226,33 +233,55 @@ struct GeneralPanel: View {
     let onStartFocus: () -> Void
 
     var body: some View {
-        PanelContainer(title: "General", subtitle: "Basic settings for your focus sessions.") {
+        PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
             VStack(spacing: 16) {
-                SettingCard(icon: "clock", title: "Focus session", subtitle: "Start a focus session by voice or manually.") {
+                SettingCard(icon: "clock", title: state.copy("时长任务", "Focus session"), subtitle: state.copy("可以语音或手动开启一段监督。", "Start a focus session by voice or manually.")) {
                     HStack {
                         Text(focusLabel)
                             .font(.system(size: 16, weight: .medium))
-                        Button("40 min") {
+                        Button(state.copy("40 分钟", "40 min")) {
                             onStartFocus()
                         }
                         .buttonStyle(.bordered)
                     }
                 }
 
-                SettingCard(icon: "circle.circle", title: "Floating widget", subtitle: "Show the floating widget on desktop.") {
+                SettingCard(icon: "circle.circle", title: state.copy("悬浮小组件", "Floating widget"), subtitle: state.copy("在桌面上显示 Hunter 监督入口。", "Show the floating widget on desktop.")) {
                     Toggle("", isOn: $state.isMonitoring)
                         .toggleStyle(.switch)
                         .labelsHidden()
+                        .onChange(of: state.isMonitoring) {
+                            state.persist()
+                        }
                 }
 
-                SettingCard(icon: "command", title: "Reply shortcut", subtitle: "Hold to talk and reply to Hunter.") {
+                SettingCard(icon: "calendar", title: state.copy("工作时段", "Work hours"), subtitle: state.copy("只在这个时段内自动抓黑名单。", "Only auto-catch blacklist hits inside this schedule.")) {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Toggle(state.copy("启用", "Enabled"), isOn: $state.workSchedule.isEnabled)
+                            .toggleStyle(.switch)
+                        HStack(spacing: 8) {
+                            DatePicker("", selection: scheduleBinding(\.startMinuteOfDay), displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                            Text(state.copy("至", "to"))
+                                .foregroundStyle(.secondary)
+                            DatePicker("", selection: scheduleBinding(\.endMinuteOfDay), displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                        }
+                        .disabled(!state.workSchedule.isEnabled)
+                    }
+                    .onChange(of: state.workSchedule) {
+                        state.persist()
+                    }
+                }
+
+                SettingCard(icon: "command", title: state.copy("回击快捷键", "Reply shortcut"), subtitle: state.copy("按住说话，松开发送给 Hunter。", "Hold to talk and reply to Hunter.")) {
                     HStack {
                         Keycap("Option")
                         Keycap("Space")
                     }
                 }
 
-                SettingCard(icon: "person", title: "Launch at login", subtitle: "Automatically run Hunter when you log in.") {
+                SettingCard(icon: "person", title: state.copy("登录时启动", "Launch at login"), subtitle: state.copy("登录 macOS 后自动运行 Hunter。", "Automatically run Hunter when you log in.")) {
                     Toggle("", isOn: .constant(false))
                         .toggleStyle(.switch)
                         .labelsHidden()
@@ -263,53 +292,168 @@ struct GeneralPanel: View {
 
     private var focusLabel: String {
         guard let session = state.focusSession, session.isActive else {
-            return "Not running"
+            return state.copy("未运行", "Not running")
         }
         let minutes = Int(ceil(session.remaining / 60))
-        return "\(minutes) min"
+        return state.copy("\(minutes) 分钟", "\(minutes) min")
+    }
+
+    private func scheduleBinding(_ keyPath: WritableKeyPath<WorkSchedule, Int>) -> Binding<Date> {
+        Binding(
+            get: {
+                WorkSchedule.date(forMinuteOfDay: state.workSchedule[keyPath: keyPath])
+            },
+            set: { date in
+                state.workSchedule[keyPath: keyPath] = WorkSchedule.minuteOfDay(from: date)
+                state.persist()
+            }
+        )
     }
 }
 
 struct WatchlistPanel: View {
     @ObservedObject var state: AppState
+    @State private var newName = ""
+    @State private var newPattern = ""
+    @State private var newKind: RuleKind = .website
 
     var body: some View {
-        PanelContainer(title: "Watchlist", subtitle: "Sites and apps that trigger the floating supervisor.") {
+        PanelContainer(title: state.copy("黑名单", "Watchlist"), subtitle: state.copy("命中这些网站或 App 时触发悬浮监督。", "Sites and apps that trigger the floating supervisor.")) {
             VStack(spacing: 12) {
-                ForEach(state.rules) { rule in
+                HStack(spacing: 10) {
+                    Picker("", selection: $newKind) {
+                        ForEach(RuleKind.allCases) { kind in
+                            Text(kind.label).tag(kind)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 110)
+
+                    TextField(state.copy("名称", "Name"), text: $newName)
+                    TextField(state.copy("域名、URL 关键词、App 名称或 Bundle ID", "Domain, URL keyword, app name, or bundle id"), text: $newPattern)
+
+                    Button {
+                        addRule()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(newPattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .padding()
+                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+
+                ForEach($state.rules) { $rule in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(rule.name).font(.headline)
                             Text(rule.pattern).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(rule.kind.rawValue.capitalized)
+                        Text(rule.kind.label)
                             .foregroundStyle(.secondary)
-                        Image(systemName: rule.isEnabled ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(rule.isEnabled ? .green : .secondary)
+                        Toggle("", isOn: $rule.isEnabled)
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                        Button {
+                            removeRule(rule.id)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                     }
                     .padding()
                     .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
+            .onChange(of: state.rules) {
+                state.persist()
+            }
         }
+    }
+
+    private func addRule() {
+        let trimmedPattern = newPattern.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPattern.isEmpty else { return }
+        let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rule = BlacklistRule(
+            name: trimmedName.isEmpty ? trimmedPattern : trimmedName,
+            kind: newKind,
+            pattern: trimmedPattern
+        )
+        state.rules.append(rule)
+        state.persist()
+        newName = ""
+        newPattern = ""
+    }
+
+    private func removeRule(_ id: UUID) {
+        state.rules.removeAll { $0.id == id }
+        state.persist()
     }
 }
 
 struct ProvidersPanel: View {
     @ObservedObject var state: AppState
+    @State private var apiKey = ""
+    @State private var saveMessage = ""
 
     var body: some View {
-        PanelContainer(title: "AI", subtitle: "Configurable ASR, LLM, and TTS providers.") {
+        PanelContainer(title: state.copy("AI", "AI"), subtitle: state.copy("配置 ASR、LLM 和 TTS 的服务商。", "Configurable ASR, LLM, and TTS providers.")) {
             VStack(spacing: 14) {
-                ProviderRow(kind: "ASR", provider: state.providers.asr)
-                ProviderRow(kind: "LLM", provider: state.providers.llm)
-                ProviderRow(kind: "TTS", provider: state.providers.tts)
+                ProviderEditor(kind: "ASR", provider: $state.providers.asr)
+                ProviderEditor(kind: "LLM", provider: $state.providers.llm)
+                ProviderEditor(kind: "TTS", provider: $state.providers.tts)
+
+                HStack(spacing: 10) {
+                    SecureField(state.copy("API Key 会按上方环境变量名保存到钥匙串", "API key saved to Keychain for the env names above"), text: $apiKey)
+                    Button(state.copy("保存 Key", "Save key")) {
+                        saveAPIKey()
+                    }
+                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+
+                HStack(spacing: 10) {
+                    Text(state.copy("音色", "Voice"))
+                        .font(.system(size: 13, weight: .bold))
+                        .frame(width: 44, alignment: .leading)
+                    TextField(state.copy("TTS 音色 ID", "TTS voice id"), text: $state.providers.voice)
+                }
+                .textFieldStyle(.roundedBorder)
+
+                if !saveMessage.isEmpty {
+                    Text(saveMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 Text(state.providerStatus)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .onChange(of: state.providers) {
+                state.persist()
+            }
+        }
+    }
+
+    private func saveAPIKey() {
+        let names = Set([
+            state.providers.asr.apiKeyEnvironmentName,
+            state.providers.llm.apiKeyEnvironmentName,
+            state.providers.tts.apiKeyEnvironmentName
+        ])
+        do {
+            for name in names {
+                try SecretStore().saveAPIKey(apiKey, environmentName: name)
+            }
+            apiKey = ""
+            saveMessage = state.copy("已保存到钥匙串：\(names.sorted().joined(separator: ", "))", "Saved to Keychain for \(names.sorted().joined(separator: ", "))")
+        } catch {
+            saveMessage = state.copy("钥匙串保存失败：\(error.localizedDescription)", "Keychain save failed: \(error.localizedDescription)")
         }
     }
 }
@@ -318,27 +462,36 @@ struct VoicePanel: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        PanelContainer(title: "Voice", subtitle: "Language, persona, and voice style.") {
+        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置界面语言、监督语言和吐槽强度。", "Language, persona, and voice style.")) {
             VStack(spacing: 16) {
-                Picker("Interface language", selection: $state.interfaceLanguage) {
+                Picker(state.copy("界面语言", "Interface language"), selection: $state.interfaceLanguage) {
                     Text("中文").tag(AppLanguage.zhHans)
                     Text("English").tag(AppLanguage.english)
                 }
-                Picker("AI roast language", selection: $state.aiLanguage) {
-                    Text("Follow UI").tag(AppLanguage.followInterface)
+                Picker(state.copy("AI 监督语言", "AI roast language"), selection: $state.aiLanguage) {
+                    Text(state.copy("跟随界面", "Follow UI")).tag(AppLanguage.followInterface)
                     Text("中文").tag(AppLanguage.zhHans)
                     Text("English").tag(AppLanguage.english)
                 }
-                Picker("Intensity", selection: $state.intensity) {
+                Picker(state.copy("吐槽强度", "Intensity"), selection: $state.intensity) {
                     ForEach(RoastIntensity.allCases) { intensity in
                         Text(intensity.label).tag(intensity)
                     }
                 }
-                Text("Voice clone: disabled until authorized samples are provided.")
+                Text(state.copy("声音克隆：在提供授权样本前暂不启用。", "Voice clone: disabled until authorized samples are provided."))
                     .foregroundStyle(.secondary)
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .onChange(of: state.interfaceLanguage) {
+                state.persist()
+            }
+            .onChange(of: state.aiLanguage) {
+                state.persist()
+            }
+            .onChange(of: state.intensity) {
+                state.persist()
+            }
         }
     }
 }
@@ -347,9 +500,9 @@ struct HistoryPanel: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        PanelContainer(title: "History", subtitle: "Recent catches and replayable one-liners.") {
+        PanelContainer(title: state.copy("历史", "History"), subtitle: state.copy("最近抓包记录和可回放吐槽。", "Recent catches and replayable one-liners.")) {
             if state.events.isEmpty {
-                ContentUnavailableView("No catches yet", systemImage: "clock.arrow.circlepath", description: Text("Start monitoring or trigger a demo catch."))
+                ContentUnavailableView(state.copy("还没有抓包", "No catches yet"), systemImage: "clock.arrow.circlepath", description: Text(state.copy("开始监督或触发一次演示抓包。", "Start monitoring or trigger a demo catch.")))
             } else {
                 ScrollView {
                     VStack(spacing: 12) {
@@ -424,22 +577,33 @@ struct SettingCard<Trailing: View>: View {
     }
 }
 
-struct ProviderRow: View {
+struct ProviderEditor: View {
     var kind: String
-    var provider: ProviderEndpoint
+    @Binding var provider: ProviderEndpoint
 
     var body: some View {
-        HStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(kind)
-                .font(.system(size: 16, weight: .bold))
-                .frame(width: 48, alignment: .leading)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(provider.providerName).font(.headline)
-                Text(provider.model).foregroundStyle(.secondary)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                TextField("Provider", text: $provider.providerName)
+                    .frame(width: 150)
+                TextField("Base URL", text: $provider.baseURL)
+                TextField("Model", text: $provider.model)
+                    .frame(width: 180)
             }
-            Spacer()
-            Text("Configured")
-                .foregroundStyle(.green)
+            .textFieldStyle(.roundedBorder)
+
+            HStack(spacing: 10) {
+                TextField("API key env", text: $provider.apiKeyEnvironmentName)
+                    .frame(width: 240)
+                TextField("Language hint", text: $provider.languageHint)
+                Toggle("Streaming", isOn: $provider.supportsStreaming)
+                    .toggleStyle(.checkbox)
+            }
+            .textFieldStyle(.roundedBorder)
         }
         .padding()
         .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
@@ -490,6 +654,19 @@ enum Panel: String, CaseIterable, Identifiable {
         case .providers: "AI"
         case .voice: "Voice"
         case .history: "History"
+        }
+    }
+
+    func title(language: AppLanguage) -> String {
+        if language == .english {
+            return title
+        }
+        return switch self {
+        case .general: "通用"
+        case .watchlist: "黑名单"
+        case .providers: "AI"
+        case .voice: "声音"
+        case .history: "历史"
         }
     }
 

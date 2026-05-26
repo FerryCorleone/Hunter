@@ -32,6 +32,7 @@ final class IncidentController {
             do {
                 let roast = try await dashScope.generateRoast(
                     context: context,
+                    settings: state.providers,
                     intensity: state.intensity,
                     languageCode: state.targetLanguageCode()
                 )
@@ -96,6 +97,7 @@ final class IncidentController {
                 let reply = try await dashScope.generateReply(
                     userText: transcript,
                     incident: incident,
+                    settings: state.providers,
                     intensity: state.intensity,
                     languageCode: state.targetLanguageCode()
                 )

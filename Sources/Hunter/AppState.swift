@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class AppState: ObservableObject {
     @Published var isMonitoring: Bool = false
+    @Published var workSchedule: WorkSchedule = .default
     @Published var interfaceLanguage: AppLanguage = .zhHans
     @Published var aiLanguage: AppLanguage = .zhHans
     @Published var intensity: RoastIntensity = .sarcastic
@@ -27,6 +28,7 @@ final class AppState: ObservableObject {
     func load() {
         let snapshot = store.load()
         isMonitoring = snapshot.isMonitoring
+        workSchedule = snapshot.workSchedule
         interfaceLanguage = snapshot.interfaceLanguage
         aiLanguage = snapshot.aiLanguage
         intensity = snapshot.intensity
@@ -39,6 +41,7 @@ final class AppState: ObservableObject {
     func persist() {
         store.save(SettingsSnapshot(
             isMonitoring: isMonitoring,
+            workSchedule: workSchedule,
             interfaceLanguage: interfaceLanguage,
             aiLanguage: aiLanguage,
             intensity: intensity,

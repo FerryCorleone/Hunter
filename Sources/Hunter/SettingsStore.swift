@@ -2,6 +2,7 @@ import Foundation
 
 struct SettingsSnapshot: Codable {
     var isMonitoring: Bool
+    var workSchedule: WorkSchedule
     var interfaceLanguage: AppLanguage
     var aiLanguage: AppLanguage
     var intensity: RoastIntensity
@@ -12,6 +13,7 @@ struct SettingsSnapshot: Codable {
 
     static let initial = SettingsSnapshot(
         isMonitoring: false,
+        workSchedule: .default,
         interfaceLanguage: .zhHans,
         aiLanguage: .zhHans,
         intensity: .sarcastic,
@@ -20,6 +22,53 @@ struct SettingsSnapshot: Codable {
         focusSession: nil,
         events: []
     )
+
+    enum CodingKeys: String, CodingKey {
+        case isMonitoring
+        case workSchedule
+        case interfaceLanguage
+        case aiLanguage
+        case intensity
+        case rules
+        case providers
+        case focusSession
+        case events
+    }
+
+    init(
+        isMonitoring: Bool,
+        workSchedule: WorkSchedule,
+        interfaceLanguage: AppLanguage,
+        aiLanguage: AppLanguage,
+        intensity: RoastIntensity,
+        rules: [BlacklistRule],
+        providers: ProviderSettings,
+        focusSession: FocusSession?,
+        events: [Incident]
+    ) {
+        self.isMonitoring = isMonitoring
+        self.workSchedule = workSchedule
+        self.interfaceLanguage = interfaceLanguage
+        self.aiLanguage = aiLanguage
+        self.intensity = intensity
+        self.rules = rules
+        self.providers = providers
+        self.focusSession = focusSession
+        self.events = events
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isMonitoring = try container.decodeIfPresent(Bool.self, forKey: .isMonitoring) ?? false
+        workSchedule = try container.decodeIfPresent(WorkSchedule.self, forKey: .workSchedule) ?? .default
+        interfaceLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .interfaceLanguage) ?? .zhHans
+        aiLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .aiLanguage) ?? .zhHans
+        intensity = try container.decodeIfPresent(RoastIntensity.self, forKey: .intensity) ?? .sarcastic
+        rules = try container.decodeIfPresent([BlacklistRule].self, forKey: .rules) ?? BlacklistRule.defaultRules
+        providers = try container.decodeIfPresent(ProviderSettings.self, forKey: .providers) ?? ProviderSettings()
+        focusSession = try container.decodeIfPresent(FocusSession.self, forKey: .focusSession)
+        events = try container.decodeIfPresent([Incident].self, forKey: .events) ?? []
+    }
 }
 
 final class SettingsStore {

@@ -1,7 +1,7 @@
 # Hunter Implementation Status
 
 日期：2026-05-27  
-状态：MVP 开发中
+状态：MVP 主链路可运行，本机 GUI 验收待桌面解锁
 
 ## 已完成
 
@@ -10,6 +10,8 @@
 - 菜单栏状态入口。
 - SwiftUI 设置窗口：General、Watchlist、AI、Voice、History。
 - AppKit 浮动监督窗：悬浮球、抓包卡片、时长任务 toast。
+- 工作时段配置：支持全天监督或限定开始/结束时间，跨午夜时段可用。
+- 黑名单配置：支持新增、删除、启用/停用网站和 App 规则。
 - 前台 App 检测：`NSWorkspace.shared.frontmostApplication`。
 - Chrome/Safari URL 读取：AppleScript/ScriptingBridge 起步。
 - 黑名单命中、冷却、事件日志。
@@ -19,15 +21,23 @@
 - 阿里 Paraformer WebSocket ASR 代码路径。
 - 阿里 Qwen Turbo LLM 抓包吐槽和语音回击代码路径。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
+- ASR / LLM / TTS Provider 配置在设置页可编辑：provider 名称、base URL、model、API key 环境变量名、语言提示、流式能力、TTS 音色 ID。
+- 设置页可把 API Key 按环境变量名写入 macOS Keychain。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
+- 设置页和悬浮小组件主要文案支持中文/英文切换。
+- 命令行烟测入口：
+  - `./.build/debug/Hunter --smoke-llm-tts`
+  - `./.build/debug/Hunter --smoke-asr /path/to/audio.wav`
 
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析。
+- `swift test` 通过，覆盖时长任务解析和工作时段判断。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
-- 阿里 `qwen-turbo` 极短文本冒烟测试通过。
-- 阿里 `cosyvoice-v3-flash + longanyang` 极短文本冒烟测试通过，TTS 用量 4 字符。
+- 阿里 `qwen-turbo` 抓包吐槽烟测通过。
+- 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
+- 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
+- 默认 Provider 配置改为可编辑后，阿里默认链路再次通过 LLM/TTS/ASR 烟测。
 
 ## 未完成 / 下一步
 
@@ -36,8 +46,9 @@
 - 验证麦克风权限弹窗、录音、Paraformer ASR 返回文本。
 - 端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
-- 设置页 Provider 字段目前是模板展示，后续需要变成可编辑表单并写入 Keychain 引用。
+- Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。
 - TTS 音色复刻/声音设计暂未实现，需授权样本或用户明确选择声音设计。
+- 登录时启动开关目前是占位展示，后续接 `SMAppService`。
 
 ## 注意
 

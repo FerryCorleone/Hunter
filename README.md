@@ -4,7 +4,7 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 
 ## Current Stage
 
-当前仓库已进入原生 macOS MVP 开发阶段，包含产品文档、HTML 审稿原型和可编译的 SwiftUI/AppKit 应用骨架：
+当前仓库已进入原生 macOS MVP 开发阶段，包含产品文档、HTML 审稿原型和可编译、可打包的 SwiftUI/AppKit 应用：
 
 - [PRD](docs/PRD.md)
 - [设计稿](docs/DESIGN.md)
@@ -52,3 +52,16 @@ open build/Hunter.app
 ```
 
 本地开发密钥放在 `.env.local` 或 macOS Keychain，不要提交。
+
+## Provider Smoke Tests
+
+在已配置 `DASHSCOPE_API_KEY` 后，可以用命令行入口低成本验证默认阿里链路：
+
+```bash
+./.build/debug/Hunter --smoke-llm-tts
+say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
+afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
+./.build/debug/Hunter --smoke-asr /tmp/hunter-asr.wav
+```
+
+ASR / LLM / TTS 的 provider 名称、base URL、model、API key 环境变量名和 TTS 音色 ID 都可以在设置页编辑。当前内置 adapter 覆盖阿里默认链路和 OpenAI-compatible LLM；接入完全不同协议的供应商时，需要新增 adapter。

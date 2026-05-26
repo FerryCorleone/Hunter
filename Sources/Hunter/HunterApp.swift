@@ -13,6 +13,9 @@ final class HunterApp: NSObject, NSApplicationDelegate {
     private var statusMenu: StatusMenuController?
 
     static func main() {
+        if CommandLineRunner.runIfRequested() {
+            return
+        }
         let app = NSApplication.shared
         let delegate = HunterApp()
         app.delegate = delegate

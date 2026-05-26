@@ -15,14 +15,15 @@ struct DashScopeClient {
 
     var secrets = SecretStore()
 
-    func generateRoast(context: FrontmostContext, intensity: RoastIntensity, languageCode: String) async throws -> String {
-        guard let apiKey = secrets.dashScopeAPIKey() else {
+    func generateRoast(context: FrontmostContext, settings: ProviderSettings, intensity: RoastIntensity, languageCode: String) async throws -> String {
+        let endpoint = settings.llm
+        guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
 
         let prompt = buildRoastPrompt(context: context, intensity: intensity, languageCode: languageCode)
         let body: [String: Any] = [
-            "model": "qwen-turbo",
+            "model": endpoint.model,
             "messages": [
                 ["role": "system", "content": prompt.system],
                 ["role": "user", "content": prompt.user]
@@ -31,7 +32,7 @@ struct DashScopeClient {
             "max_tokens": 100
         ]
 
-        var request = URLRequest(url: URL(string: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")!)
+        var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -49,14 +50,15 @@ struct DashScopeClient {
         return content
     }
 
-    func generateReply(userText: String, incident: Incident, intensity: RoastIntensity, languageCode: String) async throws -> String {
-        guard let apiKey = secrets.dashScopeAPIKey() else {
+    func generateReply(userText: String, incident: Incident, settings: ProviderSettings, intensity: RoastIntensity, languageCode: String) async throws -> String {
+        let endpoint = settings.llm
+        guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
 
         let languageInstruction = languageCode == "en" ? "Write in English." : "用中文输出。"
         let body: [String: Any] = [
-            "model": "qwen-turbo",
+            "model": endpoint.model,
             "messages": [
                 [
                     "role": "system",
@@ -78,7 +80,7 @@ struct DashScopeClient {
             "max_tokens": 100
         ]
 
-        var request = URLRequest(url: URL(string: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")!)
+        var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -97,12 +99,13 @@ struct DashScopeClient {
     }
 
     func synthesizeSpeech(text: String, settings: ProviderSettings, languageCode: String) async throws -> Data {
-        guard let apiKey = secrets.dashScopeAPIKey() else {
+        let endpoint = settings.tts
+        guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
 
         let body: [String: Any] = [
-            "model": settings.tts.model,
+            "model": endpoint.model,
             "input": [
                 "text": text,
                 "voice": settings.voice,
@@ -114,7 +117,7 @@ struct DashScopeClient {
             ]
         ]
 
-        var request = URLRequest(url: URL(string: "https://dashscope.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer")!)
+        var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "services/audio/tts/SpeechSynthesizer"))
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -158,6 +161,11 @@ struct DashScopeClient {
             URL: \(context.url ?? "none")
             """
         )
+    }
+
+    private func endpointURL(baseURL: String, path: String) -> URL {
+        let trimmedBase = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return URL(string: "\(trimmedBase)/\(path)")!
     }
 }
 

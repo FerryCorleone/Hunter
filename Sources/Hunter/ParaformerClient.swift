@@ -19,12 +19,13 @@ struct ParaformerClient {
 
     var secrets = SecretStore()
 
-    func transcribeWAV(_ audioData: Data, languageHint: String? = nil) async throws -> String {
-        guard let apiKey = secrets.dashScopeAPIKey() else {
+    func transcribeWAV(_ audioData: Data, settings: ProviderSettings = ProviderSettings(), languageHint: String? = nil) async throws -> String {
+        let endpoint = settings.asr
+        guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ASRError.missingAPIKey
         }
 
-        var request = URLRequest(url: URL(string: "wss://dashscope.aliyuncs.com/api-ws/v1/inference")!)
+        var request = URLRequest(url: websocketURL(for: endpoint))
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("Hunter-macOS/0.1", forHTTPHeaderField: "user-agent")
 
@@ -37,7 +38,7 @@ struct ParaformerClient {
         }
 
         let taskID = UUID().uuidString
-        let start = runTaskMessage(taskID: taskID, languageHint: languageHint)
+        let start = runTaskMessage(taskID: taskID, model: endpoint.model, languageHint: languageHint)
         try await socket.send(.string(start))
 
         var transcript = ""
@@ -76,7 +77,7 @@ struct ParaformerClient {
         return clean
     }
 
-    private func runTaskMessage(taskID: String, languageHint: String?) -> String {
+    private func runTaskMessage(taskID: String, model: String, languageHint: String?) -> String {
         var parameters: [String: Any] = [
             "format": "wav",
             "sample_rate": 16000,
@@ -99,7 +100,7 @@ struct ParaformerClient {
                 "task_group": "audio",
                 "task": "asr",
                 "function": "recognition",
-                "model": "paraformer-realtime-v2",
+                "model": model,
                 "parameters": parameters,
                 "input": [:]
             ]
@@ -131,6 +132,13 @@ struct ParaformerClient {
             throw ASRError.invalidEvent
         }
         return try JSONDecoder().decode(ASREvent.self, from: data)
+    }
+
+    private func websocketURL(for endpoint: ProviderEndpoint) -> URL {
+        if endpoint.baseURL.lowercased().hasPrefix("ws") {
+            return URL(string: endpoint.baseURL)!
+        }
+        return URL(string: "wss://dashscope.aliyuncs.com/api-ws/v1/inference")!
     }
 }
 

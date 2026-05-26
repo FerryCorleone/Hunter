@@ -147,6 +147,7 @@ struct DashScopeClient {
             switch intensity {
             case .gentle: return "Tone: witty but not harsh."
             case .sarcastic: return "Tone: sharp, sarcastic, office-safe."
+            case .boss: return "Tone: like a dramatic but funny boss catching someone slacking. Office-safe, no real threats."
             case .savage: return "Tone: high intensity but no protected-class attacks, threats, self-harm, or slurs."
             }
         }()

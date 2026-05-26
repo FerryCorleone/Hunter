@@ -19,6 +19,7 @@ enum AppLanguage: String, CaseIterable, Codable, Identifiable {
 enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
     case gentle
     case sarcastic
+    case boss
     case savage
 
     var id: String { rawValue }
@@ -27,6 +28,7 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .gentle: "温柔提醒"
         case .sarcastic: "阴阳怪气"
+        case .boss: "老板附体"
         case .savage: "破防模式"
         }
     }

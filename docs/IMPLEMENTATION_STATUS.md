@@ -28,6 +28,7 @@
 - 命令行烟测入口：
   - `./.build/debug/Hunter --smoke-llm-tts`
   - `./.build/debug/Hunter --smoke-asr /path/to/audio.wav`
+  - `./.build/debug/Hunter --smoke-voice-focus /path/to/audio.wav`
 
 ## 已验证
 
@@ -38,12 +39,13 @@
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
+- 语音时长任务烟测通过：同一段 WAV -> ASR -> `DurationParser` -> `focus_minutes=40`。
 - 默认 Provider 配置改为可编辑后，阿里默认链路再次通过 LLM/TTS/ASR 烟测。
 
 ## 未完成 / 下一步
 
 - 当前运行环境截图返回黑图，需在已授权屏幕录制/已解锁桌面环境中补完整 UI 截图、浮窗交互和状态栏菜单验收。
-- 验证 Option+Space 辅助功能授权流程。
+- 验证 Option+Space 辅助功能授权流程；当前已接 `AXIsProcessTrustedWithOptions` 主动弹出辅助功能权限提示。
 - 验证麦克风权限弹窗、录音、Paraformer ASR 返回文本。
 - 端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。

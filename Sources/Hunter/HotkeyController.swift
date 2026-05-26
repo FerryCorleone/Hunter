@@ -16,6 +16,12 @@ final class HotkeyController {
 
     func start() {
         guard eventTap == nil else { return }
+        let promptOptions: NSDictionary = ["AXTrustedCheckOptionPrompt": true]
+        guard AXIsProcessTrustedWithOptions(promptOptions) else {
+            state.permissionStatus = "Accessibility permission needed for Option Space hotkey"
+            return
+        }
+
         let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(

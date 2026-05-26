@@ -35,6 +35,24 @@ enum CommandLineRunner {
                 print("asr_text=\(text)")
             }
             return true
+        case "--smoke-voice-focus":
+            guard args.count >= 2 else {
+                fputs("usage: Hunter --smoke-voice-focus /path/to/audio.wav\n", stderr)
+                exit(2)
+            }
+            let path = String(args.dropFirst().first!)
+            waitForAsync {
+                let data = try Data(contentsOf: URL(fileURLWithPath: path))
+                let text = try await ParaformerClient().transcribeWAV(data, settings: ProviderSettings(), languageHint: "zh")
+                guard let duration = DurationParser().parse(text) else {
+                    fputs("voice_focus_ok=false\nasr_text=\(text)\n", stderr)
+                    exit(1)
+                }
+                print("voice_focus_ok=true")
+                print("asr_text=\(text)")
+                print("focus_minutes=\(Int(duration / 60))")
+            }
+            return true
         default:
             return false
         }

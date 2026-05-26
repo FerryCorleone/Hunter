@@ -10,11 +10,12 @@
 - 菜单栏状态入口。
 - SwiftUI 设置窗口：General、Watchlist、AI、Voice、History。
 - AppKit 浮动监督窗：悬浮球、抓包卡片、时长任务 toast。
-- 工作时段配置：支持全天监督或限定开始/结束时间，跨午夜时段可用。
-- 黑名单配置：支持新增、删除、启用/停用网站和 App 规则。
+- 工作时段配置：支持全天监督或多个开始/结束时间段，支持工作日/周末开关，跨午夜时段可用。
+- 黑名单配置：支持新增、删除、启用/停用网站和 App 规则，内置常见平台预设。
 - 前台 App 检测：`NSWorkspace.shared.frontmostApplication`。
-- Chrome/Safari URL 读取：AppleScript/ScriptingBridge 起步。
+- Chrome/Safari/Brave/Edge/Arc URL 读取：AppleScript/ScriptingBridge 起步。
 - 黑名单命中、冷却、事件日志。
+- 历史记录：展示今日抓包次数、Top 命中对象，支持复制语录和清除本地日志。
 - 语音时长任务解析：中文/英文样例已加测试。
 - Option+Space 全局事件监听入口，未授权时提示需要辅助功能权限。
 - 麦克风 4 秒短录音入口。
@@ -25,15 +26,17 @@
 - 设置页可把 API Key 按环境变量名写入 macOS Keychain。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
 - 设置页和悬浮小组件主要文案支持中文/英文切换。
+- 登录时启动：已接 `SMAppService` 注册/取消。
 - 命令行烟测入口：
   - `./.build/debug/Hunter --smoke-llm-tts`
   - `./.build/debug/Hunter --smoke-asr /path/to/audio.wav`
   - `./.build/debug/Hunter --smoke-voice-focus /path/to/audio.wav`
+  - `./.build/debug/Hunter --smoke-current-context`
 
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析和工作时段判断。
+- `swift test` 通过，覆盖时长任务解析、多时段工作时段、工作日/周末开关和黑名单匹配。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
@@ -51,7 +54,6 @@
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
 - Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。
 - TTS 音色复刻/声音设计暂未实现，需授权样本或用户明确选择声音设计。
-- 登录时启动开关目前是占位展示，后续接 `SMAppService`。
 
 ## 注意
 

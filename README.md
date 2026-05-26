@@ -64,6 +64,7 @@ say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
 afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-asr /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-voice-focus /tmp/hunter-asr.wav
+./.build/debug/Hunter --smoke-current-context
 ```
 
 ASR / LLM / TTS 的 provider 名称、base URL、model、API key 环境变量名和 TTS 音色 ID 都可以在设置页编辑。当前内置 adapter 覆盖阿里默认链路和 OpenAI-compatible LLM；接入完全不同协议的供应商时，需要新增 adapter。

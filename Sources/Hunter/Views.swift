@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @MainActor
@@ -231,6 +232,7 @@ struct SettingsView: View {
 struct GeneralPanel: View {
     @ObservedObject var state: AppState
     let onStartFocus: () -> Void
+    @State private var loginItemMessage = ""
 
     var body: some View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
@@ -256,16 +258,43 @@ struct GeneralPanel: View {
                 }
 
                 SettingCard(icon: "calendar", title: state.copy("工作时段", "Work hours"), subtitle: state.copy("只在这个时段内自动抓黑名单。", "Only auto-catch blacklist hits inside this schedule.")) {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        Toggle(state.copy("启用", "Enabled"), isOn: $state.workSchedule.isEnabled)
-                            .toggleStyle(.switch)
-                        HStack(spacing: 8) {
-                            DatePicker("", selection: scheduleBinding(\.startMinuteOfDay), displayedComponents: .hourAndMinute)
-                                .labelsHidden()
-                            Text(state.copy("至", "to"))
-                                .foregroundStyle(.secondary)
-                            DatePicker("", selection: scheduleBinding(\.endMinuteOfDay), displayedComponents: .hourAndMinute)
-                                .labelsHidden()
+                    VStack(alignment: .trailing, spacing: 10) {
+                        HStack(spacing: 12) {
+                            Toggle(state.copy("启用", "Enabled"), isOn: $state.workSchedule.isEnabled)
+                                .toggleStyle(.switch)
+                            Toggle(state.copy("工作日", "Weekdays"), isOn: $state.workSchedule.weekdaysEnabled)
+                                .toggleStyle(.checkbox)
+                            Toggle(state.copy("周末", "Weekends"), isOn: $state.workSchedule.weekendsEnabled)
+                                .toggleStyle(.checkbox)
+                        }
+
+                        VStack(alignment: .trailing, spacing: 6) {
+                            ForEach(Array(state.workSchedule.periods.indices), id: \.self) { index in
+                                HStack(spacing: 8) {
+                                    DatePicker("", selection: periodDateBinding(index: index, keyPath: \.startMinuteOfDay), displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                    Text(state.copy("至", "to"))
+                                        .foregroundStyle(.secondary)
+                                    DatePicker("", selection: periodDateBinding(index: index, keyPath: \.endMinuteOfDay), displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                    Button {
+                                        removePeriod(at: index)
+                                    } label: {
+                                        Image(systemName: "minus.circle")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.secondary)
+                                    .disabled(state.workSchedule.periods.count == 1)
+                                }
+                            }
+
+                            Button {
+                                state.workSchedule.periods.append(WorkPeriod(startMinuteOfDay: 19 * 60, endMinuteOfDay: 22 * 60))
+                                state.persist()
+                            } label: {
+                                Label(state.copy("添加时段", "Add period"), systemImage: "plus")
+                            }
+                            .buttonStyle(.bordered)
                         }
                         .disabled(!state.workSchedule.isEnabled)
                     }
@@ -282,9 +311,16 @@ struct GeneralPanel: View {
                 }
 
                 SettingCard(icon: "person", title: state.copy("登录时启动", "Launch at login"), subtitle: state.copy("登录 macOS 后自动运行 Hunter。", "Automatically run Hunter when you log in.")) {
-                    Toggle("", isOn: .constant(false))
-                        .toggleStyle(.switch)
-                        .labelsHidden()
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Toggle("", isOn: launchAtLoginBinding)
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                        if !loginItemMessage.isEmpty {
+                            Text(loginItemMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
@@ -298,14 +334,43 @@ struct GeneralPanel: View {
         return state.copy("\(minutes) 分钟", "\(minutes) min")
     }
 
-    private func scheduleBinding(_ keyPath: WritableKeyPath<WorkSchedule, Int>) -> Binding<Date> {
+    private func periodDateBinding(index: Int, keyPath: WritableKeyPath<WorkPeriod, Int>) -> Binding<Date> {
         Binding(
             get: {
-                WorkSchedule.date(forMinuteOfDay: state.workSchedule[keyPath: keyPath])
+                guard state.workSchedule.periods.indices.contains(index) else {
+                    return WorkSchedule.date(forMinuteOfDay: 9 * 60)
+                }
+                return WorkSchedule.date(forMinuteOfDay: state.workSchedule.periods[index][keyPath: keyPath])
             },
             set: { date in
-                state.workSchedule[keyPath: keyPath] = WorkSchedule.minuteOfDay(from: date)
+                guard state.workSchedule.periods.indices.contains(index) else { return }
+                state.workSchedule.periods[index][keyPath: keyPath] = WorkSchedule.minuteOfDay(from: date)
                 state.persist()
+            }
+        )
+    }
+
+    private func removePeriod(at index: Int) {
+        guard state.workSchedule.periods.count > 1, state.workSchedule.periods.indices.contains(index) else { return }
+        state.workSchedule.periods.remove(at: index)
+        state.persist()
+    }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { state.launchAtLogin },
+            set: { enabled in
+                do {
+                    try LoginItemController().setEnabled(enabled)
+                    state.launchAtLogin = LoginItemController().isEnabled
+                    state.persist()
+                    loginItemMessage = state.launchAtLogin
+                        ? state.copy("已开启", "Enabled")
+                        : state.copy("已关闭", "Disabled")
+                } catch {
+                    state.launchAtLogin = LoginItemController().isEnabled
+                    loginItemMessage = state.copy("登录项设置失败：\(error.localizedDescription)", "Login item failed: \(error.localizedDescription)")
+                }
             }
         )
     }
@@ -339,6 +404,27 @@ struct WatchlistPanel: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(newPattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .padding()
+                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(state.copy("常见预设", "Common presets"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(BlacklistRule.commonPresets) { preset in
+                                Button {
+                                    addPreset(preset)
+                                } label: {
+                                    Label(preset.name, systemImage: preset.kind == .website ? "globe" : "app")
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(ruleExists(preset))
+                            }
+                        }
+                    }
                 }
                 .padding()
                 .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
@@ -391,6 +477,18 @@ struct WatchlistPanel: View {
     private func removeRule(_ id: UUID) {
         state.rules.removeAll { $0.id == id }
         state.persist()
+    }
+
+    private func addPreset(_ preset: BlacklistRule) {
+        guard !ruleExists(preset) else { return }
+        state.rules.append(preset)
+        state.persist()
+    }
+
+    private func ruleExists(_ preset: BlacklistRule) -> Bool {
+        state.rules.contains {
+            $0.kind == preset.kind && $0.pattern.caseInsensitiveCompare(preset.pattern) == .orderedSame
+        }
     }
 }
 
@@ -504,25 +602,83 @@ struct HistoryPanel: View {
             if state.events.isEmpty {
                 ContentUnavailableView(state.copy("还没有抓包", "No catches yet"), systemImage: "clock.arrow.circlepath", description: Text(state.copy("开始监督或触发一次演示抓包。", "Start monitoring or trigger a demo catch.")))
             } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(state.events) { incident in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text(incident.targetName).font(.headline)
-                                    Spacer()
-                                    Text(incident.date, style: .time).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 12) {
+                        StatPill(title: state.copy("今日抓包", "Today"), value: "\(todayEvents.count)")
+                        StatPill(title: state.copy("Top 对象", "Top target"), value: topTarget)
+                        Spacer()
+                        Button(role: .destructive) {
+                            state.clearEvents()
+                        } label: {
+                            Label(state.copy("清除", "Clear"), systemImage: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            ForEach(state.events) { incident in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text(incident.targetName).font(.headline)
+                                        Spacer()
+                                        Text(incident.date, style: .time).foregroundStyle(.secondary)
+                                    }
+                                    Text(incident.roast)
+                                        .foregroundStyle(.secondary)
+                                    HStack {
+                                        Spacer()
+                                        Button {
+                                            copyToClipboard(incident.roast)
+                                        } label: {
+                                            Label(state.copy("复制语录", "Copy line"), systemImage: "doc.on.doc")
+                                        }
+                                        .buttonStyle(.bordered)
+                                    }
                                 }
-                                Text(incident.roast)
-                                    .foregroundStyle(.secondary)
+                                .padding()
+                                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
                             }
-                            .padding()
-                            .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
                         }
                     }
                 }
             }
         }
+    }
+
+    private var todayEvents: [Incident] {
+        state.eventsForToday()
+    }
+
+    private var topTarget: String {
+        let counts = Dictionary(grouping: todayEvents, by: \.targetName).mapValues(\.count)
+        return counts.max { $0.value < $1.value }?.key ?? "-"
+    }
+
+    private func copyToClipboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+}
+
+struct StatPill: View {
+    var title: String
+    var value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 20, weight: .bold))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 64)
+        .frame(minWidth: 132, alignment: .leading)
+        .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
     }
 }
 
@@ -570,7 +726,7 @@ struct SettingCard<Trailing: View>: View {
             trailing
         }
         .padding(.horizontal, 25)
-        .frame(height: 108)
+        .frame(minHeight: 108)
         .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.1)))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 5)

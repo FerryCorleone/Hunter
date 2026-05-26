@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class AppState: ObservableObject {
     @Published var isMonitoring: Bool = false
+    @Published var launchAtLogin: Bool = false
     @Published var workSchedule: WorkSchedule = .default
     @Published var interfaceLanguage: AppLanguage = .zhHans
     @Published var aiLanguage: AppLanguage = .zhHans
@@ -28,6 +29,7 @@ final class AppState: ObservableObject {
     func load() {
         let snapshot = store.load()
         isMonitoring = snapshot.isMonitoring
+        launchAtLogin = snapshot.launchAtLogin
         workSchedule = snapshot.workSchedule
         interfaceLanguage = snapshot.interfaceLanguage
         aiLanguage = snapshot.aiLanguage
@@ -41,6 +43,7 @@ final class AppState: ObservableObject {
     func persist() {
         store.save(SettingsSnapshot(
             isMonitoring: isMonitoring,
+            launchAtLogin: launchAtLogin,
             workSchedule: workSchedule,
             interfaceLanguage: interfaceLanguage,
             aiLanguage: aiLanguage,
@@ -86,6 +89,16 @@ final class AppState: ObservableObject {
         persist()
     }
 
+    func clearEvents() {
+        events = []
+        currentIncident = nil
+        persist()
+    }
+
+    func eventsForToday(calendar: Calendar = .current) -> [Incident] {
+        events.filter { calendar.isDateInToday($0.date) }
+    }
+
     func targetLanguageCode() -> String {
         let resolved = aiLanguage == .followInterface ? interfaceLanguage : aiLanguage
         return resolved == .english ? "en" : "zh"
@@ -106,5 +119,15 @@ extension BlacklistRule {
         BlacklistRule(name: "Bilibili", kind: .website, pattern: "bilibili.com"),
         BlacklistRule(name: "X / Twitter", kind: .website, pattern: "x.com"),
         BlacklistRule(name: "Steam", kind: .app, pattern: "steam")
+    ]
+
+    static let commonPresets: [BlacklistRule] = [
+        BlacklistRule(name: "YouTube", kind: .website, pattern: "youtube.com"),
+        BlacklistRule(name: "Bilibili", kind: .website, pattern: "bilibili.com"),
+        BlacklistRule(name: "Douyin", kind: .website, pattern: "douyin.com"),
+        BlacklistRule(name: "X / Twitter", kind: .website, pattern: "x.com"),
+        BlacklistRule(name: "Reddit", kind: .website, pattern: "reddit.com"),
+        BlacklistRule(name: "Steam", kind: .app, pattern: "steam"),
+        BlacklistRule(name: "Discord", kind: .app, pattern: "discord")
     ]
 }

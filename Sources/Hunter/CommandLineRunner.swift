@@ -1,4 +1,5 @@
 import Darwin
+import AppKit
 import Foundation
 
 enum CommandLineRunner {
@@ -52,6 +53,15 @@ enum CommandLineRunner {
                 print("asr_text=\(text)")
                 print("focus_minutes=\(Int(duration / 60))")
             }
+            return true
+        case "--smoke-current-context":
+            let app = NSWorkspace.shared.frontmostApplication
+            let appName = app?.localizedName ?? "Unknown App"
+            let bundleID = app?.bundleIdentifier ?? ""
+            let url = BrowserURLReader().currentURL(for: app?.bundleIdentifier) ?? ""
+            print("frontmost_app=\(appName)")
+            print("bundle_id=\(bundleID)")
+            print("browser_url=\(url)")
             return true
         default:
             return false

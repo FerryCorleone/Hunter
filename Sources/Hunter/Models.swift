@@ -110,24 +110,38 @@ struct ProviderSettings: Codable, Equatable {
     var voice: String = "longanyang"
 }
 
-struct WorkSchedule: Codable, Equatable {
-    var isEnabled: Bool = false
+struct WorkPeriod: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
     var startMinuteOfDay: Int = 9 * 60
     var endMinuteOfDay: Int = 18 * 60
+
+    func containsMinute(_ minute: Int) -> Bool {
+        let start = WorkSchedule.clampedMinute(startMinuteOfDay)
+        let end = WorkSchedule.clampedMinute(endMinuteOfDay)
+        let current = WorkSchedule.clampedMinute(minute)
+        guard start != end else { return true }
+        if start < end {
+            return current >= start && current < end
+        }
+        return current >= start || current < end
+    }
+}
+
+struct WorkSchedule: Codable, Equatable {
+    var isEnabled: Bool = false
+    var weekdaysEnabled: Bool = true
+    var weekendsEnabled: Bool = false
+    var periods: [WorkPeriod] = [WorkPeriod()]
 
     static let `default` = WorkSchedule()
 
     func contains(_ date: Date = Date(), calendar: Calendar = .current) -> Bool {
         guard isEnabled else { return true }
+        guard dayIsEnabled(date, calendar: calendar) else { return false }
+        guard !periods.isEmpty else { return false }
         let components = calendar.dateComponents([.hour, .minute], from: date)
         let minute = (components.hour ?? 0) * 60 + (components.minute ?? 0)
-        let start = clampedMinute(startMinuteOfDay)
-        let end = clampedMinute(endMinuteOfDay)
-        guard start != end else { return true }
-        if start < end {
-            return minute >= start && minute < end
-        }
-        return minute >= start || minute < end
+        return periods.contains { $0.containsMinute(minute) }
     }
 
     static func date(forMinuteOfDay minute: Int, calendar: Calendar = .current) -> Date {
@@ -141,12 +155,58 @@ struct WorkSchedule: Codable, Equatable {
         return clampedMinute((components.hour ?? 0) * 60 + (components.minute ?? 0))
     }
 
-    private static func clampedMinute(_ minute: Int) -> Int {
+    static func clampedMinute(_ minute: Int) -> Int {
         min(max(minute, 0), 23 * 60 + 59)
     }
 
-    private func clampedMinute(_ minute: Int) -> Int {
-        Self.clampedMinute(minute)
+    private func dayIsEnabled(_ date: Date, calendar: Calendar) -> Bool {
+        let weekday = calendar.component(.weekday, from: date)
+        let isWeekend = weekday == 1 || weekday == 7
+        return isWeekend ? weekendsEnabled : weekdaysEnabled
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case weekdaysEnabled
+        case weekendsEnabled
+        case periods
+        case startMinuteOfDay
+        case endMinuteOfDay
+    }
+
+    init(
+        isEnabled: Bool = false,
+        weekdaysEnabled: Bool = true,
+        weekendsEnabled: Bool = false,
+        periods: [WorkPeriod] = [WorkPeriod()]
+    ) {
+        self.isEnabled = isEnabled
+        self.weekdaysEnabled = weekdaysEnabled
+        self.weekendsEnabled = weekendsEnabled
+        self.periods = periods
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? false
+        weekdaysEnabled = try container.decodeIfPresent(Bool.self, forKey: .weekdaysEnabled) ?? true
+        weekendsEnabled = try container.decodeIfPresent(Bool.self, forKey: .weekendsEnabled) ?? false
+
+        if let decodedPeriods = try container.decodeIfPresent([WorkPeriod].self, forKey: .periods) {
+            periods = decodedPeriods
+        } else {
+            let start = try container.decodeIfPresent(Int.self, forKey: .startMinuteOfDay) ?? 9 * 60
+            let end = try container.decodeIfPresent(Int.self, forKey: .endMinuteOfDay) ?? 18 * 60
+            periods = [WorkPeriod(startMinuteOfDay: start, endMinuteOfDay: end)]
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(weekdaysEnabled, forKey: .weekdaysEnabled)
+        try container.encode(weekendsEnabled, forKey: .weekendsEnabled)
+        try container.encode(periods, forKey: .periods)
     }
 }
 

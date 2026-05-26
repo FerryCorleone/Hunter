@@ -2,6 +2,7 @@ import Foundation
 
 struct SettingsSnapshot: Codable {
     var isMonitoring: Bool
+    var launchAtLogin: Bool
     var workSchedule: WorkSchedule
     var interfaceLanguage: AppLanguage
     var aiLanguage: AppLanguage
@@ -13,6 +14,7 @@ struct SettingsSnapshot: Codable {
 
     static let initial = SettingsSnapshot(
         isMonitoring: false,
+        launchAtLogin: false,
         workSchedule: .default,
         interfaceLanguage: .zhHans,
         aiLanguage: .zhHans,
@@ -25,6 +27,7 @@ struct SettingsSnapshot: Codable {
 
     enum CodingKeys: String, CodingKey {
         case isMonitoring
+        case launchAtLogin
         case workSchedule
         case interfaceLanguage
         case aiLanguage
@@ -37,6 +40,7 @@ struct SettingsSnapshot: Codable {
 
     init(
         isMonitoring: Bool,
+        launchAtLogin: Bool,
         workSchedule: WorkSchedule,
         interfaceLanguage: AppLanguage,
         aiLanguage: AppLanguage,
@@ -47,6 +51,7 @@ struct SettingsSnapshot: Codable {
         events: [Incident]
     ) {
         self.isMonitoring = isMonitoring
+        self.launchAtLogin = launchAtLogin
         self.workSchedule = workSchedule
         self.interfaceLanguage = interfaceLanguage
         self.aiLanguage = aiLanguage
@@ -60,6 +65,7 @@ struct SettingsSnapshot: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         isMonitoring = try container.decodeIfPresent(Bool.self, forKey: .isMonitoring) ?? false
+        launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         workSchedule = try container.decodeIfPresent(WorkSchedule.self, forKey: .workSchedule) ?? .default
         interfaceLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .interfaceLanguage) ?? .zhHans
         aiLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .aiLanguage) ?? .zhHans

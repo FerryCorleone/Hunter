@@ -36,6 +36,8 @@ final class IncidentController {
                     settings: state.providers,
                     intensity: state.intensity,
                     persona: state.persona,
+                    allowProfanity: state.allowProfanity,
+                    bannedTerms: state.bannedTerms,
                     languageCode: state.targetLanguageCode()
                 )
                 await MainActor.run {
@@ -111,6 +113,8 @@ final class IncidentController {
                     settings: state.providers,
                     intensity: state.intensity,
                     persona: state.persona,
+                    allowProfanity: state.allowProfanity,
+                    bannedTerms: state.bannedTerms,
                     languageCode: state.targetLanguageCode()
                 )
                 let responseIncident = Incident(

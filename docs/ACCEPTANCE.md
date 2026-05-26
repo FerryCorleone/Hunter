@@ -11,8 +11,9 @@
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，13 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、Provider headers 和 TTS 缓存 |
+| 单元测试通过 | Pass | `swift test`，14 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、Provider headers、TTS 缓存和禁用词过滤 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
+| `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | App 可启动并创建窗口 | Pass | `open build/Hunter.app` 后 CoreGraphics 可见 `Hunter` 设置窗和悬浮窗 |
 | 权限引导 | Pass | 设置页展示辅助功能、麦克风、通知状态，并提供系统设置/通知请求入口 |
 | 界面中英文切换 | Partial | 设置页、菜单栏、悬浮窗和主要运行时状态已跟随语言切换，后续可升级为正式 strings 资源 |
@@ -27,6 +28,7 @@
 | TTS 本地缓存 | Pass | 按 model、voice、language、text 缓存音频，单测覆盖命中和隔离 |
 | Provider 可配置 | Partial | 设置页可编辑端点、鉴权 scheme、额外 headers、region 和 Keychain key，提供 LLM/TTS/ASR/端到端测试入口；完全异构供应商还需新增 adapter |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
+| 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
 | 语音对喷链路 | Partial | ASR/LLM/TTS 子链路已测，真实麦克风权限和快捷键需桌面授权后验收 |
 | 前台 App 检测 | Partial | 代码使用 `NSWorkspace`；真实黑名单命中需桌面交互验收 |
 | Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 代码使用 AppleScript；需浏览器自动化授权后验收 |

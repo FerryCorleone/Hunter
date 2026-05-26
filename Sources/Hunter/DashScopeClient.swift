@@ -16,13 +16,28 @@ struct DashScopeClient {
     var secrets = SecretStore()
     var audioCache = AudioCache()
 
-    func generateRoast(context: FrontmostContext, settings: ProviderSettings, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) async throws -> String {
+    func generateRoast(
+        context: FrontmostContext,
+        settings: ProviderSettings,
+        intensity: RoastIntensity,
+        persona: RoastPersona,
+        allowProfanity: Bool = false,
+        bannedTerms: String = "",
+        languageCode: String
+    ) async throws -> String {
         let endpoint = settings.llm
         guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
 
-        let prompt = buildRoastPrompt(context: context, intensity: intensity, persona: persona, languageCode: languageCode)
+        let prompt = buildRoastPrompt(
+            context: context,
+            intensity: intensity,
+            persona: persona,
+            allowProfanity: allowProfanity,
+            bannedTerms: bannedTerms,
+            languageCode: languageCode
+        )
         let body: [String: Any] = [
             "model": endpoint.model,
             "messages": [
@@ -48,23 +63,33 @@ struct DashScopeClient {
         guard let content = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty else {
             throw ProviderError.invalidResponse
         }
-        return content
+        return RoastPolicy.sanitize(content, bannedTerms: bannedTerms)
     }
 
-    func generateReply(userText: String, incident: Incident, settings: ProviderSettings, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) async throws -> String {
+    func generateReply(
+        userText: String,
+        incident: Incident,
+        settings: ProviderSettings,
+        intensity: RoastIntensity,
+        persona: RoastPersona,
+        allowProfanity: Bool = false,
+        bannedTerms: String = "",
+        languageCode: String
+    ) async throws -> String {
         let endpoint = settings.llm
         guard let apiKey = secrets.apiKey(for: endpoint) else {
             throw ProviderError.missingAPIKey
         }
 
         let languageInstruction = languageCode == "en" ? "Write in English." : "用中文输出。"
+        let boundary = RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms)
         let body: [String: Any] = [
             "model": endpoint.model,
             "messages": [
                 [
                     "role": "system",
                     "content": """
-                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) The user is talking back after being caught slacking. Reply with one short, funny comeback. \(languageInstruction) Keep it under 24 words or 42 Chinese characters. No protected-class insults, real threats, or self-harm content.
+                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) The user is talking back after being caught slacking. Reply with one short, funny comeback. \(languageInstruction) Keep it under 24 words or 42 Chinese characters. \(boundary)
                     """
                 ],
                 [
@@ -97,7 +122,7 @@ struct DashScopeClient {
         guard let content = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty else {
             throw ProviderError.invalidResponse
         }
-        return content
+        return RoastPolicy.sanitize(content, bannedTerms: bannedTerms)
     }
 
     func synthesizeSpeech(text: String, settings: ProviderSettings, languageCode: String) async throws -> Data {
@@ -151,7 +176,14 @@ struct DashScopeClient {
         return audio
     }
 
-    private func buildRoastPrompt(context: FrontmostContext, intensity: RoastIntensity, persona: RoastPersona, languageCode: String) -> (system: String, user: String) {
+    private func buildRoastPrompt(
+        context: FrontmostContext,
+        intensity: RoastIntensity,
+        persona: RoastPersona,
+        allowProfanity: Bool,
+        bannedTerms: String,
+        languageCode: String
+    ) -> (system: String, user: String) {
         let languageInstruction = languageCode == "en"
             ? "Write in English."
             : "用中文输出。"
@@ -166,7 +198,7 @@ struct DashScopeClient {
 
         return (
             system: """
-            You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction) \(intensityInstruction) Keep it under 26 words or 45 Chinese characters. Mention the target. No protected-class insults, real threats, or self-harm content.
+            You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction) \(intensityInstruction) Keep it under 26 words or 45 Chinese characters. Mention the target. \(RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms))
             """,
             user: """
             Target: \(context.displayTarget)

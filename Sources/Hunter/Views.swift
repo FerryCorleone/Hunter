@@ -650,6 +650,8 @@ struct ProvidersPanel: View {
                     settings: state.providers,
                     intensity: .gentle,
                     persona: state.persona,
+                    allowProfanity: state.allowProfanity,
+                    bannedTerms: state.bannedTerms,
                     languageCode: state.targetLanguageCode()
                 )
                 state.providerStatus = state.copy("LLM 正常：\(text.prefix(40))", "LLM OK: \(text.prefix(40))")
@@ -703,6 +705,8 @@ struct ProvidersPanel: View {
                     settings: state.providers,
                     intensity: state.intensity,
                     persona: state.persona,
+                    allowProfanity: state.allowProfanity,
+                    bannedTerms: state.bannedTerms,
                     languageCode: state.targetLanguageCode()
                 )
                 let audio = try await DashScopeClient().synthesizeSpeech(
@@ -743,6 +747,11 @@ struct VoicePanel: View {
                         Text(persona.label).tag(persona)
                     }
                 }
+                Toggle(state.copy("允许轻度粗口", "Allow mild profanity"), isOn: $state.allowProfanity)
+                    .toggleStyle(.switch)
+                TextField(state.copy("禁用词，用逗号或换行分隔", "Banned terms, comma or newline separated"), text: $state.bannedTerms, axis: .vertical)
+                    .lineLimit(1...3)
+                    .textFieldStyle(.roundedBorder)
                 Text(state.copy("声音克隆：在提供授权样本前暂不启用。", "Voice clone: disabled until authorized samples are provided."))
                     .foregroundStyle(.secondary)
             }
@@ -758,6 +767,12 @@ struct VoicePanel: View {
                 state.persist()
             }
             .onChange(of: state.persona) {
+                state.persist()
+            }
+            .onChange(of: state.allowProfanity) {
+                state.persist()
+            }
+            .onChange(of: state.bannedTerms) {
                 state.persist()
             }
         }

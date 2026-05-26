@@ -10,6 +10,8 @@ final class AppState: ObservableObject {
     @Published var aiLanguage: AppLanguage = .zhHans
     @Published var intensity: RoastIntensity = .sarcastic
     @Published var persona: RoastPersona = .officeBoss
+    @Published var allowProfanity: Bool = false
+    @Published var bannedTerms: String = ""
     @Published var rules: [BlacklistRule] = BlacklistRule.defaultRules
     @Published var providers: ProviderSettings = ProviderSettings()
     @Published var focusSession: FocusSession?
@@ -37,6 +39,8 @@ final class AppState: ObservableObject {
         aiLanguage = snapshot.aiLanguage
         intensity = snapshot.intensity
         persona = snapshot.persona
+        allowProfanity = snapshot.allowProfanity
+        bannedTerms = snapshot.bannedTerms
         rules = snapshot.rules
         providers = snapshot.providers
         focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
@@ -52,6 +56,8 @@ final class AppState: ObservableObject {
             aiLanguage: aiLanguage,
             intensity: intensity,
             persona: persona,
+            allowProfanity: allowProfanity,
+            bannedTerms: bannedTerms,
             rules: rules,
             providers: providers,
             focusSession: focusSession,

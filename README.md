@@ -70,3 +70,5 @@ afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ASR / LLM / TTS 的 provider 名称、base URL、model、API key 环境变量名、鉴权 scheme、额外 headers、region、语言提示和 TTS 音色 ID 都可以在设置页编辑，并提供 LLM/TTS/ASR/端到端测试入口。当前内置 adapter 覆盖阿里默认链路和 OpenAI-compatible LLM；接入完全不同协议的供应商时，需要新增 adapter。
 
 时长任务支持开始、暂停、恢复、延长 10 分钟和结束，也支持语音指令控制，例如“暂停监督”“恢复监督”“延长 10 分钟”“结束监督”。
+
+吐槽语气支持角色、强度、监督语言、轻度粗口开关和禁用词配置；禁用词会同时约束 LLM prompt，并在本地对输出做一次过滤后再播报。

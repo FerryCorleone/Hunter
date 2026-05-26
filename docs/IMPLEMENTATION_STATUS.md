@@ -32,6 +32,7 @@
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
 - 设置页、菜单栏、悬浮小组件和主要运行时状态文案支持中文/英文切换。
 - AI 监工角色：自律教练、办公室老板、冷面助理、脱口秀损友。
+- 吐槽边界配置：支持允许/禁止轻度粗口，并支持用户配置禁用词；禁用词会进入 prompt，并在本地对模型输出再过滤一次。
 - 登录时启动：已接 `SMAppService` 注册/取消。
 - 命令行烟测入口：
   - `./.build/debug/Hunter --smoke-llm-tts`
@@ -42,7 +43,8 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers 和 TTS 缓存。
+- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers、TTS 缓存和禁用词过滤。
+- `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
@@ -50,6 +52,7 @@
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
 - 语音时长任务烟测通过：同一段 WAV -> ASR -> `DurationParser` -> `focus_minutes=40`。
 - 阿里 LLM/TTS 烟测已验证角色 prompt 生效：老板口吻输出可用。
+- 吐槽边界改动后，阿里 LLM/TTS 烟测再次通过：`llm_ok=true`、`tts_ok=true`。
 - 默认 Provider 配置改为可编辑后，阿里默认链路再次通过 LLM/TTS/ASR 烟测。
 
 ## 未完成 / 下一步

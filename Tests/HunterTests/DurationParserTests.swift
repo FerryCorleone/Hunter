@@ -147,4 +147,14 @@ struct DurationParserTests {
         #expect(cache.data(for: key) == payload)
         #expect(cache.data(for: otherVoice) == nil)
     }
+
+    @Test func roastPolicyParsesAndFiltersBannedTerms() {
+        let terms = RoastPolicy.parsedBannedTerms(from: "笨蛋, idiot\n傻子；stupid")
+        #expect(terms == ["笨蛋", "idiot", "傻子", "stupid"])
+
+        let sanitized = RoastPolicy.sanitize("别当 idiot，也别当笨蛋。", bannedTerms: "IDIOT, 笨蛋")
+        #expect(!sanitized.localizedCaseInsensitiveContains("idiot"))
+        #expect(!sanitized.contains("笨蛋"))
+        #expect(sanitized.contains("..."))
+    }
 }

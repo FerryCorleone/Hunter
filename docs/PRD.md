@@ -15,7 +15,8 @@
 - TTS 需要支持用户指定音色，最好支持音色复刻/克隆。
 - 软件界面需要支持中英文。
 - AI 监督和语音对喷内容需要支持中文和英文。
-- 第一阶段产出 PRD、设计稿、技术评估，供审阅后再开发。
+- 悬浮球需要支持语音快速创建时长任务，例如“监督我接下来的 40 分钟”。
+- 第一阶段产出 PRD、设计稿、技术评估和图像参考稿，供审阅后再开发。
 
 待确认问题：
 
@@ -61,11 +62,12 @@
 6. 配置 ASR/LLM/TTS Provider；可从阿里云百炼默认模板开始，也可填写自己的供应商配置。
 7. 选择 AI 监工角色、吐槽强度和 TTS 音色。
 8. 点击“开始监督”，桌面出现轻量悬浮球。
-9. 用户进入黑名单 App 或网站。
-10. 悬浮球展开成小组件，显示抓包对象并语音吐槽。
-11. 用户按住快捷键语音反驳。
-12. Hunter 转写用户语音，生成反击文案，并继续播报。
-13. 主窗口历史记录展示抓包次数、摸鱼时长、命中目标和经典语录。
+9. 用户也可以按住快捷键说“监督我接下来的 40 分钟”，Hunter 解析出时长并立刻开启一个 40 分钟 Focus Session。
+10. 用户进入黑名单 App 或网站。
+11. 悬浮球展开成小组件，显示抓包对象并语音吐槽。
+12. 用户按住快捷键语音反驳。
+13. Hunter 转写用户语音，生成反击文案，并继续播报。
+14. 主窗口历史记录展示抓包次数、摸鱼时长、命中目标和经典语录。
 
 ### User Stories And Acceptance Criteria
 
@@ -112,6 +114,18 @@ Acceptance Criteria:
 - LLM 根据用户狡辩内容继续回应。
 - TTS 播报回应，且日志保存这一轮对话。
 - ASR/LLM/TTS 任一失败时给出可见降级状态。
+
+**Story 4.1：语音创建时长监督任务**  
+As a user, I want to quickly tell Hunter how long to supervise me so that I can start a focused work session without opening the main window.
+
+Acceptance Criteria:
+
+- 用户按住快捷键后可以说：“监督我接下来的 40 分钟”“盯我 25 分钟”“keep me focused for one hour”。
+- Hunter 使用 ASR + duration parser 解析出时长和意图。
+- 解析成功后，悬浮球显示确认态，例如“40 分钟监督已开始”。
+- 时长任务期间，黑名单命中会触发抓包吐槽；时长结束后自动回到普通待机/按工作时间监督。
+- 解析不确定时，悬浮球展示轻量确认，而不是打开主窗口。
+- 时长任务可暂停、延长、结束，并写入历史记录。
 
 **Story 5：查看今日抓包记录**  
 As a user, I want to review what happened today so that I can use the data as 自律反馈 or video 素材.
@@ -194,12 +208,14 @@ flowchart LR
   A --> C["Browser URL Detector"]
   B --> D["Blacklist Engine"]
   C --> D
+  I["Push-to-talk Recorder"] --> J["ASR Provider"]
+  J --> Q["Voice Command Parser"]
+  Q --> A
   D --> E["Incident Controller"]
   E --> P["Provider Registry"]
   P --> F["LLM Roast Generator"]
   P --> G["TTS Player"]
   E --> H["Local Event Store"]
-  I["Push-to-talk Recorder"] --> J["ASR Provider"]
   P --> J
   J --> F
 ```
@@ -211,6 +227,8 @@ flowchart LR
 - Monitor Service：定时检测前台 App 和浏览器 URL。
 - Incident Controller：处理命中、冷却、文案生成、播报和日志。
 - Voice Session：负责录音、ASR、LLM 回应、TTS 播放。
+- Voice Command Parser：解析“监督我接下来的 40 分钟”等时长任务意图。
+- Focus Session Manager：管理临时时长监督任务、倒计时、暂停、延长和结束。
 - Provider Registry：保存 ASR/LLM/TTS 的用户配置、内置模板和连接状态。
 - Localization Manager：管理 UI 语言、AI 输出语言和 provider 语言提示。
 - Local Store：保存配置、规则、日志和音色元数据。
@@ -239,6 +257,7 @@ flowchart LR
 **MVP：抓包播报闭环**
 
 - 桌面悬浮监督小组件。
+- 语音快速创建时长监督任务。
 - 菜单栏入口和轻量主窗口。
 - 工作时间和黑名单配置。
 - 前台 App + Chrome/Safari URL 检测。

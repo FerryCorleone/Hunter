@@ -11,6 +11,7 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 - [模型/API 技术评估](docs/TECHNICAL_EVALUATION.md)
 - [HTML 设计稿](docs/design-prototype/index.html)
 - [设计稿预览图](docs/design-prototype/hunter-preview.png)
+- [图像生成参考稿](docs/design-prototype/generated-ui-reference.png)
 
 ## MVP Target
 
@@ -19,13 +20,14 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 1. 工作时间配置
 2. App 与网站黑名单
 3. 桌面悬浮球/小组件监督
-4. 前台 App/浏览器 URL 检测
-5. 黑名单命中后的 AI 吐槽生成
-6. 云端 TTS 语音播报
-7. 用户按键语音反驳，走 `ASR -> LLM -> TTS`
-8. 本地抓包日志
-9. 用户可配置 ASR/LLM/TTS Provider
-10. 中英文界面与中英文监督语言
+4. 语音快速创建时长监督任务，例如“监督我接下来的 40 分钟”
+5. 前台 App/浏览器 URL 检测
+6. 黑名单命中后的 AI 吐槽生成
+7. 云端 TTS 语音播报
+8. 用户按键语音反驳，走 `ASR -> LLM -> TTS`
+9. 本地抓包日志
+10. 用户可配置 ASR/LLM/TTS Provider
+11. 中英文界面与中英文监督语言
 
 ## Preferred Tech Direction
 

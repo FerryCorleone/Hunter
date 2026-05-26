@@ -140,6 +140,46 @@
         backdrop-filter: blur(32px);
       }
 
+      .session-toast {
+        position: absolute;
+        left: 118px;
+        bottom: 38px;
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        width: 302px;
+        min-height: 64px;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.14);
+        backdrop-filter: blur(30px);
+        padding: 12px 14px;
+      }
+
+      .toast-check {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--green);
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .toast-copy {
+        font-weight: 650;
+        line-height: 1.28;
+      }
+
+      .toast-close {
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1;
+      }
+
       .widget-head {
         display: flex;
         align-items: center;
@@ -244,15 +284,24 @@
       }
 
       .window-toolbar {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         height: 62px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         padding: 0 18px;
       }
 
+      .window-title {
+        color: rgba(29, 29, 31, 0.82);
+        font-size: 13px;
+        font-weight: 680;
+      }
+
       .traffic {
+        position: absolute;
+        left: 18px;
         display: flex;
         gap: 8px;
       }
@@ -355,14 +404,55 @@
 
       .window-body {
         display: grid;
-        grid-template-columns: 154px 1fr;
+        grid-template-columns: 182px 1fr;
         min-height: 658px;
       }
 
       .sidebar {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 22px;
         border-right: 1px solid rgba(0, 0, 0, 0.08);
         background: rgba(255, 255, 255, 0.34);
         padding: 18px 12px;
+      }
+
+      .sidebar-brand {
+        display: grid;
+        gap: 8px;
+        padding: 0 8px 14px;
+      }
+
+      .brand-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .sidebar-controls {
+        display: grid;
+        gap: 10px;
+        padding: 14px 4px 0;
+        border-top: 1px solid rgba(0, 0, 0, 0.07);
+      }
+
+      .sidebar-control-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .sidebar .segmented,
+      .sidebar .select,
+      .sidebar .pill-button {
+        width: 100%;
+      }
+
+      .sidebar .segmented button {
+        flex: 1;
+        min-width: 0;
+        padding: 0 8px;
       }
 
       .nav {
@@ -623,6 +713,14 @@
             日常只保留一个轻量悬浮球；抓到摸鱼时，它才展开成语音小组件。
           </p>
           <div class="orb" aria-label="Hunter floating orb">H</div>
+          <div class="session-toast" aria-label="Focus session started">
+            <div class="toast-check">✓</div>
+            <div>
+              <div class="toast-copy" data-i18n="session_started">40 分钟监督已开始</div>
+              <div class="widget-target" data-i18n="session_source">语音指令创建</div>
+            </div>
+            <div class="toast-close">×</div>
+          </div>
           <div class="catch-widget">
             <div class="widget-head">
               <div>
@@ -646,37 +744,44 @@
 
         <div class="app-window">
           <div class="window-toolbar">
-            <div class="title-block">
-              <div class="traffic"><span></span><span></span><span></span></div>
-              <div class="app-icon">H</div>
-              <div>
-                <h1>Hunter</h1>
-                <p class="subtle" data-i18n="app_subtitle">简约 AI 监督器</p>
-              </div>
-            </div>
-            <div class="toolbar-actions">
-              <div class="segmented" aria-label="Interface language">
-                <button class="active" data-locale="zh">中文</button>
-                <button data-locale="en">EN</button>
-              </div>
-              <select class="select" id="aiLanguage" aria-label="AI language">
-                <option value="zh">AI: 中文</option>
-                <option value="en">AI: English</option>
-                <option value="follow">AI: Follow UI</option>
-              </select>
-              <button class="pill-button primary" data-i18n="start">开始</button>
-            </div>
+            <div class="traffic"><span></span><span></span><span></span></div>
+            <div class="window-title">Hunter</div>
           </div>
 
           <div class="window-body">
             <aside class="sidebar">
-              <nav class="nav" aria-label="Settings sections">
-                <button class="active" data-panel-target="general" data-i18n="nav_general">通用</button>
-                <button data-panel-target="watchlist" data-i18n="nav_watchlist">黑名单</button>
-                <button data-panel-target="providers" data-i18n="nav_providers">AI</button>
-                <button data-panel-target="voice" data-i18n="nav_voice">声音</button>
-                <button data-panel-target="history" data-i18n="nav_history">历史</button>
-              </nav>
+              <div>
+                <div class="sidebar-brand">
+                  <div class="brand-line">
+                    <div class="app-icon">H</div>
+                    <div>
+                      <h1>Hunter</h1>
+                      <p class="subtle" data-i18n="app_subtitle">简约 AI 监督器</p>
+                    </div>
+                  </div>
+                </div>
+                <nav class="nav" aria-label="Settings sections">
+                  <button class="active" data-panel-target="general" data-i18n="nav_general">通用</button>
+                  <button data-panel-target="watchlist" data-i18n="nav_watchlist">黑名单</button>
+                  <button data-panel-target="providers" data-i18n="nav_providers">AI</button>
+                  <button data-panel-target="voice" data-i18n="nav_voice">声音</button>
+                  <button data-panel-target="history" data-i18n="nav_history">历史</button>
+                </nav>
+              </div>
+              <div class="sidebar-controls">
+                <div class="sidebar-control-label" data-i18n="interface_language">界面语言</div>
+                <div class="segmented" aria-label="Interface language">
+                  <button class="active" data-locale="zh">中文</button>
+                  <button data-locale="en">EN</button>
+                </div>
+                <div class="sidebar-control-label" data-i18n="ai_language_short">AI 语言</div>
+                <select class="select" id="aiLanguage" aria-label="AI language">
+                  <option value="zh">AI: 中文</option>
+                  <option value="en">AI: English</option>
+                  <option value="follow">AI: Follow UI</option>
+                </select>
+                <button class="pill-button primary" data-i18n="start">开始</button>
+              </div>
             </aside>
 
             <section class="panel active" id="general">
@@ -688,6 +793,17 @@
                 <span class="badge green" data-i18n="monitoring">正在监督</span>
               </div>
               <div class="settings-list">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <strong data-i18n="focus_session">时长任务</strong>
+                    <span data-i18n="focus_session_hint">语音创建的临时监督</span>
+                  </div>
+                  <div>
+                    <div class="value-line" data-i18n="focus_session_value">40 分钟监督中</div>
+                    <div class="provider-detail" data-i18n="focus_session_command">语音指令：监督我接下来的 40 分钟</div>
+                  </div>
+                  <button class="small-button" data-i18n="change">更改</button>
+                </div>
                 <div class="setting-row">
                   <div class="setting-label">
                     <strong data-i18n="work_hours">工作时间</strong>
@@ -871,11 +987,15 @@
     <script>
       const copy = {
         zh: {
-          desktop_note: "日常只保留一个轻量悬浮球；抓到摸鱼时，它才展开成语音小组件。",
+          desktop_note: "日常只保留一个轻量悬浮球；按住快捷键说“监督我接下来的 40 分钟”即可立刻开启时长任务。",
           caught: "Caught",
+          session_started: "40 分钟监督已开始",
+          session_source: "语音指令创建",
           reply_hotkey: "按住 Option Space 回击",
           pause_short: "暂停 5 分钟",
           app_subtitle: "简约 AI 监督器",
+          interface_language: "界面语言",
+          ai_language_short: "AI 语言",
           start: "开始",
           nav_general: "通用",
           nav_watchlist: "黑名单",
@@ -885,6 +1005,10 @@
           general_title: "悬浮监督器",
           general_desc: "把 Hunter 保持在桌面边缘，平时安静，抓包时才展开。",
           monitoring: "正在监督",
+          focus_session: "时长任务",
+          focus_session_hint: "语音创建的临时监督",
+          focus_session_value: "40 分钟监督中",
+          focus_session_command: "语音指令：监督我接下来的 40 分钟",
           work_hours: "工作时间",
           work_hours_hint: "只在这些时间段监督",
           edit: "编辑",
@@ -928,11 +1052,15 @@
           copy: "复制"
         },
         en: {
-          desktop_note: "Day to day, Hunter is just a quiet floating orb. It only expands when you get caught.",
+          desktop_note: "Day to day, Hunter is just a quiet floating orb. Hold the shortcut and say “keep me focused for 40 minutes” to start a timed session.",
           caught: "Caught",
+          session_started: "40-minute focus session started",
+          session_source: "Created from voice command",
           reply_hotkey: "Hold Option Space to reply",
           pause_short: "Pause 5 min",
           app_subtitle: "Minimal AI supervisor",
+          interface_language: "Interface",
+          ai_language_short: "AI language",
           start: "Start",
           nav_general: "General",
           nav_watchlist: "Watchlist",
@@ -942,6 +1070,10 @@
           general_title: "Floating supervisor",
           general_desc: "Keep Hunter on the edge of your desktop. Quiet by default, expressive when it catches you.",
           monitoring: "Monitoring",
+          focus_session: "Focus session",
+          focus_session_hint: "Temporary supervision from voice",
+          focus_session_value: "40 minutes remaining",
+          focus_session_command: "Voice command: keep me focused for 40 minutes",
           work_hours: "Work hours",
           work_hours_hint: "Only supervise during these blocks",
           edit: "Edit",

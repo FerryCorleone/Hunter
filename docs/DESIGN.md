@@ -6,7 +6,7 @@
 
 ## Design Positioning
 
-Hunter 的设计方向从“监控后台”改为 **Apple-like 的桌面监督小组件**。用户日常只看到一个低干扰悬浮球；发现摸鱼时，它展开成小组件、直接语音吐槽。主窗口只在用户主动打开时出现，用来做设置、API Key、黑名单和历史记录。
+Hunter 的设计方向从“监控后台”改为 **Apple-like 的桌面监督小组件**。用户日常只看到一个低干扰悬浮球；用户可以直接按住快捷键说“监督我接下来的 40 分钟”创建时长任务；发现摸鱼时，悬浮球展开成小组件并直接语音吐槽。主窗口只在用户主动打开时出现，用来做设置、API Key、黑名单和历史记录。
 
 这不是黑暗风格的 AI 控制台，也不是功能堆满的效率 Dashboard。它应该更像 macOS 原生工具：轻、静、精致、克制，有足够高级感，但抓包瞬间有戏剧性。
 
@@ -27,6 +27,7 @@ flowchart TD
   A["Floating Orb"] --> B["Expanded Supervisor Widget"]
   B --> C["Voice Roast"]
   B --> D["Push-to-talk Reply"]
+  A --> L["Voice Duration Task"]
   E["Menu Bar Icon"] --> F["Main Settings Window"]
   F --> G["General"]
   F --> H["Watchlist"]
@@ -54,6 +55,24 @@ flowchart TD
 - Caught：球体轻微放大并变为红色强调。
 - Listening：显示细线波形。
 - Speaking：显示播放波形。
+- Session Started：轻量 toast 确认“40-minute focus session started”。
+
+### Voice Duration Task
+
+用户按住回击快捷键时，除了对喷，也可以直接创建一个监督时长任务：
+
+```text
+用户说：监督我接下来的 40 分钟
+Hunter：40 分钟监督已开始
+```
+
+交互原则：
+
+- 不打开主窗口。
+- 悬浮球显示 listening 波形。
+- 解析成功后出现 2-3 秒确认 toast。
+- 悬浮球进入倒计时监督态。
+- 支持中文和英文：“监督我接下来的 40 分钟” / “Keep me focused for 40 minutes”。
 
 ### Expanded Catch Widget
 
@@ -86,19 +105,24 @@ flowchart TD
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│ Hunter                                      Start / Pause    │
+│                         Hunter                               │
 ├──────────────┬───────────────────────────────────────────────┤
 │ General      │ Floating Supervisor                           │
+│              │ Focus session 40 min remaining                 │
 │ Watchlist    │ [On]  Work hours 09:30-12:00                  │
 │ AI Providers │ Widget style: Minimal / Compact               │
 │ Voice        │ Shortcut: Option Space                        │
 │ History      │                                               │
+│              │                                               │
+│ UI / AI Lang │                                               │
+│ Start        │                                               │
 └──────────────┴───────────────────────────────────────────────┘
 ```
 
 ### General
 
 - 开始/暂停监督。
+- Focus Session：当前临时时长监督任务、剩余时间、修改/结束。
 - 工作时间段。
 - 悬浮球显示位置和尺寸。
 - 快捷键设置。
@@ -149,20 +173,24 @@ TTS  Aliyun / cosyvoice-v3.5-flash     Voice set   Test
 当前 HTML 原型位于：
 
 - `docs/design-prototype/index.html`
+- 图像生成参考稿：`docs/design-prototype/generated-ui-reference.png`
 
 原型需要体现：
 
 - Apple-like 浅色、高级、简约风格。
 - 桌面悬浮球和展开小组件是第一视觉。
+- 支持语音创建时长监督任务的 toast/确认态。
 - 主窗口只做轻量设置。
 - Provider 可配置，但默认折叠为三行。
 - 中英文界面和 AI 语言可切换。
+- 主窗口导航使用左侧竖向 sidebar；顶部不做横向菜单。
 
 ## Design Acceptance Checklist
 
 - 第一眼看到的是悬浮监督器，不是后台 Dashboard。
 - 主窗口不超过 5 个侧边栏入口。
 - Provider 配置默认收起，不压迫普通用户。
+- 语音时长任务入口可以不打开主窗口完成。
 - 中英文文案在小组件里都不溢出。
 - 抓包状态有戏剧性，但不破坏整体高级感。
 - 界面整体接近 macOS 原生软件，而不是暗黑 AI 工具。

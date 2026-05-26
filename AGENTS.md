@@ -1,0 +1,63 @@
+# AGENTS.md
+
+## Browser And Computer Use
+
+- 当需要操作 Chrome、飞书网页、开放平台、登录态网页或其他浏览器页面时，优先为 Codex 单独打开一个独立窗口或新窗口中的目标页面，不要复用用户正在使用的浏览器窗口或标签页。
+- 在使用 Computer Use 控制本机应用或浏览器时，尽量保持 Codex 的操作上下文固定在自己打开的窗口里，避免因为用户切换到自己的窗口而影响页面定位、截图、点击和状态读取。
+- 只有在用户明确要求接管当前窗口、目标页面只能在当前窗口访问，或登录/权限状态必须依赖当前窗口时，才操作用户正在使用的窗口；这种情况下先简短说明原因。
+
+## Project Mission
+
+Hunter 是一个 Mac 端 AI 摸鱼监工工具。它不是传统效率软件，而是一个自愿开启的个人监督和整活互动产品：
+
+- 用户设定工作时间、摸鱼网站黑名单和 App 黑名单。
+- 监控启动后持续检测前台 App 与浏览器当前 URL。
+- 命中黑名单后立刻触发云端 AI 生成吐槽，并用 TTS 语音播报。
+- 用户可以语音反驳，系统走 `ASR -> LLM -> TTS` 流程继续对喷。
+- 产品重点是“被 AI 当场抓包”的冲突感、节目效果和可录屏传播性。
+- 产品需要支持中英文界面，以及中文/英文两种监督和对喷语言。
+
+## Product Boundaries
+
+- 默认定位为个人自愿使用工具，不做老板监控员工、隐身采集、远程上报或不可关闭的监控。
+- 黑名单、日志、工作时段、音色设置默认存储在本机。
+- 浏览器 URL 和 App 使用记录默认不上传；只有被抓包事件所需的最小上下文进入 LLM。
+- 粗口/高强度吐槽必须由用户主动选择档位。不得生成针对种族、性别、地域、疾病、身体特征、真实身份等受保护属性的攻击。
+- TTS 音色复刻必须要求用户确认授权，不支持复刻公众人物、同事、老板或任何未授权第三方声音。
+
+## Technical Direction
+
+- 首选原生 macOS 应用路线：SwiftUI + AppKit 菜单栏应用。
+- 前台 App 检测优先使用 `NSWorkspace.shared.frontmostApplication`。
+- 浏览器 URL 检测第一阶段支持 Chrome 和 Safari，可通过 AppleScript/ScriptingBridge 获取当前标签 URL；后续再评估浏览器扩展。
+- 麦克风采集使用 `AVAudioEngine` 或系统音频 API；模型链路按 `ASR -> LLM -> TTS` 拆成 provider abstraction，避免供应商锁死。
+- ASR、LLM、TTS 都必须支持用户自定义 Provider 配置，包括 base URL、model id、API key、headers、价格提示、语言能力和音色参数。
+- 内置推荐配置仅作为模板。第一阶段测试默认使用阿里云百炼链路：`paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3.5-flash`。
+- 云端模型评估维度是价格、中英文效果、流式能力、延迟、音色选择、音色复刻、SDK/HTTP 接入复杂度和合规边界。
+- API Key、Secret、Token 等敏感信息必须进入 macOS Keychain 或本机 `.env.local`，不得提交到仓库。
+- 界面文案必须经过 i18n key 管理，不要把中英文文案散落在视图里。
+
+## Documentation Source Of Truth
+
+- PRD 真源：`docs/PRD.md`
+- 设计稿真源：`docs/DESIGN.md`
+- 模型/API 技术评估：`docs/TECHNICAL_EVALUATION.md`
+- 若产品范围、模型选型、权限策略或关键交互发生变化，同步更新上述文档。
+
+## Development Workflow
+
+- 开始编码前先读 `docs/PRD.md` 和 `docs/DESIGN.md`，确认当前阶段范围。
+- 默认先跑通 MVP 主链路：工作时间判断 -> 前台 App/URL 检测 -> 黑名单命中 -> AI 文案生成 -> TTS 播报 -> 本地日志。
+- Provider 配置框架要先于单个供应商深度适配；可以先实现阿里默认模板，但数据结构不能写死阿里。
+- 不要用假数据或静态 UI 冒充真实闭环；如果模型或系统权限未接通，要在状态里明确标注。
+- 优先实现可验证的小闭环，再扩展角色包、排行榜、挑战模式、分享视频等传播功能。
+- 每次提交前检查是否引入敏感日志、明文密钥、未授权音色样本或过度采集浏览历史。
+
+## Testing Expectations
+
+- 未来有 Xcode 工程后，优先使用 xcodebuild 或项目约定命令构建验证。
+- App/URL 检测需要至少覆盖：普通 App、Chrome 当前 URL、Safari 当前 URL、黑名单命中、白名单不触发、工作时间外不触发。
+- AI 链路需要覆盖：正常生成、模型超时、ASR 空结果、TTS 失败、粗口强度限制、音色不可用降级。
+- Provider 配置需要覆盖：缺失 Key、无效 base URL、模型 ID 错误、ASR/LLM/TTS 分别切换供应商。
+- i18n 需要覆盖：界面中英文切换、AI 输出语言切换、英文黑名单命中后的英文吐槽。
+- UI 改动需要用截图或可运行应用状态验证，不只汇报代码已改。

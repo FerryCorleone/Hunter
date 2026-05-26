@@ -1,0 +1,275 @@
+# Hunter PRD
+
+版本：v0.2  
+日期：2026-05-27  
+状态：待审阅
+
+## 0. Discovery Notes
+
+已知输入：
+
+- 目标平台：Mac 桌面端。
+- 核心玩法：工作时间内监控摸鱼网站/App，命中后 AI 语音高强度吐槽。
+- 语音互动路线：`ASR -> LLM -> TTS`，使用大厂云端 API。
+- ASR、LLM、TTS 均需要做成用户可配置 Provider；项目默认测试链路先用阿里云百炼。
+- TTS 需要支持用户指定音色，最好支持音色复刻/克隆。
+- 软件界面需要支持中英文。
+- AI 监督和语音对喷内容需要支持中文和英文。
+- 第一阶段产出 PRD、设计稿、技术评估，供审阅后再开发。
+
+待确认问题：
+
+- 第一批黑名单是否以中文互联网内容平台为主，还是同时覆盖海外网站和游戏类 App？
+- 吐槽“脏话”边界要做到什么程度：轻粗口、强羞辱、还是只允许用户自定义角色包？
+- 第一版是否需要真的阻断摸鱼行为，还是只做语音抓包和日志？
+- 首批 Provider 模板除阿里外，是否需要预置 OpenAI、火山引擎、腾讯云、MiniMax 等？
+
+## 1. Executive Summary
+
+**Problem Statement**  
+普通效率工具太严肃、太弱提醒，用户容易忽略；而“被 AI 当场抓包并开骂”的强冲突体验更容易制造自律压力和传播素材。
+
+**Proposed Solution**  
+开发一个 Mac 菜单栏 AI 监工应用。用户配置工作时间、黑名单和 ASR/LLM/TTS Provider 后，Hunter 持续检测前台 App 与浏览器 URL；一旦命中摸鱼目标，就调用用户配置的 LLM 生成吐槽文案并用 TTS 播报。用户可以语音反驳，系统通过 ASR 转写后继续生成语音回应。界面和 AI 监督语言均支持中英文。
+
+**Success Criteria**
+
+- 黑名单命中后 2 秒内出现可见抓包反馈，5 秒内完成首句语音播报。
+- Chrome/Safari/App 三类检测在本机测试中命中准确率 >= 95%。
+- 用户完成从安装、授权、配置黑名单到启动监控的时间 <= 3 分钟。
+- 日常 30 次抓包 + 10 分钟语音反驳的云端成本目标 < 1 元/天。
+- MVP 内部测试中，80% 以上的抓包事件能产生可用于录屏传播的短句。
+- ASR/LLM/TTS Provider 可以分别切换，用户可以用自己的 API Key 跑通完整语音链路。
+- 界面中英文切换覆盖 100% MVP 可见文案；AI 监督语言可独立选择中文或英文。
+
+## 2. User Experience & Functionality
+
+### User Personas
+
+- 内容创作者：想拍“AI 监督挑战”“办公室自律实验”类视频，需要强节目效果。
+- 自律困难用户：希望通过羞耻感、冲突感和声音提醒减少摸鱼。
+- AI 工具玩家：想体验可对喷的桌面 AI 角色，不只是普通提醒工具。
+
+### Core User Flow
+
+1. 用户首次打开 Hunter。
+2. 完成权限引导：辅助功能、自动化、麦克风、通知。
+3. 设置工作时间。
+4. 添加网站/App 黑名单。
+5. 选择界面语言和 AI 监督语言。
+6. 配置 ASR/LLM/TTS Provider；可从阿里云百炼默认模板开始，也可填写自己的供应商配置。
+7. 选择 AI 监工角色、吐槽强度和 TTS 音色。
+8. 点击“开始监督”。
+9. 用户进入黑名单 App 或网站。
+10. Hunter 触发抓包：显示事件、生成吐槽、语音播报。
+11. 用户按住快捷键语音反驳。
+12. Hunter 转写用户语音，生成反击文案，并继续播报。
+13. 今日日志展示抓包次数、摸鱼总时长、最常命中的目标和经典语录。
+
+### User Stories And Acceptance Criteria
+
+**Story 1：配置工作时间**  
+As a user, I want to define my work schedule so that Hunter only supervises me during the periods I care about.
+
+Acceptance Criteria:
+
+- 支持添加多个工作时间段。
+- 支持工作日/周末开关。
+- 工作时间外不触发语音吐槽。
+- 临时暂停后不清空原配置。
+
+**Story 2：配置网站和 App 黑名单**  
+As a user, I want to define websites and apps that count as slacking so that Hunter can detect meaningful violations.
+
+Acceptance Criteria:
+
+- 支持按域名、URL 关键词、App 名称配置。
+- 支持快速添加常见平台预设。
+- 支持每条规则启用/停用。
+- 命中日志能展示具体命中的规则。
+
+**Story 3：被抓包时收到语音吐槽**  
+As a user, I want Hunter to roast me immediately when I slack off so that the interruption feels dramatic and hard to ignore.
+
+Acceptance Criteria:
+
+- 命中黑名单后生成一条 10-25 秒内可播完的吐槽。
+- 每次吐槽包含命中对象、当前工作状态和角色语气。
+- 支持吐槽强度：温柔提醒、阴阳怪气、老板附体、破防模式。
+- 同一网站连续命中时有冷却时间，避免每秒重复播报。
+
+**Story 4：语音对喷**  
+As a user, I want to talk back to Hunter so that the product feels like a live confrontation rather than a static reminder.
+
+Acceptance Criteria:
+
+- 用户可通过快捷键或界面按钮进入录音。
+- ASR 返回后，界面展示用户转写文本。
+- LLM 根据用户狡辩内容继续回应。
+- TTS 播报回应，且日志保存这一轮对话。
+- ASR/LLM/TTS 任一失败时给出可见降级状态。
+
+**Story 5：查看今日抓包记录**  
+As a user, I want to review what happened today so that I can use the data as 自律反馈 or video 素材.
+
+Acceptance Criteria:
+
+- 展示今日抓包次数、摸鱼总时长、Top 黑名单对象。
+- 展示每次抓包时间、命中对象、AI 吐槽文案。
+- 支持复制经典语录。
+- 支持一键清除本地日志。
+
+**Story 6：配置模型 Provider**  
+As a user, I want to configure my own ASR, LLM, and TTS providers so that I can choose the cost and voice quality that fits me.
+
+Acceptance Criteria:
+
+- ASR、LLM、TTS 三类 Provider 可独立配置和启用。
+- 每类 Provider 至少支持：provider name、base URL、model id、API key、鉴权方式、额外 headers、区域/endpoint、语言能力说明。
+- API Key 进入 Keychain，不以明文写入配置文件或日志。
+- 提供“测试 ASR”“测试 LLM”“测试 TTS”“端到端测试”四类检查。
+- 内置阿里云百炼推荐模板，但用户可以新增 OpenAI-compatible 或 custom HTTP provider。
+- 任一 Provider 未配置时，监督检测仍可运行，但语音链路显示明确缺失状态。
+
+**Story 7：中英文界面和监督语言**  
+As a user, I want the app and AI supervisor to work in Chinese or English so that different users can use Hunter in their own language.
+
+Acceptance Criteria:
+
+- UI 支持 Simplified Chinese 和 English。
+- AI 监督语言可选择：跟随界面、中文、English。
+- ASR 语言提示可选择：自动、中文、English、中英混合。
+- LLM prompt 必须显式传入目标输出语言。
+- TTS 选择音色时展示该音色支持的语言。
+
+### Non-Goals
+
+- 不做老板/管理员远程监控员工。
+- 不做隐身后台采集或不可关闭监控。
+- MVP 不做跨设备同步、团队排行、远程管理后台。
+- MVP 不做强制断网、强制关闭 App 或系统级拦截。
+- MVP 不做公开视频自动生成，只提供适合录屏的 UI 和日志。
+- MVP 不内置任何云端 API Key，也不提供代付模型额度。
+
+## 3. AI System Requirements
+
+### Tool Requirements
+
+- ASR：实时或准实时语音识别，支持普通话、英语、中英混合、口语化表达、短音频低延迟。
+- LLM：中英文吐槽、角色扮演、上下文记忆、粗口边界控制、低成本。
+- TTS：中英文自然语音，支持指定音色；优先支持音色复刻或音色设计。
+- Provider 层：统一封装 `transcribe(audio, options)`, `generateRoast(context, options)`, `speak(text, voice, options)`。
+- Provider 配置层：支持内置模板、自定义 provider、连接测试、启停、成本备注和能力标签。
+
+### Prompt Requirements
+
+LLM 输入最少包含：
+
+- 命中对象：App 名称、URL 域名或规则名。
+- 当前阶段：首次抓包、连续摸鱼、用户反驳。
+- 用户配置：吐槽强度、角色、禁用词、是否允许粗口、输出语言。
+- Provider 能力：模型名称、语言支持、TTS 音色语言、是否支持流式。
+- 安全边界：不攻击受保护属性，不鼓励自伤，不输出真实威胁。
+
+### Evaluation Strategy
+
+- ASR：20 条用户反驳样本，普通话转写字错率目标 <= 10%。
+- ASR：20 条英文反驳样本，英文转写词错率目标 <= 15%。
+- LLM：100 条命中场景，人工评分“好笑/有冲突/不越界”，通过率 >= 80%。
+- LLM：中英文输出语言遵循率 >= 98%。
+- TTS：10 个默认音色 A/B 测试，选择清晰度、情绪表现、延迟综合最优的 3 个。
+- 端到端：模拟 30 次抓包，平均首句播报延迟 <= 5 秒。
+
+## 4. Technical Specifications
+
+### Architecture Overview
+
+```mermaid
+flowchart LR
+  A["Monitor Scheduler"] --> B["Foreground App Detector"]
+  A --> C["Browser URL Detector"]
+  B --> D["Blacklist Engine"]
+  C --> D
+  D --> E["Incident Controller"]
+  E --> P["Provider Registry"]
+  P --> F["LLM Roast Generator"]
+  P --> G["TTS Player"]
+  E --> H["Local Event Store"]
+  I["Push-to-talk Recorder"] --> J["ASR Provider"]
+  P --> J
+  J --> F
+```
+
+### macOS Components
+
+- Menu Bar Controller：展示状态、开始/暂停、快速入口。
+- Settings Window：工作时间、黑名单、声音、角色、隐私设置。
+- Monitor Service：定时检测前台 App 和浏览器 URL。
+- Incident Controller：处理命中、冷却、文案生成、播报和日志。
+- Voice Session：负责录音、ASR、LLM 回应、TTS 播放。
+- Provider Registry：保存 ASR/LLM/TTS 的用户配置、内置模板和连接状态。
+- Localization Manager：管理 UI 语言、AI 输出语言和 provider 语言提示。
+- Local Store：保存配置、规则、日志和音色元数据。
+
+### Integration Points
+
+- macOS 权限：辅助功能、自动化、麦克风、通知。
+- Chrome/Safari：通过脚本读取当前标签 URL。
+- 云端模型 API：ASR、LLM、TTS。
+- Keychain：保存 API Key 和用户授权状态。
+- i18n 资源：中英文 UI 文案、默认角色 prompt、默认吐槽模板。
+
+### Security & Privacy
+
+- 默认只上传被抓包时的最小上下文，不上传完整浏览历史。
+- 用户反驳音频仅用于 ASR，默认不保留原始音频。
+- 本地日志默认可清除。
+- 音色复刻需要显式授权确认，并记录授权状态。
+- 调试日志不得打印 API Key、完整 URL 查询参数或原始音频内容。
+- Provider 导入/导出默认不包含 API Key。
+
+## 5. Risks & Roadmap
+
+### Phased Rollout
+
+**MVP：抓包播报闭环**
+
+- 菜单栏应用。
+- 工作时间和黑名单配置。
+- 前台 App + Chrome/Safari URL 检测。
+- 命中后 LLM 文案 + TTS 播报。
+- Provider 配置框架，内置阿里云百炼模板。
+- 中英文 UI 与 AI 输出语言设置。
+- 本地日志。
+
+**v1.1：语音对喷**
+
+- Push-to-talk 反驳。
+- ASR 转写。
+- 多轮对喷上下文。
+- 角色包和强度细化。
+- 更多 Provider 模板和音色复刻流程。
+
+**v1.2：传播增强**
+
+- 今日名场面榜单。
+- 经典语录复制。
+- 录屏友好的抓包浮窗。
+- 可导出日报文案。
+
+**v2.0：挑战模式**
+
+- 8 小时不摸鱼挑战。
+- 失败惩罚规则。
+- 朋友监督/本地房间。
+- 可选视频片段自动剪辑。
+
+### Technical Risks
+
+- macOS 浏览器 URL 读取需要自动化权限，用户授权路径可能影响转化。
+- 不同浏览器和多窗口场景会增加检测复杂度。
+- 云端 TTS 延迟可能削弱“当场抓包”效果，需要缓存常用吐槽或流式 TTS。
+- 用户自定义 Provider 会带来鉴权、协议和错误格式差异，需要统一错误模型。
+- 中英文对喷质量取决于供应商语言能力，需要在 Provider 能力标签里给出提示。
+- 粗口吐槽需要可控，避免越界输出导致产品风险。
+- 音色复刻涉及授权和合规，不能默认开放第三方声音复刻。

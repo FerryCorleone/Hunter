@@ -62,6 +62,8 @@ struct FloatingOverlayView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
@@ -96,6 +98,7 @@ struct FloatingOverlayView: View {
                         .font(.system(size: 13, weight: .bold))
                         .frame(width: 30, height: 30)
                         .background(.black.opacity(0.06), in: Circle())
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
@@ -119,6 +122,7 @@ struct FloatingOverlayView: View {
                         .multilineTextAlignment(.center)
                         .frame(width: 168, height: 50)
                         .background(Color(red: 0.32, green: 0.49, blue: 1.0), in: Capsule())
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
 
@@ -127,6 +131,7 @@ struct FloatingOverlayView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .frame(width: 124, height: 50)
                         .background(.white.opacity(0.7), in: Capsule())
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.primary)
@@ -184,7 +189,9 @@ struct SettingsView: View {
                         .padding(.horizontal, 16)
                         .frame(height: 52)
                         .background(selectedPanel == panel ? Color.black.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 9))
+                        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
+                .frame(maxWidth: .infinity)
                 .buttonStyle(.plain)
             }
 
@@ -303,6 +310,8 @@ struct GeneralPanel: View {
                                         removePeriod(at: index)
                                     } label: {
                                         Image(systemName: "minus.circle")
+                                            .frame(width: 32, height: 32)
+                                            .contentShape(Circle())
                                     }
                                     .buttonStyle(.plain)
                                     .foregroundStyle(.secondary)
@@ -538,6 +547,8 @@ struct WatchlistPanel: View {
                             removeRule(rule.id)
                         } label: {
                             Image(systemName: "trash")
+                                .frame(width: 32, height: 32)
+                                .contentShape(Circle())
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
@@ -1041,6 +1052,7 @@ struct BlueCapsuleButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .frame(height: 38)
             .background(Color(red: 0.24, green: 0.49, blue: 1.0).opacity(configuration.isPressed ? 0.75 : 1), in: Capsule())
+            .contentShape(Capsule())
             .foregroundStyle(.white)
     }
 }

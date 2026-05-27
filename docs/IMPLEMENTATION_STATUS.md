@@ -1,7 +1,7 @@
 # Hunter Implementation Status
 
 日期：2026-05-27  
-状态：MVP 主链路可运行，本机 GUI 验收待桌面解锁
+状态：MVP 主链路可运行，本机 GUI 基础验收已补，权限相关端到端验收继续推进
 
 ## 已完成
 
@@ -17,7 +17,7 @@
 - 前台 App 检测：`NSWorkspace.shared.frontmostApplication`。
 - Chrome/Safari/Brave/Edge/Arc URL 读取：AppleScript/ScriptingBridge 起步。
 - 黑名单命中、冷却、事件日志。
-- 历史记录：展示今日抓包次数、Top 命中对象，支持复制语录和清除本地日志。
+- 历史记录：展示今日抓包次数、Top 命中对象，支持复制语录和清除本地日志；同一次抓包的 fallback/LLM 升级会按事件 ID 更新，避免重复插入。
 - 语音时长任务解析：中文/英文样例已加测试。
 - Option+Space 全局事件监听入口，未授权时提示需要辅助功能权限。
 - 麦克风 4 秒短录音入口。
@@ -44,12 +44,14 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers、TTS 缓存、禁用词过滤和可见标签双语。
+- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers、TTS 缓存、禁用词过滤、可见标签双语和事件去重。
 - `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `./scripts/package_dmg.sh` 可产出 `build/Hunter.dmg`。
 - `hdiutil verify build/Hunter.dmg` 通过。
 - `open build/Hunter.app` 可启动 App；CoreGraphics 窗口列表能看到设置窗 `Hunter` 和悬浮窗已创建并 onscreen。
+- 本机 GUI 基础验收通过：Computer Use 可读取设置窗；点击 `40 分钟` 后时长任务显示 `40 分钟`，暂停、+10、结束按钮可用。
+- 本机 GUI 演示抓包验收通过：历史页今日抓包从 10 增至 11，新增 12:29 YouTube 抓包仅一条，说明 fallback/LLM 升级去重生效；截图证据在 `/tmp/hunter-history-1229.png`。
 - 阿里 `qwen-turbo` 抓包吐槽烟测通过。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
@@ -60,7 +62,7 @@
 
 ## 未完成 / 下一步
 
-- 当前运行环境截图返回黑图，需在已授权屏幕录制/已解锁桌面环境中补完整 UI 截图、浮窗交互和状态栏菜单验收。
+- 继续补完整悬浮窗抓包卡片和状态栏菜单验收。
 - 验证 Option+Space 辅助功能授权后的真实按住说话流程。
 - 验证麦克风权限弹窗、真实录音、Paraformer ASR 返回文本。
 - 端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。

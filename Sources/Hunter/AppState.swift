@@ -131,7 +131,11 @@ final class AppState: ObservableObject {
 
     func recordIncident(_ incident: Incident) {
         currentIncident = incident
-        events.insert(incident, at: 0)
+        if let existingIndex = events.firstIndex(where: { $0.id == incident.id }) {
+            events[existingIndex] = incident
+        } else {
+            events.insert(incident, at: 0)
+        }
         events = Array(events.prefix(100))
         persist()
     }

@@ -164,4 +164,25 @@ struct DurationParserTests {
         #expect(RuleKind.website.label(language: .zhHans) == "网站")
         #expect(RuleKind.app.label(language: .english) == "App")
     }
+
+    @MainActor
+    @Test func recordIncidentReplacesExistingEventWithSameID() {
+        let suiteName = "hunter-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let state = AppState(store: SettingsStore(defaults: defaults))
+        let id = UUID()
+        let fallback = Incident(id: id, targetName: "YouTube", appName: "Chrome", url: nil, roast: "fallback")
+        let upgraded = Incident(id: id, targetName: "YouTube", appName: "Chrome", url: nil, roast: "upgraded")
+
+        state.recordIncident(fallback)
+        state.recordIncident(upgraded)
+
+        #expect(state.events.count == 1)
+        #expect(state.events.first?.roast == "upgraded")
+        #expect(state.currentIncident?.roast == "upgraded")
+    }
 }

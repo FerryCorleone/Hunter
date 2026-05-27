@@ -15,13 +15,13 @@ final class AppState: ObservableObject {
     @Published var rules: [BlacklistRule] = BlacklistRule.defaultRules
     @Published var providers: ProviderSettings = ProviderSettings()
     @Published var focusSession: FocusSession?
-    @Published var currentContext: FrontmostContext?
     @Published var currentIncident: Incident?
     @Published var toastMessage: String?
     @Published var events: [Incident] = []
     @Published var providerStatus: String = ""
     @Published var permissionStatus: String = "Waiting for permissions"
     @Published var permissions = PermissionSnapshot()
+    var currentContext: FrontmostContext?
 
     private let store: SettingsStore
 

@@ -14,8 +14,8 @@
 - 工作时段配置：支持全天监督或多个开始/结束时间段，支持工作日/周末开关，跨午夜时段可用。
 - 时长任务控制：支持暂停、恢复、延长 10 分钟和结束；语音指令可识别暂停/恢复/结束/延长。
 - 黑名单配置：支持新增、删除、启用/停用网站和 App 规则，内置常见平台预设。
-- 前台 App 检测：`NSWorkspace.shared.frontmostApplication`。
-- Chrome/Safari/Brave/Edge/Arc URL 读取：AppleScript/ScriptingBridge 起步。
+- 前台 App 检测：`NSWorkspace.didActivateApplicationNotification` 事件驱动，切换 App 后立即匹配 App 黑名单。
+- Chrome/Safari/Brave/Edge/Arc URL 读取：仅当前台是支持的浏览器且监督生效时启动 1.5 秒 URL watcher，AppleScript 在后台任务执行并按 URL 去重；非浏览器前台不读取 URL。
 - 黑名单命中、冷却、事件日志。
 - 历史记录：展示今日抓包次数、Top 命中对象，支持复制语录和清除本地日志；同一次抓包的 fallback/LLM 升级会按事件 ID 更新，避免重复插入。
 - 语音时长任务解析：中文/英文样例已加测试。
@@ -45,7 +45,7 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、Provider headers、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测。
+- `swift test` 通过，18 个测试覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、支持浏览器识别、Provider headers、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测。
 - `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `./scripts/package_dmg.sh` 可产出 `build/Hunter.dmg`。

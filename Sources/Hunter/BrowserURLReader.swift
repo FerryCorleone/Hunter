@@ -1,23 +1,38 @@
 import Foundation
 
 struct BrowserURLReader {
+    static func isSupportedBrowser(bundleID: String?) -> Bool {
+        browserKind(for: bundleID) != nil
+    }
+
     func currentURL(for bundleID: String?) -> String? {
-        switch bundleID {
-        case "com.google.Chrome", "com.google.Chrome.canary":
-            return chromiumURL(applicationName: "Google Chrome")
-        case "com.brave.Browser":
-            return chromiumURL(applicationName: "Brave Browser")
-        case "com.microsoft.edgemac":
-            return chromiumURL(applicationName: "Microsoft Edge")
-        case "company.thebrowser.Browser":
-            return chromiumURL(applicationName: "Arc")
-        case "com.apple.Safari":
+        switch Self.browserKind(for: bundleID) {
+        case .chromium(let applicationName):
+            return chromiumURL(applicationName: applicationName)
+        case .safari:
             return runAppleScript("""
             tell application "Safari"
                 if (count of windows) is 0 then return ""
                 return URL of current tab of front window
             end tell
             """)
+        case nil:
+            return nil
+        }
+    }
+
+    private static func browserKind(for bundleID: String?) -> BrowserKind? {
+        switch bundleID {
+        case "com.google.Chrome", "com.google.Chrome.canary":
+            return .chromium("Google Chrome")
+        case "com.brave.Browser":
+            return .chromium("Brave Browser")
+        case "com.microsoft.edgemac":
+            return .chromium("Microsoft Edge")
+        case "company.thebrowser.Browser":
+            return .chromium("Arc")
+        case "com.apple.Safari":
+            return .safari
         default:
             return nil
         }
@@ -40,4 +55,9 @@ struct BrowserURLReader {
         let output = script.executeAndReturnError(&error).stringValue
         return output?.isEmpty == false ? output : nil
     }
+}
+
+private enum BrowserKind {
+    case chromium(String)
+    case safari
 }

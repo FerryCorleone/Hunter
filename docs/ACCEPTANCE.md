@@ -11,7 +11,7 @@
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，17 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、Provider headers、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
+| 单元测试通过 | Pass | `swift test`，18 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
@@ -31,8 +31,8 @@
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
 | 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
 | 语音对喷链路 | Partial | ASR/LLM/TTS 子链路已测，麦克风权限已允许，设置页录制测试入口可触发录音；本机正常音量 `say` 播报未被麦克风识别，需真人靠近麦克风复测 Option+Space |
-| 前台 App 检测 | Partial | 代码使用 `NSWorkspace`；真实黑名单命中需桌面交互验收 |
-| Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 代码使用 AppleScript；需浏览器自动化授权后验收 |
+| 前台 App 检测 | Partial | 代码使用 `NSWorkspace.didActivateApplicationNotification` 事件驱动；真实黑名单命中需桌面交互验收 |
+| Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 仅浏览器前台时启动后台 AppleScript URL watcher；需浏览器自动化授权后验收 |
 | 今日历史统计与清理 | Pass | 历史页展示今日抓包、Top 对象，支持复制语录和清除日志；GUI 验证演示抓包从 10 增至 11，且同次 LLM 升级不重复插入 |
 | 本地通知降级反馈 | Pass | 通知授权后，抓包/回击成功会发送无声本地通知 |
 | 安全与隐私 | Pass | `.env.local` 被忽略，API Key 可写 Keychain，仓库未发现明文 key |

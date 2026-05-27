@@ -74,6 +74,17 @@ MVP 内置模板只提供默认字段，不提供密钥：
 - Provider 测试分为单项测试和端到端测试。
 - 失败统一归一化为：auth error、network error、model error、quota error、unsupported language、unsupported voice。
 
+## Monitoring Strategy
+
+MVP 监控链路采用 **事件驱动 + 浏览器局部轮询**，避免全局固定频率读取前台状态：
+
+- App 切换：使用 `NSWorkspace.didActivateApplicationNotification`，用户切到新 App 后立即检查 App 黑名单。
+- 浏览器 URL：macOS 不直接提供标签 URL 变更事件；只有当前台 App 是 Chrome、Safari、Brave、Edge 或 Arc 且监督生效时，启动 1.5 秒 URL watcher。
+- URL 读取：AppleScript 在后台任务中执行，不阻塞设置窗口和悬浮窗 UI。
+- 去重：浏览器 URL 未变化时不重复触发网站规则。
+- 低频生命周期检查：保留 15 秒 timer 只处理时长任务过期、工作时段状态变化和 watcher 启停，不做全局 URL 读取。
+- 后续升级：如果网站监控需要更实时和更低成本，优先做 Chrome/Safari Web Extension + Native Messaging，把 URL 变更也改成事件通知。
+
 ## Provider Comparison
 
 | 供应商 | 推荐用途 | 价格观察 | 优点 | 风险 |

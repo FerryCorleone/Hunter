@@ -94,6 +94,14 @@ struct DurationParserTests {
         #expect(!app.matches(appName: "Xcode", bundleID: "com.apple.dt.Xcode", url: nil))
     }
 
+    @Test func supportedBrowserDetectionIsLimitedToURLCapableApps() {
+        #expect(BrowserURLReader.isSupportedBrowser(bundleID: "com.google.Chrome"))
+        #expect(BrowserURLReader.isSupportedBrowser(bundleID: "com.apple.Safari"))
+        #expect(BrowserURLReader.isSupportedBrowser(bundleID: "company.thebrowser.Browser"))
+        #expect(!BrowserURLReader.isSupportedBrowser(bundleID: "com.apple.dt.Xcode"))
+        #expect(!BrowserURLReader.isSupportedBrowser(bundleID: nil))
+    }
+
     @Test func providerHeadersApplyAuthAndExtraHeaders() {
         let endpoint = ProviderEndpoint(
             providerName: "Test",

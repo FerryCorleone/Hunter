@@ -158,6 +158,7 @@ struct SettingsView: View {
     @ObservedObject var state: AppState
     let onDemoCatch: () -> Void
     let onStartFocus: () -> Void
+    let onRecordVoiceCommand: () -> Void
 
     @State private var selectedPanel: Panel = .general
 
@@ -210,7 +211,11 @@ struct SettingsView: View {
     private var content: some View {
         switch selectedPanel {
         case .general:
-            GeneralPanel(state: state, onStartFocus: onStartFocus)
+            GeneralPanel(
+                state: state,
+                onStartFocus: onStartFocus,
+                onRecordVoiceCommand: onRecordVoiceCommand
+            )
         case .watchlist:
             WatchlistPanel(state: state)
         case .providers:
@@ -226,6 +231,7 @@ struct SettingsView: View {
 struct GeneralPanel: View {
     @ObservedObject var state: AppState
     let onStartFocus: () -> Void
+    let onRecordVoiceCommand: () -> Void
     @State private var loginItemMessage = ""
     @State private var permissionMessage = ""
 
@@ -320,9 +326,30 @@ struct GeneralPanel: View {
                 }
 
                 SettingCard(icon: "command", title: state.copy("回击快捷键", "Reply shortcut"), subtitle: state.copy("按住说话，松开发送给 Hunter。", "Hold to talk and reply to Hunter.")) {
-                    HStack {
-                        Keycap("Option")
-                        Keycap("Space")
+                    VStack(alignment: .trailing, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Keycap("Option")
+                            Keycap("Space")
+                        }
+
+                        Button {
+                            onRecordVoiceCommand()
+                        } label: {
+                            Label(state.copy("录制测试", "Record test"), systemImage: "mic")
+                                .frame(minWidth: 128, minHeight: 28)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.regular)
+                        .help(state.copy("录一段语音指令，例如：监督我接下来的 40 分钟", "Record a short voice command, for example: supervise me for the next 40 minutes"))
+                        .accessibilityLabel(state.copy("录制测试", "Record test"))
+
+                        if let toast = state.toastMessage, !toast.isEmpty {
+                            Text(toast)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                                .frame(maxWidth: 280, alignment: .trailing)
+                        }
                     }
                 }
 

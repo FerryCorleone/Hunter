@@ -17,7 +17,10 @@ final class VoiceCommandController {
     }
 
     func recordShortCommand(seconds: TimeInterval = 4) {
-        guard !isRecording else { return }
+        guard !isRecording else {
+            state.toastMessage = state.interfaceLanguage == .english ? "Already listening..." : "正在听你说..."
+            return
+        }
         Task {
             do {
                 try await beginRecordingAsync()
@@ -31,7 +34,10 @@ final class VoiceCommandController {
     }
 
     func beginRecording() {
-        guard !isRecording else { return }
+        guard !isRecording else {
+            state.toastMessage = state.interfaceLanguage == .english ? "Already listening..." : "正在听你说..."
+            return
+        }
         Task {
             do {
                 try await beginRecordingAsync()
@@ -46,11 +52,17 @@ final class VoiceCommandController {
         guard isRecording else { return }
         do {
             let audio = try stopRecording()
+            if AudioLevelInspector.inspectWAV(audio).isLikelySilent {
+                state.toastMessage = state.copy("没有听到清晰语音，请靠近麦克风再试", "No clear voice detected. Try closer to the microphone.")
+                return
+            }
             state.toastMessage = state.interfaceLanguage == .english ? "Transcribing..." : "正在识别..."
             Task {
                 do {
                     let transcript = try await asr.transcribeWAV(audio, settings: state.providers, languageHint: state.targetLanguageCode())
                     handleTranscript(transcript)
+                } catch ParaformerClient.ASRError.noTranscript {
+                    state.toastMessage = state.copy("没有识别到语音，请靠近麦克风再试", "No speech was recognized. Try closer to the microphone.")
                 } catch {
                     state.toastMessage = state.copy("语音指令失败：\(error.localizedDescription)", "Voice command failed: \(error.localizedDescription)")
                 }
@@ -62,7 +74,9 @@ final class VoiceCommandController {
     }
 
     private func beginRecordingAsync() async throws {
+        state.toastMessage = state.interfaceLanguage == .english ? "Checking microphone..." : "正在检查麦克风..."
         let allowed = await requestMicrophoneAccess()
+        state.refreshPermissions()
         guard allowed else {
             state.toastMessage = state.copy("需要麦克风权限", "Microphone permission is required")
             return

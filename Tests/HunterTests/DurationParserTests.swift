@@ -165,6 +165,14 @@ struct DurationParserTests {
         #expect(RuleKind.app.label(language: .english) == "App")
     }
 
+    @Test func audioLevelInspectorDetectsSilentAndAudibleWAV() {
+        let silent = makePCM16WAV(samples: Array(repeating: 0, count: 320))
+        let audible = makePCM16WAV(samples: Array(repeating: 2_000, count: 320))
+
+        #expect(AudioLevelInspector.inspectWAV(silent).isLikelySilent)
+        #expect(!AudioLevelInspector.inspectWAV(audible).isLikelySilent)
+    }
+
     @MainActor
     @Test func recordIncidentReplacesExistingEventWithSameID() {
         let suiteName = "hunter-tests-\(UUID().uuidString)"
@@ -184,5 +192,40 @@ struct DurationParserTests {
         #expect(state.events.count == 1)
         #expect(state.events.first?.roast == "upgraded")
         #expect(state.currentIncident?.roast == "upgraded")
+    }
+
+    private func makePCM16WAV(samples: [Int16]) -> Data {
+        var data = Data()
+        appendASCII("RIFF", to: &data)
+        appendUInt32LE(UInt32(36 + samples.count * 2), to: &data)
+        appendASCII("WAVE", to: &data)
+        appendASCII("fmt ", to: &data)
+        appendUInt32LE(16, to: &data)
+        appendUInt16LE(1, to: &data)
+        appendUInt16LE(1, to: &data)
+        appendUInt32LE(16_000, to: &data)
+        appendUInt32LE(32_000, to: &data)
+        appendUInt16LE(2, to: &data)
+        appendUInt16LE(16, to: &data)
+        appendASCII("data", to: &data)
+        appendUInt32LE(UInt32(samples.count * 2), to: &data)
+        samples.forEach { appendUInt16LE(UInt16(bitPattern: $0), to: &data) }
+        return data
+    }
+
+    private func appendASCII(_ string: String, to data: inout Data) {
+        data.append(contentsOf: string.utf8)
+    }
+
+    private func appendUInt16LE(_ value: UInt16, to data: inout Data) {
+        data.append(UInt8(value & 0xff))
+        data.append(UInt8((value >> 8) & 0xff))
+    }
+
+    private func appendUInt32LE(_ value: UInt32, to data: inout Data) {
+        data.append(UInt8(value & 0xff))
+        data.append(UInt8((value >> 8) & 0xff))
+        data.append(UInt8((value >> 16) & 0xff))
+        data.append(UInt8((value >> 24) & 0xff))
     }
 }

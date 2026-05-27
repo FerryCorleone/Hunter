@@ -37,7 +37,8 @@ final class HunterApp: NSObject, NSApplicationDelegate {
         settingsWindow = SettingsWindowController(
             state: state,
             onDemoCatch: { [weak self] in self?.incidents.triggerDemoIncident() },
-            onStartFocus: { [weak self] in self?.startFocusSession(minutes: 40, source: "manual") }
+            onStartFocus: { [weak self] in self?.startFocusSession(minutes: 40, source: "manual") },
+            onRecordVoiceCommand: { [weak self] in self?.voiceCommands.recordShortCommand(seconds: 7) }
         )
         statusMenu = StatusMenuController(
             state: state,

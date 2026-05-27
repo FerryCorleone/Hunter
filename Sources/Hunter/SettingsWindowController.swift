@@ -6,17 +6,29 @@ final class SettingsWindowController {
     private let state: AppState
     private let onDemoCatch: () -> Void
     private let onStartFocus: () -> Void
+    private let onRecordVoiceCommand: () -> Void
     private var window: NSWindow?
 
-    init(state: AppState, onDemoCatch: @escaping () -> Void, onStartFocus: @escaping () -> Void) {
+    init(
+        state: AppState,
+        onDemoCatch: @escaping () -> Void,
+        onStartFocus: @escaping () -> Void,
+        onRecordVoiceCommand: @escaping () -> Void
+    ) {
         self.state = state
         self.onDemoCatch = onDemoCatch
         self.onStartFocus = onStartFocus
+        self.onRecordVoiceCommand = onRecordVoiceCommand
     }
 
     func show() {
         if window == nil {
-            let view = SettingsView(state: state, onDemoCatch: onDemoCatch, onStartFocus: onStartFocus)
+            let view = SettingsView(
+                state: state,
+                onDemoCatch: onDemoCatch,
+                onStartFocus: onStartFocus,
+                onRecordVoiceCommand: onRecordVoiceCommand
+            )
             let controller = NSHostingController(rootView: view)
             let newWindow = NSWindow(contentViewController: controller)
             newWindow.title = "Hunter"

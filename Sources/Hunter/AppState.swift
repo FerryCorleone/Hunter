@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class AppState: ObservableObject {
     @Published var isMonitoring: Bool = false
+    @Published var isWidgetVisible: Bool = true
     @Published var launchAtLogin: Bool = false
     @Published var workSchedule: WorkSchedule = .default
     @Published var interfaceLanguage: AppLanguage = .zhHans
@@ -33,6 +34,7 @@ final class AppState: ObservableObject {
     func load() {
         let snapshot = store.load()
         isMonitoring = snapshot.isMonitoring
+        isWidgetVisible = snapshot.isWidgetVisible
         launchAtLogin = snapshot.launchAtLogin
         workSchedule = snapshot.workSchedule
         interfaceLanguage = snapshot.interfaceLanguage
@@ -50,6 +52,7 @@ final class AppState: ObservableObject {
     func persist() {
         store.save(SettingsSnapshot(
             isMonitoring: isMonitoring,
+            isWidgetVisible: isWidgetVisible,
             launchAtLogin: launchAtLogin,
             workSchedule: workSchedule,
             interfaceLanguage: interfaceLanguage,
@@ -67,6 +70,7 @@ final class AppState: ObservableObject {
 
     func startMonitoring() {
         isMonitoring = true
+        isWidgetVisible = true
         persist()
     }
 
@@ -80,6 +84,7 @@ final class AppState: ObservableObject {
     func startFocusSession(duration: TimeInterval, source: String) {
         focusSession = FocusSession(startedAt: Date(), duration: duration)
         isMonitoring = true
+        isWidgetVisible = true
         toastMessage = focusStartedMessage(duration: duration, source: source)
         persist()
     }

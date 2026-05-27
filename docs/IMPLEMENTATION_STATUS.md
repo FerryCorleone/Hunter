@@ -1,7 +1,7 @@
 # Hunter Implementation Status
 
-日期：2026-05-27  
-状态：MVP 主链路可运行，本机 GUI 基础验收已补，语音录制入口和权限验收继续推进
+日期：2026-05-28
+状态：MVP 主链路可运行，设置页已按原生 macOS 控件和简化表单方向整理，语音录制入口和端到端验收继续推进
 
 ## 已完成
 
@@ -17,9 +17,9 @@
 - 前台 App 检测：`NSWorkspace.didActivateApplicationNotification` 事件驱动，切换 App 后立即匹配 App 黑名单。
 - Chrome/Safari/Brave/Edge/Arc URL 读取：仅当前台是支持的浏览器且监督生效时启动 1.5 秒 URL watcher，AppleScript 在后台任务执行并按 URL 去重；非浏览器前台不读取 URL。
 - 黑名单命中、冷却、事件日志。
-- 历史记录：展示今日抓包次数、Top 命中对象，支持复制语录和清除本地日志；同一次抓包的 fallback/LLM 升级会按事件 ID 更新，避免重复插入。
+- 历史记录：展示今日抓包次数、今日最多命中对象和本地事件列表，支持清除本地日志；同一次抓包的 fallback/LLM 升级会按事件 ID 更新，避免重复插入。
 - 语音时长任务解析：中文/英文样例已加测试。
-- Option+Space 全局事件监听入口，未授权时提示需要辅助功能权限。
+- Option+Space 全局事件监听入口，未授权时只提示需要辅助功能权限，不在启动时反复弹系统授权请求。
 - 麦克风短录音入口：悬浮球/快捷键默认 4 秒，设置页“录制测试”使用 7 秒窗口便于桌面验收。
 - 录音音量检测：录到明显静音时先给本地提示，减少无效 ASR 请求；ASR 空结果会提示靠近麦克风重试。
 - 权限引导：设置页展示辅助功能、麦克风、通知状态；支持打开对应系统设置或请求通知权限。
@@ -28,11 +28,12 @@
 - 阿里 Qwen Turbo LLM 抓包吐槽和语音回击代码路径。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
-- ASR / LLM / TTS Provider 配置在设置页可编辑：provider 名称、base URL、model、API key 环境变量名、鉴权 scheme、额外 headers、region、语言提示、流式能力、TTS 音色 ID。
+- ASR / LLM / TTS Provider 配置在设置页可编辑：默认只展示供应商、Base URL、API Key 和 TTS 音色，高级字段（model、API key 名称、鉴权 scheme、额外 headers、region、语言提示、流式能力）折叠收起。
 - Provider 面板提供测试 LLM、测试 TTS、测试 ASR（选择本地音频文件）和端到端测试入口。
 - 设置页可把 API Key 按环境变量名写入 macOS Keychain。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
 - 设置页、菜单栏、悬浮小组件和主要运行时状态文案支持中文/英文切换；主要可见控件、枚举标签和 Provider 表单已补齐双语。
+- 设置页通用页把“监督状态”和“悬浮小组件显示”拆成两个独立开关；开启监督或时长任务会自动显示悬浮小组件。
 - AI 监工角色：自律教练、办公室老板、冷面助理、脱口秀损友。
 - 吐槽边界配置：支持允许/禁止轻度粗口，并支持用户配置禁用词；禁用词会进入 prompt，并在本地对模型输出再过滤一次。
 - 登录时启动：已接 `SMAppService` 注册/取消。
@@ -46,6 +47,7 @@
 
 - `swift build` 通过。
 - `swift test` 通过，18 个测试覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、支持浏览器识别、Provider headers、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测。
+- `swift build -c release` 通过。
 - `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
 - `./scripts/package_dmg.sh` 可产出 `build/Hunter.dmg`。

@@ -50,7 +50,9 @@ final class HunterApp: NSObject, NSApplicationDelegate {
 
         monitor.start()
         hotkeys.start()
-        floatingWindow?.show()
+        if state.isWidgetVisible {
+            floatingWindow?.show()
+        }
         settingsWindow?.show()
     }
 

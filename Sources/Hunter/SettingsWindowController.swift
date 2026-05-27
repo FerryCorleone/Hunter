@@ -33,8 +33,8 @@ final class SettingsWindowController {
             let newWindow = NSWindow(contentViewController: controller)
             newWindow.title = "Hunter"
             newWindow.setContentSize(NSSize(width: 900, height: 660))
-            newWindow.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
-            newWindow.titlebarAppearsTransparent = true
+            newWindow.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            newWindow.titlebarAppearsTransparent = false
             newWindow.toolbarStyle = .unified
             newWindow.center()
             window = newWindow

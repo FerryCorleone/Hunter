@@ -137,15 +137,16 @@ Hunter：40 分钟监督已开始
 
 ### AI Providers
 
-保持三段配置，但视觉上压缩成三行：
+保持三段配置，但默认只露出用户最常填写的字段：
 
 ```text
-ASR  Aliyun / paraformer-realtime-v2   Connected   Test
-LLM  Aliyun / qwen-turbo               Connected   Test
-TTS  Aliyun / cosyvoice-v3-flash       Voice set   Test
+基础配置  Provider preset   API Key
+ASR       Provider          Base URL
+LLM       Provider          Base URL
+TTS       Provider          Base URL
 ```
 
-展开后才显示 base URL、model id、API Key、headers 等高级字段。API Key 只显示“Stored in Keychain”。
+Model ID、API Key 名称、鉴权 scheme、headers、region、语言提示和流式能力放在“高级设置”折叠区。API Key 通过设置页写入本机 Keychain，不作为普通文本配置持久化。
 
 ### Voice & Language
 
@@ -164,7 +165,6 @@ TTS  Aliyun / cosyvoice-v3-flash       Voice set   Test
 - 命中对象。
 - 摸鱼时长。
 - AI 名场面。
-- 复制按钮。
 
 不做复杂图表，不做“数据驾驶舱”。
 

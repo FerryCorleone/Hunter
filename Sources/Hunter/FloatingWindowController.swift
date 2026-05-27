@@ -30,11 +30,13 @@ final class FloatingWindowController {
         window.isMovableByWindowBackground = true
         window.ignoresMouseEvents = false
 
-        state.$isMonitoring
+        state.$isWidgetVisible
             .receive(on: RunLoop.main)
-            .sink { [weak self] isMonitoring in
-                if isMonitoring {
+            .sink { [weak self] isVisible in
+                if isVisible {
                     self?.show()
+                } else {
+                    self?.hide()
                 }
             }
             .store(in: &cancellables)

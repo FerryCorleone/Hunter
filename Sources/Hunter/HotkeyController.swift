@@ -16,8 +16,7 @@ final class HotkeyController {
 
     func start() {
         guard eventTap == nil else { return }
-        let promptOptions: NSDictionary = ["AXTrustedCheckOptionPrompt": true]
-        guard AXIsProcessTrustedWithOptions(promptOptions) else {
+        guard AXIsProcessTrusted() else {
             state.permissionStatus = state.copy("需要辅助功能权限才能使用 Option Space", "Accessibility permission needed for Option Space hotkey")
             return
         }

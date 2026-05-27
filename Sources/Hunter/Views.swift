@@ -200,7 +200,10 @@ struct SettingsView: View {
             Button(state.isMonitoring ? state.copy("暂停", "Pause") : state.copy("开始", "Start")) {
                 state.isMonitoring ? state.stopMonitoring() : state.startMonitoring()
             }
-            .buttonStyle(BlueCapsuleButtonStyle())
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(state.isMonitoring ? .orange : .green)
+            .frame(maxWidth: .infinity)
 
             Button(state.copy("演示抓包", "Demo catch")) {
                 onDemoCatch()
@@ -239,58 +242,84 @@ struct GeneralPanel: View {
     @ObservedObject var state: AppState
     let onStartFocus: () -> Void
     let onRecordVoiceCommand: () -> Void
+    @State private var selectedFocusMinutes = 40
     @State private var loginItemMessage = ""
     @State private var permissionMessage = ""
 
     var body: some View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
             VStack(spacing: 16) {
-                SettingCard(icon: "clock", title: state.copy("时长任务", "Focus session"), subtitle: state.copy("可以语音或手动开启一段监督。", "Start a focus session by voice or manually.")) {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        Text(focusLabel)
-                            .font(.system(size: 16, weight: .medium))
-                        HStack(spacing: 8) {
-                            Button(state.copy("40 分钟", "40 min")) {
-                                onStartFocus()
-                            }
-                            .buttonStyle(.bordered)
-                            Button(state.focusSession?.isPaused == true ? state.copy("恢复", "Resume") : state.copy("暂停", "Pause")) {
-                                if state.focusSession?.isPaused == true {
-                                    state.resumeFocusSession()
-                                } else {
-                                    state.pauseFocusSession()
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(state.focusSession?.isActive != true)
-                            Button(state.copy("+10 分钟", "+10 min")) {
-                                state.extendFocusSession(minutes: 10)
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(state.focusSession?.isActive != true)
-                            Button(state.copy("结束", "End")) {
-                                state.endFocusSession()
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(state.focusSession?.isActive != true)
-                        }
-                    }
-                }
-
-                SettingCard(icon: "circle.circle", title: state.copy("悬浮小组件", "Floating widget"), subtitle: state.copy("在桌面上显示 Hunter 监督入口。", "Show the floating widget on desktop.")) {
-                    Toggle("", isOn: $state.isMonitoring)
+                SettingCard(icon: "play.circle", title: state.copy("监督状态", "Monitoring"), subtitle: state.copy("开启后按工作时段和黑名单自动抓包。", "Catch blacklisted apps and sites while monitoring is on.")) {
+                    Toggle(state.isMonitoring ? state.copy("已开启", "On") : state.copy("未开启", "Off"), isOn: $state.isMonitoring)
                         .toggleStyle(.switch)
-                        .labelsHidden()
+                        .tint(.green)
+                        .environment(\.controlActiveState, .active)
                         .onChange(of: state.isMonitoring) {
                             state.persist()
                         }
                 }
 
-                SettingCard(icon: "calendar", title: state.copy("工作时段", "Work hours"), subtitle: state.copy("只在这个时段内自动抓黑名单。", "Only auto-catch blacklist hits inside this schedule.")) {
+                SettingCard(icon: "timer", title: state.copy("时长任务", "Timed session"), subtitle: state.copy("临时监督一段时间；到点自动结束。", "Run a temporary countdown session that ends automatically.")) {
+                    VStack(alignment: .trailing, spacing: 10) {
+                        Picker("", selection: $selectedFocusMinutes) {
+                            Text(state.copy("25 分钟", "25 min")).tag(25)
+                            Text(state.copy("40 分钟", "40 min")).tag(40)
+                            Text(state.copy("60 分钟", "60 min")).tag(60)
+                            Text(state.copy("90 分钟", "90 min")).tag(90)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 248)
+
+                        Button(state.copy("开始监督", "Start")) {
+                            state.startFocusSession(duration: TimeInterval(selectedFocusMinutes * 60), source: "settings")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+
+                        if state.focusSession?.isActive == true {
+                            HStack(spacing: 8) {
+                                Text(focusLabel)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                Button(state.focusSession?.isPaused == true ? state.copy("恢复", "Resume") : state.copy("暂停", "Pause")) {
+                                    if state.focusSession?.isPaused == true {
+                                        state.resumeFocusSession()
+                                    } else {
+                                        state.pauseFocusSession()
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                Button(state.copy("+10 分钟", "+10 min")) {
+                                    state.extendFocusSession(minutes: 10)
+                                }
+                                .buttonStyle(.bordered)
+                                Button(state.copy("结束", "End")) {
+                                    state.endFocusSession()
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                }
+
+                SettingCard(icon: "circle.circle", title: state.copy("悬浮小组件", "Floating widget"), subtitle: state.copy("显示桌面悬浮球；不等于开始监督。", "Show the desktop floating orb; separate from monitoring.")) {
+                    Toggle(state.isWidgetVisible ? state.copy("显示", "Visible") : state.copy("隐藏", "Hidden"), isOn: $state.isWidgetVisible)
+                        .toggleStyle(.switch)
+                        .tint(.green)
+                        .environment(\.controlActiveState, .active)
+                        .onChange(of: state.isWidgetVisible) {
+                            state.persist()
+                        }
+                }
+
+                SettingCard(icon: "calendar", title: state.copy("工作时段", "Work hours"), subtitle: state.copy("监督开启后，只在这些时间自动抓黑名单。", "When monitoring is on, auto-catch only during these hours.")) {
                     VStack(alignment: .trailing, spacing: 10) {
                         HStack(spacing: 12) {
                             Toggle(state.copy("启用", "Enabled"), isOn: $state.workSchedule.isEnabled)
                                 .toggleStyle(.switch)
+                                .tint(.green)
+                                .environment(\.controlActiveState, .active)
                             Toggle(state.copy("工作日", "Weekdays"), isOn: $state.workSchedule.weekdaysEnabled)
                                 .toggleStyle(.checkbox)
                             Toggle(state.copy("周末", "Weekends"), isOn: $state.workSchedule.weekendsEnabled)
@@ -403,6 +432,8 @@ struct GeneralPanel: View {
                     VStack(alignment: .trailing, spacing: 6) {
                         Toggle("", isOn: launchAtLoginBinding)
                             .toggleStyle(.switch)
+                            .tint(.green)
+                            .environment(\.controlActiveState, .active)
                             .labelsHidden()
                         if !loginItemMessage.isEmpty {
                             Text(loginItemMessage)
@@ -423,7 +454,7 @@ struct GeneralPanel: View {
         if session.isPaused {
             return state.copy("已暂停，剩余 \(minutes) 分钟", "Paused, \(minutes) min left")
         }
-        return state.copy("\(minutes) 分钟", "\(minutes) min")
+        return state.copy("剩余 \(minutes) 分钟", "\(minutes) min left")
     }
 
     private func periodDateBinding(index: Int, keyPath: WritableKeyPath<WorkPeriod, Int>) -> Binding<Date> {
@@ -602,39 +633,30 @@ struct ProvidersPanel: View {
     @State private var saveMessage = ""
 
     var body: some View {
-        PanelContainer(title: state.copy("AI", "AI"), subtitle: state.copy("配置 ASR、LLM 和 TTS 的服务商。", "Configurable ASR, LLM, and TTS providers.")) {
-            VStack(spacing: 14) {
-                ProviderEditor(kind: "ASR", provider: $state.providers.asr, language: state.interfaceLanguage)
-                ProviderEditor(kind: "LLM", provider: $state.providers.llm, language: state.interfaceLanguage)
-                ProviderEditor(kind: "TTS", provider: $state.providers.tts, language: state.interfaceLanguage)
+        PanelContainer(title: state.copy("AI 配置", "AI"), subtitle: state.copy("选择服务商，填写 Base URL 和 API Key；高级字段默认收起。", "Choose providers, Base URLs, and API key. Advanced fields stay collapsed.")) {
+            VStack(alignment: .leading, spacing: 14) {
+                providerQuickSetup
+
+                ProviderEditor(role: .asr, provider: $state.providers.asr, language: state.interfaceLanguage)
+                ProviderEditor(role: .llm, provider: $state.providers.llm, language: state.interfaceLanguage)
+                ProviderEditor(role: .tts, provider: $state.providers.tts, language: state.interfaceLanguage)
+
+                labeledRow(state.copy("TTS 音色", "TTS voice")) {
+                    TextField(state.copy("例如 longanyang", "e.g. longanyang"), text: $state.providers.voice)
+                        .textFieldStyle(.roundedBorder)
+                }
 
                 HStack(spacing: 10) {
-                    SecureField(state.copy("API Key 会按上方环境变量名保存到钥匙串", "API key saved to Keychain for the env names above"), text: $apiKey)
-                    Button(state.copy("保存 Key", "Save key")) {
-                        saveAPIKey()
+                    Button(state.copy("测试 ASR", "Test ASR")) {
+                        testASR()
                     }
-                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-
-                HStack(spacing: 10) {
-                    Text(state.copy("音色", "Voice"))
-                        .font(.system(size: 13, weight: .bold))
-                        .frame(width: 44, alignment: .leading)
-                    TextField(state.copy("TTS 音色 ID", "TTS voice id"), text: $state.providers.voice)
-                }
-                .textFieldStyle(.roundedBorder)
-
-                HStack(spacing: 10) {
+                    .buttonStyle(.bordered)
                     Button(state.copy("测试 LLM", "Test LLM")) {
                         testLLM()
                     }
                     .buttonStyle(.bordered)
                     Button(state.copy("测试 TTS", "Test TTS")) {
                         testTTS()
-                    }
-                    .buttonStyle(.bordered)
-                    Button(state.copy("测试 ASR", "Test ASR")) {
-                        testASR()
                     }
                     .buttonStyle(.bordered)
                     Button(state.copy("端到端测试", "End-to-end test")) {
@@ -658,6 +680,82 @@ struct ProvidersPanel: View {
             .onChange(of: state.providers) {
                 state.persist()
             }
+        }
+    }
+
+    private var providerQuickSetup: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(state.copy("基础配置", "Basics"))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.secondary)
+
+            labeledRow(state.copy("供应商", "Provider")) {
+                Picker("", selection: sharedProviderBinding) {
+                    ForEach(ProviderPreset.allCases) { preset in
+                        Text(preset.label(language: state.interfaceLanguage)).tag(preset)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 180)
+            }
+
+            labeledRow("API Key") {
+                HStack(spacing: 10) {
+                    SecureField(state.copy("保存到本机钥匙串", "Saved to local Keychain"), text: $apiKey)
+                    Button(state.copy("保存", "Save")) {
+                        saveAPIKey()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+    }
+
+    private var sharedProviderBinding: Binding<ProviderPreset> {
+        Binding(
+            get: { allProvidersUseAliyun ? .aliyunBailian : .custom },
+            set: { preset in
+                switch preset {
+                case .aliyunBailian:
+                    let voice = state.providers.voice
+                    state.providers = ProviderSettings(
+                        asr: .aliyunASR,
+                        llm: .aliyunLLM,
+                        tts: .aliyunTTS,
+                        voice: voice
+                    )
+                case .custom:
+                    if allProvidersUseAliyun {
+                        state.providers.asr.providerName = "Custom"
+                        state.providers.llm.providerName = "Custom"
+                        state.providers.tts.providerName = "Custom"
+                    }
+                }
+                state.persist()
+            }
+        )
+    }
+
+    private var allProvidersUseAliyun: Bool {
+        [state.providers.asr, state.providers.llm, state.providers.tts].allSatisfy {
+            $0.providerName == ProviderEndpoint.aliyunLLM.providerName
+        }
+    }
+
+    @ViewBuilder
+    private func labeledRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        LabeledContent {
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 86, alignment: .leading)
         }
     }
 
@@ -821,14 +919,14 @@ struct HistoryPanel: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        PanelContainer(title: state.copy("历史", "History"), subtitle: state.copy("最近抓包记录和可回放吐槽。", "Recent catches and replayable one-liners.")) {
+        PanelContainer(title: state.copy("历史", "History"), subtitle: state.copy("最近抓包记录和今日命中统计。", "Recent catches and today's hit summary.")) {
             if state.events.isEmpty {
                 ContentUnavailableView(state.copy("还没有抓包", "No catches yet"), systemImage: "clock.arrow.circlepath", description: Text(state.copy("开始监督或触发一次演示抓包。", "Start monitoring or trigger a demo catch.")))
             } else {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(spacing: 12) {
                         StatPill(title: state.copy("今日抓包", "Today"), value: "\(todayEvents.count)")
-                        StatPill(title: state.copy("Top 对象", "Top target"), value: topTarget)
+                        StatPill(title: state.copy("今日最多命中", "Most hit today"), value: topTarget)
                         Spacer()
                         Button(role: .destructive) {
                             state.clearEvents()
@@ -847,17 +945,11 @@ struct HistoryPanel: View {
                                         Spacer()
                                         Text(incident.date, style: .time).foregroundStyle(.secondary)
                                     }
+                                    Text(eventContext(incident))
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
                                     Text(incident.roast)
                                         .foregroundStyle(.secondary)
-                                    HStack {
-                                        Spacer()
-                                        Button {
-                                            copyToClipboard(incident.roast)
-                                        } label: {
-                                            Label(state.copy("复制语录", "Copy line"), systemImage: "doc.on.doc")
-                                        }
-                                        .buttonStyle(.bordered)
-                                    }
                                 }
                                 .padding()
                                 .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
@@ -878,9 +970,12 @@ struct HistoryPanel: View {
         return counts.max { $0.value < $1.value }?.key ?? "-"
     }
 
-    private func copyToClipboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+    private func eventContext(_ incident: Incident) -> String {
+        if let url = incident.url, !url.isEmpty {
+            let host = URL(string: url)?.host ?? url
+            return "\(incident.appName) · \(host)"
+        }
+        return incident.appName
     }
 }
 
@@ -935,17 +1030,21 @@ struct PanelContainer<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(.system(size: 28, weight: .bold))
                 Text(subtitle)
                     .foregroundStyle(.secondary)
             }
-            content
-            Spacer()
+
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.bottom, 26)
+            }
         }
-        .padding(.top, 24)
+        .padding(.top, 20)
         .padding(.horizontal, 34)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -980,47 +1079,153 @@ struct SettingCard<Trailing: View>: View {
     }
 }
 
+enum ProviderRole: CaseIterable {
+    case asr
+    case llm
+    case tts
+
+    var defaultEndpoint: ProviderEndpoint {
+        switch self {
+        case .asr: .aliyunASR
+        case .llm: .aliyunLLM
+        case .tts: .aliyunTTS
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .asr: "waveform"
+        case .llm: "text.bubble"
+        case .tts: "speaker.wave.2"
+        }
+    }
+
+    func title(language: AppLanguage) -> String {
+        switch self {
+        case .asr: language == .english ? "ASR" : "语音识别 ASR"
+        case .llm: language == .english ? "LLM" : "语言模型 LLM"
+        case .tts: language == .english ? "TTS" : "语音合成 TTS"
+        }
+    }
+}
+
+enum ProviderPreset: String, CaseIterable, Identifiable {
+    case aliyunBailian
+    case custom
+
+    var id: String { rawValue }
+
+    func label(language: AppLanguage) -> String {
+        switch self {
+        case .aliyunBailian:
+            return language == .english ? "Aliyun Bailian" : "阿里云百炼"
+        case .custom:
+            return language == .english ? "Custom" : "自定义"
+        }
+    }
+}
+
 struct ProviderEditor: View {
-    var kind: String
+    var role: ProviderRole
     @Binding var provider: ProviderEndpoint
     var language: AppLanguage
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(kind)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.secondary)
-
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                TextField(copy("服务商", "Provider"), text: $provider.providerName)
-                    .frame(width: 150)
-                TextField(copy("Base URL", "Base URL"), text: $provider.baseURL)
-                TextField(copy("模型", "Model"), text: $provider.model)
-                    .frame(width: 180)
+                Label(role.title(language: language), systemImage: role.icon)
+                    .font(.system(size: 14, weight: .bold))
+                Spacer()
+                Picker("", selection: providerPresetBinding) {
+                    ForEach(ProviderPreset.allCases) { preset in
+                        Text(preset.label(language: language)).tag(preset)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 160)
             }
-            .textFieldStyle(.roundedBorder)
 
-            HStack(spacing: 10) {
-                TextField(copy("API Key 环境变量", "API key env"), text: $provider.apiKeyEnvironmentName)
-                    .frame(width: 240)
-                TextField(copy("鉴权 scheme", "Auth scheme"), text: $provider.authorizationScheme)
-                    .frame(width: 140)
-                TextField(copy("语言提示", "Language hint"), text: $provider.languageHint)
-                Toggle(copy("流式", "Streaming"), isOn: $provider.supportsStreaming)
-                    .toggleStyle(.checkbox)
+            labeledRow("Base URL") {
+                TextField("https://", text: $provider.baseURL)
+                    .textFieldStyle(.roundedBorder)
             }
-            .textFieldStyle(.roundedBorder)
 
-            HStack(spacing: 10) {
-                TextField(copy("区域", "Region"), text: $provider.region)
-                    .frame(width: 160)
-                TextField(copy("额外 headers：每行 Header: value", "Extra headers: Header: value, one per line"), text: $provider.extraHeaders, axis: .vertical)
-                    .lineLimit(1...3)
+            DisclosureGroup(copy("高级设置", "Advanced")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    labeledRow(copy("模型", "Model")) {
+                        TextField(copy("模型 ID", "Model ID"), text: $provider.model)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    labeledRow(copy("Key 名称", "Key name")) {
+                        TextField("DASHSCOPE_API_KEY", text: $provider.apiKeyEnvironmentName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    labeledRow(copy("服务商名称", "Provider name")) {
+                        TextField(copy("服务商名称", "Provider name"), text: $provider.providerName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    labeledRow(copy("鉴权", "Auth")) {
+                        TextField("Bearer", text: $provider.authorizationScheme)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    labeledRow(copy("区域", "Region")) {
+                        TextField("cn-beijing", text: $provider.region)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    labeledRow(copy("语言", "Language")) {
+                        TextField("zh-CN,en-US", text: $provider.languageHint)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    labeledRow(copy("流式", "Streaming")) {
+                        Toggle("", isOn: $provider.supportsStreaming)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .tint(.green)
+                            .environment(\.controlActiveState, .active)
+                    }
+                    labeledRow("Headers") {
+                        TextField(copy("每行 Header: value", "Header: value, one per line"), text: $provider.extraHeaders, axis: .vertical)
+                            .lineLimit(1...3)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+                .padding(.top, 8)
             }
-            .textFieldStyle(.roundedBorder)
         }
-        .padding()
-        .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+        .padding(16)
+        .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+    }
+
+    private var providerPresetBinding: Binding<ProviderPreset> {
+        Binding(
+            get: {
+                provider.providerName == ProviderEndpoint.aliyunLLM.providerName ? .aliyunBailian : .custom
+            },
+            set: { preset in
+                switch preset {
+                case .aliyunBailian:
+                    provider = role.defaultEndpoint
+                case .custom:
+                    if provider.providerName == ProviderEndpoint.aliyunLLM.providerName {
+                        provider.providerName = "Custom"
+                    }
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func labeledRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        LabeledContent {
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 88, alignment: .leading)
+        }
     }
 
     private func copy(_ zhHans: String, _ english: String) -> String {
@@ -1042,18 +1247,6 @@ struct Keycap: View {
             .frame(height: 38)
             .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).stroke(.black.opacity(0.1)))
-    }
-}
-
-struct BlueCapsuleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 14, weight: .semibold))
-            .frame(maxWidth: .infinity)
-            .frame(height: 38)
-            .background(Color(red: 0.24, green: 0.49, blue: 1.0).opacity(configuration.isPressed ? 0.75 : 1), in: Capsule())
-            .contentShape(Capsule())
-            .foregroundStyle(.white)
     }
 }
 

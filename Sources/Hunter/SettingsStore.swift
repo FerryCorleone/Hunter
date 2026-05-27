@@ -13,6 +13,7 @@ struct SettingsSnapshot: Codable {
     var bannedTerms: String
     var rules: [BlacklistRule]
     var providers: ProviderSettings
+    var voiceClone: VoiceCloneSettings
     var focusSession: FocusSession?
     var events: [Incident]
 
@@ -29,6 +30,7 @@ struct SettingsSnapshot: Codable {
         bannedTerms: "",
         rules: BlacklistRule.defaultRules,
         providers: ProviderSettings(),
+        voiceClone: VoiceCloneSettings(),
         focusSession: nil,
         events: []
     )
@@ -46,6 +48,7 @@ struct SettingsSnapshot: Codable {
         case bannedTerms
         case rules
         case providers
+        case voiceClone
         case focusSession
         case events
     }
@@ -63,6 +66,7 @@ struct SettingsSnapshot: Codable {
         bannedTerms: String,
         rules: [BlacklistRule],
         providers: ProviderSettings,
+        voiceClone: VoiceCloneSettings,
         focusSession: FocusSession?,
         events: [Incident]
     ) {
@@ -78,6 +82,7 @@ struct SettingsSnapshot: Codable {
         self.bannedTerms = bannedTerms
         self.rules = rules
         self.providers = providers
+        self.voiceClone = voiceClone
         self.focusSession = focusSession
         self.events = events
     }
@@ -96,6 +101,7 @@ struct SettingsSnapshot: Codable {
         bannedTerms = try container.decodeIfPresent(String.self, forKey: .bannedTerms) ?? ""
         rules = try container.decodeIfPresent([BlacklistRule].self, forKey: .rules) ?? BlacklistRule.defaultRules
         providers = try container.decodeIfPresent(ProviderSettings.self, forKey: .providers) ?? ProviderSettings()
+        voiceClone = try container.decodeIfPresent(VoiceCloneSettings.self, forKey: .voiceClone) ?? VoiceCloneSettings()
         focusSession = try container.decodeIfPresent(FocusSession.self, forKey: .focusSession)
         events = try container.decodeIfPresent([Incident].self, forKey: .events) ?? []
     }

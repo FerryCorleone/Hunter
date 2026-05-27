@@ -28,9 +28,10 @@
 - 阿里 Qwen Turbo LLM 抓包吐槽和语音回击代码路径。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
-- ASR / LLM / TTS Provider 配置在设置页可编辑：默认只展示供应商、Base URL、API Key 和 TTS 音色，高级字段（model、API key 名称、鉴权 scheme、额外 headers、region、语言提示、流式能力）折叠收起。
+- ASR / LLM / TTS Provider 配置在设置页可编辑，三类模型互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
 - Provider 面板提供测试 LLM、测试 TTS、测试 ASR（选择本地音频文件）和端到端测试入口。
-- 设置页可把 API Key 按环境变量名写入 macOS Keychain。
+- 设置页可把每类模型的 API Key 分别写入 macOS Keychain。
+- 声音页支持预置音色和克隆声音入口；用户可选择本地音频样本或直接录制声音样本，样本保存到本机 Application Support。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
 - 设置页、菜单栏、悬浮小组件和主要运行时状态文案支持中文/英文切换；主要可见控件、枚举标签和 Provider 表单已补齐双语。
 - 设置页通用页把“监督状态”和“悬浮小组件显示”拆成两个独立开关；开启监督或时长任务会自动显示悬浮小组件。
@@ -72,7 +73,7 @@
 - 真人麦克风端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
 - Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。
-- TTS 音色复刻/声音设计暂未实现，需授权样本或用户明确选择声音设计。
+- 声音克隆目前已支持授权确认、本机样本上传/录制和样本路径持久化；具体云端克隆生成音色 ID 仍需接入对应 TTS Provider adapter。
 
 ## 注意
 

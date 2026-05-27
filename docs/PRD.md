@@ -134,7 +134,6 @@ Acceptance Criteria:
 
 - 展示今日抓包次数、摸鱼总时长、Top 黑名单对象。
 - 展示每次抓包时间、命中对象、AI 吐槽文案。
-- 支持复制经典语录。
 - 支持一键清除本地日志。
 
 **Story 6：配置模型 Provider**  
@@ -143,7 +142,7 @@ As a user, I want to configure my own ASR, LLM, and TTS providers so that I can 
 Acceptance Criteria:
 
 - ASR、LLM、TTS 三类 Provider 可独立配置和启用。
-- 每类 Provider 至少支持：provider name、base URL、model id、API key、鉴权方式、额外 headers、区域/endpoint、语言能力说明。
+- 每类 Provider 的 MVP UI 只展示四个必填项：Provider、Base URL、Model、API Key。
 - API Key 进入 Keychain，不以明文写入配置文件或日志。
 - 提供“测试 ASR”“测试 LLM”“测试 TTS”“端到端测试”四类检查。
 - 内置阿里云百炼推荐模板，但用户可以新增 OpenAI-compatible 或 custom HTTP provider。
@@ -159,6 +158,7 @@ Acceptance Criteria:
 - ASR 语言提示可选择：自动、中文、English、中英混合。
 - LLM prompt 必须显式传入目标输出语言。
 - TTS 选择音色时展示该音色支持的语言。
+- 声音页支持预置音色和克隆声音入口；克隆声音必须先确认授权，再支持选择本地音频样本或直接录制声音样本。
 
 ### Non-Goals
 

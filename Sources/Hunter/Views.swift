@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -629,22 +630,13 @@ struct WatchlistPanel: View {
 
 struct ProvidersPanel: View {
     @ObservedObject var state: AppState
-    @State private var apiKey = ""
-    @State private var saveMessage = ""
 
     var body: some View {
-        PanelContainer(title: state.copy("AI 配置", "AI"), subtitle: state.copy("选择服务商，填写 Base URL 和 API Key；高级字段默认收起。", "Choose providers, Base URLs, and API key. Advanced fields stay collapsed.")) {
+        PanelContainer(title: state.copy("AI 配置", "AI"), subtitle: state.copy("ASR、LLM、TTS 各自独立配置，可使用不同服务商。", "ASR, LLM, and TTS are configured independently.")) {
             VStack(alignment: .leading, spacing: 14) {
-                providerQuickSetup
-
                 ProviderEditor(role: .asr, provider: $state.providers.asr, language: state.interfaceLanguage)
                 ProviderEditor(role: .llm, provider: $state.providers.llm, language: state.interfaceLanguage)
                 ProviderEditor(role: .tts, provider: $state.providers.tts, language: state.interfaceLanguage)
-
-                labeledRow(state.copy("TTS 音色", "TTS voice")) {
-                    TextField(state.copy("例如 longanyang", "e.g. longanyang"), text: $state.providers.voice)
-                        .textFieldStyle(.roundedBorder)
-                }
 
                 HStack(spacing: 10) {
                     Button(state.copy("测试 ASR", "Test ASR")) {
@@ -665,13 +657,6 @@ struct ProvidersPanel: View {
                     .buttonStyle(.borderedProminent)
                 }
 
-                if !saveMessage.isEmpty {
-                    Text(saveMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
                 Text(state.providerStatus.isEmpty ? state.copy("Provider 尚未测试", "Provider not tested") : state.providerStatus)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -680,99 +665,6 @@ struct ProvidersPanel: View {
             .onChange(of: state.providers) {
                 state.persist()
             }
-        }
-    }
-
-    private var providerQuickSetup: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(state.copy("基础配置", "Basics"))
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.secondary)
-
-            labeledRow(state.copy("供应商", "Provider")) {
-                Picker("", selection: sharedProviderBinding) {
-                    ForEach(ProviderPreset.allCases) { preset in
-                        Text(preset.label(language: state.interfaceLanguage)).tag(preset)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 180)
-            }
-
-            labeledRow("API Key") {
-                HStack(spacing: 10) {
-                    SecureField(state.copy("保存到本机钥匙串", "Saved to local Keychain"), text: $apiKey)
-                    Button(state.copy("保存", "Save")) {
-                        saveAPIKey()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .padding(16)
-        .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
-    }
-
-    private var sharedProviderBinding: Binding<ProviderPreset> {
-        Binding(
-            get: { allProvidersUseAliyun ? .aliyunBailian : .custom },
-            set: { preset in
-                switch preset {
-                case .aliyunBailian:
-                    let voice = state.providers.voice
-                    state.providers = ProviderSettings(
-                        asr: .aliyunASR,
-                        llm: .aliyunLLM,
-                        tts: .aliyunTTS,
-                        voice: voice
-                    )
-                case .custom:
-                    if allProvidersUseAliyun {
-                        state.providers.asr.providerName = "Custom"
-                        state.providers.llm.providerName = "Custom"
-                        state.providers.tts.providerName = "Custom"
-                    }
-                }
-                state.persist()
-            }
-        )
-    }
-
-    private var allProvidersUseAliyun: Bool {
-        [state.providers.asr, state.providers.llm, state.providers.tts].allSatisfy {
-            $0.providerName == ProviderEndpoint.aliyunLLM.providerName
-        }
-    }
-
-    @ViewBuilder
-    private func labeledRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        LabeledContent {
-            content()
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } label: {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 86, alignment: .leading)
-        }
-    }
-
-    private func saveAPIKey() {
-        let names = Set([
-            state.providers.asr.apiKeyEnvironmentName,
-            state.providers.llm.apiKeyEnvironmentName,
-            state.providers.tts.apiKeyEnvironmentName
-        ])
-        do {
-            for name in names {
-                try SecretStore().saveAPIKey(apiKey, environmentName: name)
-            }
-            apiKey = ""
-            saveMessage = state.copy("已保存到钥匙串：\(names.sorted().joined(separator: ", "))", "Saved to Keychain for \(names.sorted().joined(separator: ", "))")
-        } catch {
-            saveMessage = state.copy("钥匙串保存失败：\(error.localizedDescription)", "Keychain save failed: \(error.localizedDescription)")
         }
     }
 
@@ -860,36 +752,58 @@ struct ProvidersPanel: View {
 
 struct VoicePanel: View {
     @ObservedObject var state: AppState
+    @State private var voiceRecorder: AVAudioRecorder?
+    @State private var voiceCloneMessage = ""
 
     var body: some View {
-        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置界面语言、监督语言和吐槽强度。", "Language, persona, and voice style.")) {
-            VStack(spacing: 16) {
-                Picker(state.copy("界面语言", "Interface language"), selection: $state.interfaceLanguage) {
-                    Text("中文").tag(AppLanguage.zhHans)
-                    Text("English").tag(AppLanguage.english)
-                }
-                Picker(state.copy("AI 监督语言", "AI roast language"), selection: $state.aiLanguage) {
-                    Text(state.copy("跟随界面", "Follow UI")).tag(AppLanguage.followInterface)
-                    Text("中文").tag(AppLanguage.zhHans)
-                    Text("English").tag(AppLanguage.english)
-                }
-                Picker(state.copy("吐槽强度", "Intensity"), selection: $state.intensity) {
-                    ForEach(RoastIntensity.allCases) { intensity in
-                        Text(intensity.label(language: state.interfaceLanguage)).tag(intensity)
+        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置语言、吐槽强度和音色来源。", "Language, persona, intensity, and voice source.")) {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
+                    labeledRow(state.copy("界面语言", "Interface")) {
+                        Picker("", selection: $state.interfaceLanguage) {
+                            Text("中文").tag(AppLanguage.zhHans)
+                            Text("English").tag(AppLanguage.english)
+                        }
+                    }
+                    labeledRow(state.copy("监督语言", "Roast language")) {
+                        Picker("", selection: $state.aiLanguage) {
+                            Text(state.copy("跟随界面", "Follow UI")).tag(AppLanguage.followInterface)
+                            Text("中文").tag(AppLanguage.zhHans)
+                            Text("English").tag(AppLanguage.english)
+                        }
+                    }
+                    labeledRow(state.copy("吐槽强度", "Intensity")) {
+                        Picker("", selection: $state.intensity) {
+                            ForEach(RoastIntensity.allCases) { intensity in
+                                Text(intensity.label(language: state.interfaceLanguage)).tag(intensity)
+                            }
+                        }
+                    }
+                    labeledRow(state.copy("监工角色", "Persona")) {
+                        Picker("", selection: $state.persona) {
+                            ForEach(RoastPersona.allCases) { persona in
+                                Text(persona.label(language: state.interfaceLanguage)).tag(persona)
+                            }
+                        }
+                    }
+                    labeledRow(state.copy("允许粗口", "Profanity")) {
+                        Toggle("", isOn: $state.allowProfanity)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .tint(.green)
+                            .environment(\.controlActiveState, .active)
+                    }
+                    labeledRow(state.copy("禁用词", "Banned terms")) {
+                        TextField(state.copy("用逗号或换行分隔", "Comma or newline separated"), text: $state.bannedTerms, axis: .vertical)
+                            .lineLimit(1...3)
+                            .textFieldStyle(.roundedBorder)
                     }
                 }
-                Picker(state.copy("监工角色", "Persona"), selection: $state.persona) {
-                    ForEach(RoastPersona.allCases) { persona in
-                        Text(persona.label(language: state.interfaceLanguage)).tag(persona)
-                    }
-                }
-                Toggle(state.copy("允许轻度粗口", "Allow mild profanity"), isOn: $state.allowProfanity)
-                    .toggleStyle(.switch)
-                TextField(state.copy("禁用词，用逗号或换行分隔", "Banned terms, comma or newline separated"), text: $state.bannedTerms, axis: .vertical)
-                    .lineLimit(1...3)
-                    .textFieldStyle(.roundedBorder)
-                Text(state.copy("声音克隆：在提供授权样本前暂不启用。", "Voice clone: disabled until authorized samples are provided."))
-                    .foregroundStyle(.secondary)
+                .padding(16)
+                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+
+                voiceCloneCard
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -911,7 +825,174 @@ struct VoicePanel: View {
             .onChange(of: state.bannedTerms) {
                 state.persist()
             }
+            .onChange(of: state.providers.voice) {
+                state.persist()
+            }
+            .onChange(of: state.voiceClone) {
+                state.persist()
+            }
         }
+    }
+
+    private var voiceCloneCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(state.copy("声音克隆", "Voice clone"), systemImage: "waveform.badge.mic")
+                .font(.system(size: 14, weight: .bold))
+
+            labeledRow(state.copy("音色来源", "Source")) {
+                Picker("", selection: $state.voiceClone.source) {
+                    ForEach(VoiceSource.allCases) { source in
+                        Text(source.label(language: state.interfaceLanguage)).tag(source)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 180)
+            }
+
+            labeledRow(state.copy("音色 ID", "Voice ID")) {
+                TextField(state.copy("例如 longanyang 或克隆音色 ID", "e.g. longanyang or cloned voice ID"), text: $state.providers.voice)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            if state.voiceClone.source == .cloned {
+                labeledRow(state.copy("授权确认", "Consent")) {
+                    Toggle(state.copy("我确认有权使用这段声音", "I have the right to use this voice"), isOn: $state.voiceClone.consentConfirmed)
+                        .toggleStyle(.checkbox)
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        importVoiceSample()
+                    } label: {
+                        Label(state.copy("选择音频样本", "Choose sample"), systemImage: "square.and.arrow.down")
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button {
+                        isRecording ? stopVoiceSampleRecording() : startVoiceSampleRecording()
+                    } label: {
+                        Label(isRecording ? state.copy("停止录制", "Stop recording") : state.copy("录制样本", "Record sample"), systemImage: isRecording ? "stop.fill" : "record.circle")
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(isRecording ? .red : .accentColor)
+                }
+
+                Text(sampleStatus)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !voiceCloneMessage.isEmpty {
+                Text(voiceCloneMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+    }
+
+    private var isRecording: Bool {
+        voiceRecorder != nil
+    }
+
+    private var sampleStatus: String {
+        guard let path = state.voiceClone.samplePath, !path.isEmpty else {
+            return state.copy("还没有声音样本。", "No voice sample yet.")
+        }
+        let name = URL(fileURLWithPath: path).lastPathComponent
+        return state.copy("本机样本：\(name)", "Local sample: \(name)")
+    }
+
+    @ViewBuilder
+    private func labeledRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        LabeledContent {
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 86, alignment: .leading)
+        }
+    }
+
+    private func importVoiceSample() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.wav, .mpeg4Audio, .mp3, .audio]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let destination = try copyVoiceSample(from: url)
+            state.voiceClone.source = .cloned
+            state.voiceClone.samplePath = destination.path
+            state.persist()
+            voiceCloneMessage = state.copy("声音样本已保存到本机。", "Voice sample saved locally.")
+        } catch {
+            voiceCloneMessage = state.copy("保存声音样本失败：\(error.localizedDescription)", "Failed to save voice sample: \(error.localizedDescription)")
+        }
+    }
+
+    private func startVoiceSampleRecording() {
+        AVCaptureDevice.requestAccess(for: .audio) { granted in
+            Task { @MainActor in
+                guard granted else {
+                    voiceCloneMessage = state.copy("需要麦克风权限才能录制声音样本。", "Microphone permission is required to record a voice sample.")
+                    return
+                }
+                beginVoiceSampleRecording()
+            }
+        }
+    }
+
+    private func beginVoiceSampleRecording() {
+        do {
+            let url = try voiceSampleDirectory()
+                .appendingPathComponent("hunter-voice-sample-\(Int(Date().timeIntervalSince1970)).m4a")
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 44_100,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            ]
+            let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.record()
+            voiceRecorder = recorder
+            voiceCloneMessage = state.copy("正在录制声音样本。", "Recording voice sample.")
+        } catch {
+            voiceCloneMessage = state.copy("录制启动失败：\(error.localizedDescription)", "Recording failed to start: \(error.localizedDescription)")
+        }
+    }
+
+    private func stopVoiceSampleRecording() {
+        guard let recorder = voiceRecorder else { return }
+        recorder.stop()
+        state.voiceClone.source = .cloned
+        state.voiceClone.samplePath = recorder.url.path
+        state.persist()
+        voiceRecorder = nil
+        voiceCloneMessage = state.copy("声音样本已录制并保存到本机。", "Voice sample recorded and saved locally.")
+    }
+
+    private func copyVoiceSample(from source: URL) throws -> URL {
+        let directory = try voiceSampleDirectory()
+        let ext = source.pathExtension.isEmpty ? "audio" : source.pathExtension
+        let destination = directory.appendingPathComponent("hunter-voice-sample-\(Int(Date().timeIntervalSince1970)).\(ext)")
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        try FileManager.default.copyItem(at: source, to: destination)
+        return destination
+    }
+
+    private func voiceSampleDirectory() throws -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let directory = base.appendingPathComponent("Hunter/VoiceSamples", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
     }
 }
 
@@ -1079,10 +1160,10 @@ struct SettingCard<Trailing: View>: View {
     }
 }
 
-enum ProviderRole: CaseIterable {
-    case asr
-    case llm
-    case tts
+enum ProviderRole: String, CaseIterable {
+    case asr = "ASR"
+    case llm = "LLM"
+    case tts = "TTS"
 
     var defaultEndpoint: ProviderEndpoint {
         switch self {
@@ -1107,21 +1188,13 @@ enum ProviderRole: CaseIterable {
         case .tts: language == .english ? "TTS" : "语音合成 TTS"
         }
     }
-}
 
-enum ProviderPreset: String, CaseIterable, Identifiable {
-    case aliyunBailian
-    case custom
-
-    var id: String { rawValue }
-
-    func label(language: AppLanguage) -> String {
-        switch self {
-        case .aliyunBailian:
-            return language == .english ? "Aliyun Bailian" : "阿里云百炼"
-        case .custom:
-            return language == .english ? "Custom" : "自定义"
+    func apiKeyName(for providerName: String) -> String {
+        let normalized = providerName.lowercased()
+        if normalized.contains("aliyun") || normalized.contains("dashscope") || providerName.contains("阿里") {
+            return "DASHSCOPE_API_KEY"
         }
+        return "HUNTER_\(rawValue)_API_KEY"
     }
 }
 
@@ -1129,67 +1202,48 @@ struct ProviderEditor: View {
     var role: ProviderRole
     @Binding var provider: ProviderEndpoint
     var language: AppLanguage
+    @State private var apiKey = ""
+    @State private var saveMessage = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Label(role.title(language: language), systemImage: role.icon)
-                    .font(.system(size: 14, weight: .bold))
-                Spacer()
-                Picker("", selection: providerPresetBinding) {
-                    ForEach(ProviderPreset.allCases) { preset in
-                        Text(preset.label(language: language)).tag(preset)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 160)
-            }
+            Label(role.title(language: language), systemImage: role.icon)
+                .font(.system(size: 14, weight: .bold))
 
-            labeledRow("Base URL") {
-                TextField("https://", text: $provider.baseURL)
-                    .textFieldStyle(.roundedBorder)
-            }
-
-            DisclosureGroup(copy("高级设置", "Advanced")) {
-                VStack(alignment: .leading, spacing: 10) {
-                    labeledRow(copy("模型", "Model")) {
-                        TextField(copy("模型 ID", "Model ID"), text: $provider.model)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    labeledRow("Provider") {
+                        TextField(copy("例如 Aliyun Bailian", "e.g. Aliyun Bailian"), text: providerNameBinding)
                             .textFieldStyle(.roundedBorder)
                     }
-                    labeledRow(copy("Key 名称", "Key name")) {
-                        TextField("DASHSCOPE_API_KEY", text: $provider.apiKeyEnvironmentName)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    labeledRow(copy("服务商名称", "Provider name")) {
-                        TextField(copy("服务商名称", "Provider name"), text: $provider.providerName)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    labeledRow(copy("鉴权", "Auth")) {
-                        TextField("Bearer", text: $provider.authorizationScheme)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    labeledRow(copy("区域", "Region")) {
-                        TextField("cn-beijing", text: $provider.region)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    labeledRow(copy("语言", "Language")) {
-                        TextField("zh-CN,en-US", text: $provider.languageHint)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    labeledRow(copy("流式", "Streaming")) {
-                        Toggle("", isOn: $provider.supportsStreaming)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .tint(.green)
-                            .environment(\.controlActiveState, .active)
-                    }
-                    labeledRow("Headers") {
-                        TextField(copy("每行 Header: value", "Header: value, one per line"), text: $provider.extraHeaders, axis: .vertical)
-                            .lineLimit(1...3)
+                    labeledRow("Model") {
+                        TextField(copy("模型名", "Model name"), text: $provider.model)
                             .textFieldStyle(.roundedBorder)
                     }
                 }
-                .padding(.top, 8)
+
+                labeledRow("Base URL") {
+                    TextField("https://", text: $provider.baseURL)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                labeledRow("API Key") {
+                    HStack(spacing: 10) {
+                        SecureField(copy("保存到本机钥匙串", "Saved to local Keychain"), text: $apiKey)
+                            .textFieldStyle(.roundedBorder)
+                        Button(copy("保存", "Save")) {
+                            saveAPIKey()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+
+                if !saveMessage.isEmpty {
+                    Text(saveMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(16)
@@ -1197,20 +1251,27 @@ struct ProviderEditor: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
     }
 
-    private var providerPresetBinding: Binding<ProviderPreset> {
+    private func saveAPIKey() {
+        do {
+            let storageName = role.apiKeyName(for: provider.providerName)
+            provider.apiKeyEnvironmentName = storageName
+            if provider.authorizationScheme.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                provider.authorizationScheme = "Bearer"
+            }
+            try SecretStore().saveAPIKey(apiKey, environmentName: storageName)
+            apiKey = ""
+            saveMessage = copy("已保存到钥匙串", "Saved to Keychain")
+        } catch {
+            saveMessage = copy("钥匙串保存失败：\(error.localizedDescription)", "Keychain save failed: \(error.localizedDescription)")
+        }
+    }
+
+    private var providerNameBinding: Binding<String> {
         Binding(
-            get: {
-                provider.providerName == ProviderEndpoint.aliyunLLM.providerName ? .aliyunBailian : .custom
-            },
-            set: { preset in
-                switch preset {
-                case .aliyunBailian:
-                    provider = role.defaultEndpoint
-                case .custom:
-                    if provider.providerName == ProviderEndpoint.aliyunLLM.providerName {
-                        provider.providerName = "Custom"
-                    }
-                }
+            get: { provider.providerName },
+            set: { newValue in
+                provider.providerName = newValue
+                provider.apiKeyEnvironmentName = role.apiKeyName(for: newValue)
             }
         )
     }
@@ -1224,7 +1285,7 @@ struct ProviderEditor: View {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 88, alignment: .leading)
+                .frame(width: 76, alignment: .leading)
         }
     }
 

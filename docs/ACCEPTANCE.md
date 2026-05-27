@@ -27,7 +27,7 @@
 | LLM 默认链路 | Pass | `qwen-turbo` 生成抓包吐槽 |
 | TTS 默认链路 | Pass | `cosyvoice-v3-flash + longanyang` 返回 WAV 音频字节 |
 | TTS 本地缓存 | Pass | 按 model、voice、language、text 缓存音频，单测覆盖命中和隔离 |
-| Provider 可配置 | Partial | 设置页可编辑端点、鉴权 scheme、额外 headers、region 和 Keychain key，提供 LLM/TTS/ASR/端到端测试入口；完全异构供应商还需新增 adapter |
+| Provider 可配置 | Partial | 设置页中 ASR/LLM/TTS 三类模型可独立填写 Provider、Base URL、Model、API Key，并提供 LLM/TTS/ASR/端到端测试入口；完全异构供应商还需新增 adapter |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
 | 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
 | 语音对喷链路 | Partial | ASR/LLM/TTS 子链路已测，麦克风权限已允许，设置页录制测试入口可触发录音；本机正常音量 `say` 播报未被麦克风识别，需真人靠近麦克风复测 Option+Space |

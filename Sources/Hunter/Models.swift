@@ -236,6 +236,28 @@ struct ProviderSettings: Codable, Equatable {
     var voice: String = "longanyang"
 }
 
+enum VoiceSource: String, CaseIterable, Codable, Identifiable {
+    case preset
+    case cloned
+
+    var id: String { rawValue }
+
+    func label(language: AppLanguage) -> String {
+        switch self {
+        case .preset:
+            return language == .english ? "Preset voice" : "预置音色"
+        case .cloned:
+            return language == .english ? "Cloned voice" : "克隆声音"
+        }
+    }
+}
+
+struct VoiceCloneSettings: Codable, Equatable {
+    var source: VoiceSource = .preset
+    var samplePath: String?
+    var consentConfirmed: Bool = false
+}
+
 struct WorkPeriod: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var startMinuteOfDay: Int = 9 * 60

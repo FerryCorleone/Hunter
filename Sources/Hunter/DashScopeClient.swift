@@ -7,7 +7,7 @@ struct DashScopeClient {
 
         var errorDescription: String? {
             switch self {
-            case .missingAPIKey: "Missing provider API key"
+            case .missingAPIKey: "Missing provider API key or the saved key needs to be re-saved in Hunter"
             case .invalidResponse: "Provider returned an invalid response"
             }
         }
@@ -23,7 +23,8 @@ struct DashScopeClient {
         persona: RoastPersona,
         allowProfanity: Bool = false,
         bannedTerms: String = "",
-        languageCode: String
+        languageCode: String,
+        pageContext: PageSearchContext? = nil
     ) async throws -> String {
         let endpoint = settings.llm
         guard let apiKey = secrets.apiKey(for: endpoint) else {
@@ -36,7 +37,8 @@ struct DashScopeClient {
             persona: persona,
             allowProfanity: allowProfanity,
             bannedTerms: bannedTerms,
-            languageCode: languageCode
+            languageCode: languageCode,
+            pageContext: pageContext
         )
         var body: [String: Any] = [
             "model": endpoint.model,
@@ -44,8 +46,8 @@ struct DashScopeClient {
                 ["role": "system", "content": prompt.system],
                 ["role": "user", "content": prompt.user]
             ],
-            "temperature": 0.9,
-            "max_tokens": 100
+            "temperature": 1.0,
+            "max_tokens": 150
         ]
         applyLLMBodyDefaults(&body, endpoint: endpoint)
 
@@ -90,13 +92,15 @@ struct DashScopeClient {
                 [
                     "role": "system",
                     "content": """
-                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) The user is talking back after being caught slacking. Reply with one short, funny comeback. \(languageInstruction) Keep it under 24 words or 42 Chinese characters. \(boundary)
+                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) The user is talking back after being caught slacking. Reply with one sharp spoken comeback that directly answers their excuse and pulls them back to work. \(languageInstruction) Keep it under 32 words or 58 Chinese characters. Make it specific, punchy, and a little confrontational. Do not sound like a generic productivity app. \(boundary)
                     """
                 ],
                 [
                     "role": "user",
                     "content": """
                     Caught target: \(incident.targetName)
+                    Page title: \(incident.pageTitle ?? "none")
+                    URL: \(incident.url ?? "none")
                     Previous roast: \(incident.roast)
                     User reply: \(userText)
                     Intensity: \(intensity.label)
@@ -184,7 +188,8 @@ struct DashScopeClient {
         persona: RoastPersona,
         allowProfanity: Bool,
         bannedTerms: String,
-        languageCode: String
+        languageCode: String,
+        pageContext: PageSearchContext?
     ) -> (system: String, user: String) {
         let languageInstruction = languageCode == "en"
             ? "Write in English."
@@ -192,21 +197,38 @@ struct DashScopeClient {
         let intensityInstruction: String = {
             switch intensity {
             case .gentle: return "Tone: witty but not harsh."
-            case .sarcastic: return "Tone: sharp, sarcastic, office-safe."
-            case .boss: return "Tone: like a dramatic but funny boss catching someone slacking. Office-safe, no real threats."
-            case .savage: return "Tone: high intensity but no protected-class attacks, threats, self-harm, or slurs."
+            case .sarcastic: return "Tone: sharp, sarcastic, with a clear punchline."
+            case .boss: return "Tone: like a dramatic boss catching someone wasting time, funny and pressuring, no real threats."
+            case .savage: return "Tone: high intensity, blunt, and embarrassing, but no protected-class attacks, threats, self-harm, or slurs."
             }
         }()
+        let profanityInstruction = allowProfanity
+            ? "The user opted in to profanity: normal swear words are allowed when they make the line funnier, but do not use hateful slurs."
+            : "No profanity, but still be biting and specific."
 
         return (
             system: """
-            You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction) \(intensityInstruction) Keep it under 26 words or 45 Chinese characters. Mention the target. \(RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms))
+            You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction)
+            Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction)
+            \(intensityInstruction) \(profanityInstruction)
+
+            The line must have logic:
+            1. Identify what the user is actually looking at from the title, URL, or search snippets.
+            2. Connect that content to the fact they are avoiding work.
+            3. End with a compact punchline.
+
+            Use one concrete detail if search snippets are provided. Do not say "I searched". Do not invent details not present in context. Avoid generic lines like "又在摸鱼". Keep it under 35 words or 70 Chinese characters. \(RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms))
             """,
             user: """
             Target: \(context.displayTarget)
             App: \(context.appName)
+            Page title: \(context.pageTitle ?? "none")
             URL: \(context.url ?? "none")
             Persona: \(persona.label)
+            Web search provider: \(pageContext?.providerName ?? "none")
+            Search query: \(pageContext?.query ?? "none")
+            Search snippets:
+            \(pageContext?.promptText ?? "none")
             """
         )
     }

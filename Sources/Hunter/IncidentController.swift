@@ -4,6 +4,7 @@ import Foundation
 final class IncidentController {
     private let state: AppState
     private let dashScope = DashScopeClient()
+    private let webSearch = WebSearchClient()
     private let localSpeech = LocalSpeechClient()
     private let speechPlayer = SpeechPlayer()
     private let notifications = NotificationController()
@@ -26,12 +27,14 @@ final class IncidentController {
             targetName: rule.name,
             appName: context.appName,
             url: context.url,
+            pageTitle: context.pageTitle,
             roast: fallback
         )
         state.recordIncident(incident)
 
         Task {
             do {
+                let searchContext = await enrichWithSearch(context: context)
                 let roast = try await dashScope.generateRoast(
                     context: context,
                     settings: state.providers,
@@ -39,7 +42,8 @@ final class IncidentController {
                     persona: state.persona,
                     allowProfanity: state.allowProfanity,
                     bannedTerms: state.bannedTerms,
-                    languageCode: state.targetLanguageCode()
+                    languageCode: state.targetLanguageCode(),
+                    pageContext: searchContext
                 )
                 await MainActor.run {
                     let upgraded = Incident(
@@ -48,10 +52,12 @@ final class IncidentController {
                         targetName: incident.targetName,
                         appName: incident.appName,
                         url: incident.url,
+                        pageTitle: incident.pageTitle,
                         roast: roast
                     )
                     state.recordIncident(upgraded)
-                    state.providerStatus = state.copy("LLM 正常，等待 TTS", "LLM OK, TTS pending")
+                    let searchLabel = searchContext == nil ? "" : state.copy("，已结合搜索上下文", ", with search context")
+                    state.providerStatus = state.copy("LLM 正常\(searchLabel)，等待 TTS", "LLM OK\(searchLabel), TTS pending")
                 }
                 await synthesizeAndPlay(text: roast, target: incident.targetName, statusPrefix: state.copy("LLM", "LLM"))
             } catch {
@@ -96,6 +102,7 @@ final class IncidentController {
                 targetName: incident.targetName,
                 appName: incident.appName,
                 url: incident.url,
+                pageTitle: incident.pageTitle,
                 roast: reply
             )
             state.recordIncident(responseIncident)
@@ -173,10 +180,33 @@ final class IncidentController {
         try? await Task.sleep(nanoseconds: delay)
     }
 
+    private func enrichWithSearch(context: FrontmostContext) async -> PageSearchContext? {
+        guard state.providers.webSearchEnabled else { return nil }
+        do {
+            let result = try await webSearch.search(
+                context: context,
+                settings: state.providers,
+                languageCode: state.targetLanguageCode()
+            )
+            if let result, !result.results.isEmpty {
+                await MainActor.run {
+                    state.providerStatus = state.copy("已获取页面搜索上下文", "Search context ready")
+                }
+                return result
+            }
+            return nil
+        } catch {
+            await MainActor.run {
+                state.providerStatus = state.copy("搜索增强跳过：\(error.localizedDescription)", "Search enrichment skipped: \(error.localizedDescription)")
+            }
+            return nil
+        }
+    }
+
     private func fallbackRoast(rule: BlacklistRule, context: FrontmostContext) -> String {
         if state.targetLanguageCode() == "en" {
-            return "Caught on \(rule.name). Bold choice for someone trying to outrun a deadline."
+            return "Caught on \(context.displayTarget). Bold move: training the algorithm while your deadline trains patience."
         }
-        return "抓到你在 \(rule.name) 摸鱼了。今天的 KPI 是把推荐算法喂饱吗？"
+        return "抓到你在 \(context.displayTarget) 摸鱼。怎么，今天 KPI 是把推荐算法喂到撑死？"
     }
 }

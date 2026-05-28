@@ -109,6 +109,21 @@ struct FloatingOverlayView: View {
             WaveformView()
                 .frame(height: 32)
 
+            if let status = state.voiceInteractionStatus, !status.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "mic.badge.plus")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(status)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(2)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
             HStack(spacing: 12) {
                 Button(action: onReply) {
                     Label(state.copy("语音回击\n连续对喷", "Voice reply\ncontinuous duel"), systemImage: "mic.fill")
@@ -668,7 +683,7 @@ struct ProvidersPanel: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        PanelContainer(title: state.copy("AI 配置", "AI"), subtitle: state.copy("ASR、LLM、TTS 各自独立配置，可使用不同服务商。", "ASR, LLM, and TTS are configured independently.")) {
+        PanelContainer(title: state.copy("AI 配置", "AI"), subtitle: state.copy("ASR、LLM、TTS 与搜索增强各自独立配置。", "ASR, LLM, TTS, and search enrichment are configured independently.")) {
             VStack(alignment: .leading, spacing: 14) {
                 ProviderEditor(
                     role: .asr,
@@ -688,6 +703,32 @@ struct ProvidersPanel: View {
                     language: state.interfaceLanguage
                 )
 
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label(state.copy("联网搜索增强", "Web search enrichment"), systemImage: "magnifyingglass")
+                            .font(.system(size: 14, weight: .bold))
+                        Spacer()
+                        Toggle(state.providers.webSearchEnabled ? state.copy("已开启", "On") : state.copy("关闭", "Off"), isOn: $state.providers.webSearchEnabled)
+                            .toggleStyle(.switch)
+                            .tint(.green)
+                            .environment(\.controlActiveState, .active)
+                    }
+
+                    Text(state.copy(
+                        "开启后，抓包时只把当前页面标题/域名作为搜索 query，取 3 条摘要给 LLM 增强吐槽；默认推荐 Brave Search，也可改 Tavily。",
+                        "When enabled, Hunter searches with the current page title/domain and sends 3 snippets to the LLM for sharper roasts. Brave Search is the default; Tavily is optional."
+                    ))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                    ProviderEditor(role: .search, provider: $state.providers.webSearch, language: state.interfaceLanguage)
+                        .disabled(!state.providers.webSearchEnabled)
+                        .opacity(state.providers.webSearchEnabled ? 1 : 0.58)
+                }
+                .padding(16)
+                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+
                 HStack(spacing: 10) {
                     Button(state.copy("测试 ASR", "Test ASR")) {
                         testASR()
@@ -699,6 +740,10 @@ struct ProvidersPanel: View {
                     .buttonStyle(.bordered)
                     Button(state.copy("测试 TTS", "Test TTS")) {
                         testTTS()
+                    }
+                    .buttonStyle(.bordered)
+                    Button(state.copy("测试搜索", "Test search")) {
+                        testSearch()
                     }
                     .buttonStyle(.bordered)
                     Button(state.copy("端到端测试", "End-to-end test")) {
@@ -761,6 +806,31 @@ struct ProvidersPanel: View {
                 state.providerStatus = state.copy("TTS 正常：\(audio.count) bytes", "TTS OK: \(audio.count) bytes")
             } catch {
                 state.providerStatus = state.copy("TTS 测试失败：\(error.localizedDescription)", "TTS test failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func testSearch() {
+        state.providerStatus = state.copy("正在测试搜索增强...", "Testing search enrichment...")
+        Task {
+            do {
+                var settings = state.providers
+                settings.webSearchEnabled = true
+                let context = FrontmostContext(
+                    appName: "Hunter",
+                    bundleID: nil,
+                    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    pageTitle: state.copy("YouTube 上班摸鱼视频", "YouTube procrastination video")
+                )
+                let result = try await WebSearchClient().search(
+                    context: context,
+                    settings: settings,
+                    languageCode: state.targetLanguageCode()
+                )
+                let count = result?.results.count ?? 0
+                state.providerStatus = state.copy("搜索正常：\(count) 条摘要", "Search OK: \(count) snippets")
+            } catch {
+                state.providerStatus = state.copy("搜索测试失败：\(error.localizedDescription)", "Search test failed: \(error.localizedDescription)")
             }
         }
     }
@@ -1252,12 +1322,14 @@ enum ProviderRole: String, CaseIterable {
     case asr = "ASR"
     case llm = "LLM"
     case tts = "TTS"
+    case search = "SEARCH"
 
     var defaultEndpoint: ProviderEndpoint {
         switch self {
         case .asr: .aliyunASR
         case .llm: .deepSeekLLM
         case .tts: .aliyunTTS
+        case .search: .braveSearch
         }
     }
 
@@ -1266,6 +1338,7 @@ enum ProviderRole: String, CaseIterable {
         case .asr: .asr
         case .llm: nil
         case .tts: .tts
+        case .search: nil
         }
     }
 
@@ -1274,6 +1347,7 @@ enum ProviderRole: String, CaseIterable {
         case .asr: "waveform"
         case .llm: "text.bubble"
         case .tts: "speaker.wave.2"
+        case .search: "magnifyingglass"
         }
     }
 
@@ -1282,11 +1356,18 @@ enum ProviderRole: String, CaseIterable {
         case .asr: language == .english ? "ASR" : "语音识别 ASR"
         case .llm: language == .english ? "LLM" : "语言模型 LLM"
         case .tts: language == .english ? "TTS" : "语音合成 TTS"
+        case .search: language == .english ? "Search" : "联网搜索"
         }
     }
 
     func apiKeyName(for providerName: String) -> String {
         let normalized = providerName.lowercased()
+        if normalized.contains("brave") {
+            return "BRAVE_SEARCH_API_KEY"
+        }
+        if normalized.contains("tavily") {
+            return "TAVILY_API_KEY"
+        }
         if normalized.contains("aliyun") || normalized.contains("dashscope") || providerName.contains("阿里") {
             return "DASHSCOPE_API_KEY"
         }
@@ -1347,14 +1428,25 @@ struct ProviderEditor: View {
                 if mode?.wrappedValue == .localModel, let descriptor = localModelDescriptor {
                     localModelView(descriptor)
                 } else {
-                    HStack(spacing: 12) {
+                    if role == .search {
                         labeledRow("Provider") {
-                            TextField(copy("例如 DeepSeek", "e.g. DeepSeek"), text: providerNameBinding)
+                            TextField(copy("例如 Brave Search", "e.g. Brave Search"), text: providerNameBinding)
                                 .textFieldStyle(.roundedBorder)
                         }
                         labeledRow("Model") {
-                            TextField(copy("模型名", "Model name"), text: $provider.model)
+                            TextField("brave-web-search / tavily-search", text: $provider.model)
                                 .textFieldStyle(.roundedBorder)
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            labeledRow("Provider") {
+                                TextField(copy("例如 DeepSeek", "e.g. DeepSeek"), text: providerNameBinding)
+                                    .textFieldStyle(.roundedBorder)
+                            }
+                            labeledRow("Model") {
+                                TextField(copy("模型名", "Model name"), text: $provider.model)
+                                    .textFieldStyle(.roundedBorder)
+                            }
                         }
                     }
 
@@ -1365,7 +1457,7 @@ struct ProviderEditor: View {
 
                     labeledRow("API Key") {
                         HStack(spacing: 10) {
-                            SecureField(copy("保存到本机钥匙串", "Saved to local Keychain"), text: $apiKey)
+                            SecureField(copy("保存到本机密钥存储", "Saved to local secret storage"), text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
                             Button(copy("保存", "Save")) {
                                 saveAPIKey()
@@ -1384,8 +1476,8 @@ struct ProviderEditor: View {
             }
         }
         .padding(16)
-        .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+        .background(role == .search ? Color.clear : Color.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(role == .search ? Color.clear : Color.black.opacity(0.08)))
     }
 
     private func saveAPIKey() {
@@ -1397,9 +1489,9 @@ struct ProviderEditor: View {
             }
             try SecretStore().saveAPIKey(apiKey, environmentName: storageName)
             apiKey = ""
-            saveMessage = copy("已保存到钥匙串", "Saved to Keychain")
+            saveMessage = copy("已保存到本机密钥存储", "Saved to local secret storage")
         } catch {
-            saveMessage = copy("钥匙串保存失败：\(error.localizedDescription)", "Keychain save failed: \(error.localizedDescription)")
+            saveMessage = copy("密钥保存失败：\(error.localizedDescription)", "Secret save failed: \(error.localizedDescription)")
         }
     }
 
@@ -1507,6 +1599,18 @@ struct ProviderEditor: View {
             set: { newValue in
                 provider.providerName = newValue
                 provider.apiKeyEnvironmentName = role.apiKeyName(for: newValue)
+                if role == .search {
+                    let normalized = newValue.lowercased()
+                    if normalized.contains("tavily") {
+                        provider.baseURL = ProviderEndpoint.tavilySearch.baseURL
+                        provider.model = ProviderEndpoint.tavilySearch.model
+                        provider.authorizationScheme = ProviderEndpoint.tavilySearch.authorizationScheme
+                    } else if normalized.contains("brave") {
+                        provider.baseURL = ProviderEndpoint.braveSearch.baseURL
+                        provider.model = ProviderEndpoint.braveSearch.model
+                        provider.authorizationScheme = ProviderEndpoint.braveSearch.authorizationScheme
+                    }
+                }
             }
         )
     }

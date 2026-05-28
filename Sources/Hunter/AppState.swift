@@ -19,6 +19,7 @@ final class AppState: ObservableObject {
     @Published var focusSession: FocusSession?
     @Published var currentIncident: Incident?
     @Published var toastMessage: String?
+    @Published var voiceInteractionStatus: String?
     @Published var events: [Incident] = []
     @Published var providerStatus: String = ""
     @Published var permissionStatus: String = "Waiting for permissions"
@@ -81,6 +82,7 @@ final class AppState: ObservableObject {
         isMonitoring = false
         currentIncident = nil
         toastMessage = nil
+        voiceInteractionStatus = nil
         persist()
     }
 
@@ -134,6 +136,7 @@ final class AppState: ObservableObject {
         focusSession = nil
         currentIncident = nil
         toastMessage = copy("监督已结束", "Focus session ended")
+        voiceInteractionStatus = nil
         persist()
     }
 
@@ -151,6 +154,7 @@ final class AppState: ObservableObject {
     func clearEvents() {
         events = []
         currentIncident = nil
+        voiceInteractionStatus = nil
         persist()
     }
 

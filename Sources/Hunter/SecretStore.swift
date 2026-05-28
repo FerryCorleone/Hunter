@@ -1,5 +1,4 @@
 import Foundation
-import Security
 
 private final class SecretMemoryCache: @unchecked Sendable {
     static let shared = SecretMemoryCache()
@@ -7,15 +6,15 @@ private final class SecretMemoryCache: @unchecked Sendable {
     private let lock = NSLock()
     private var values: [String: String] = [:]
 
-    func value(for service: String) -> String? {
+    func value(for name: String) -> String? {
         lock.lock()
         defer { lock.unlock() }
-        return values[service]
+        return values[name]
     }
 
-    func setValue(_ value: String, for service: String) {
+    func setValue(_ value: String, for name: String) {
         lock.lock()
-        values[service] = value
+        values[name] = value
         lock.unlock()
     }
 }
@@ -44,15 +43,10 @@ struct SecretStore {
         if let localValue = readEnvLocalValue(named: trimmed), !localValue.isEmpty {
             return localValue
         }
-        let service = keychainServiceName(for: trimmed)
-        if let cached = SecretMemoryCache.shared.value(for: service), !cached.isEmpty {
+        if let cached = SecretMemoryCache.shared.value(for: trimmed), !cached.isEmpty {
             return cached
         }
-        guard let keychainValue = readKeychain(service: service), !keychainValue.isEmpty else {
-            return nil
-        }
-        SecretMemoryCache.shared.setValue(keychainValue, for: service)
-        return keychainValue
+        return nil
     }
 
     func saveAPIKey(_ apiKey: String, environmentName: String) throws {
@@ -60,75 +54,86 @@ struct SecretStore {
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty, !trimmedKey.isEmpty else { return }
 
-        let service = keychainServiceName(for: trimmedName)
-        let data = Data(trimmedKey.utf8)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: NSUserName()
-        ]
-        SecItemDelete(query as CFDictionary)
-        var attributes = query
-        attributes[kSecValueData as String] = data
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        let status = SecItemAdd(attributes as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
-        }
-        SecretMemoryCache.shared.setValue(trimmedKey, for: service)
+        try saveEnvLocalValue(trimmedKey, named: trimmedName)
+        SecretMemoryCache.shared.setValue(trimmedKey, for: trimmedName)
     }
 
     private func readEnvLocalValue(named name: String) -> String? {
-        let current = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        let candidates = [
-            current.appendingPathComponent(".env.local"),
-            URL(fileURLWithPath: Bundle.main.bundlePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent(".env.local")
-        ]
-
-        for candidate in candidates {
+        for candidate in envLocalCandidates() {
             guard
                 let content = try? String(contentsOf: candidate, encoding: .utf8),
                 let line = content.split(separator: "\n").first(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("\(name)=") })
             else {
                 continue
             }
-            return line.split(separator: "=", maxSplits: 1).last.map(String.init)
+            return line.split(separator: "=", maxSplits: 1).last.map {
+                String($0).trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+            }
         }
         return nil
     }
 
-    private func readKeychain(service: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: NSUserName(),
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+    private func saveEnvLocalValue(_ value: String, named name: String) throws {
+        let url = try applicationSupportEnvURL()
+        let directory = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        var values: [String: String] = [:]
+        if let existing = try? String(contentsOf: url, encoding: .utf8) {
+            for line in existing.split(separator: "\n", omittingEmptySubsequences: false) {
+                let parts = line.split(separator: "=", maxSplits: 1)
+                guard parts.count == 2 else { continue }
+                let key = String(parts[0]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let storedValue = String(parts[1]).trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                if !key.isEmpty {
+                    values[key] = storedValue
+                }
+            }
+        }
+        values[name] = value
+
+        let content = values
+            .keys
+            .sorted()
+            .map { "\($0)=\(values[$0] ?? "")" }
+            .joined(separator: "\n") + "\n"
+        try content.write(to: url, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
+    private func envLocalCandidates() -> [URL] {
+        var candidates: [URL] = [
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".env.local")
         ]
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard
-            status == errSecSuccess,
-            let data = item as? Data,
-            let secret = String(data: data, encoding: .utf8)
-        else {
-            return nil
+        if let appSupport = try? applicationSupportEnvURL() {
+            candidates.append(appSupport)
         }
-        return secret
+
+        var cursor = Bundle.main.bundleURL
+        for _ in 0..<6 {
+            cursor.deleteLastPathComponent()
+            candidates.append(cursor.appendingPathComponent(".env.local"))
+        }
+
+        var seen: Set<String> = []
+        return candidates.filter { url in
+            let path = url.standardizedFileURL.path
+            if seen.contains(path) { return false }
+            seen.insert(path)
+            return true
+        }
     }
 
-    private func keychainServiceName(for environmentName: String) -> String {
-        if environmentName == "DASHSCOPE_API_KEY" {
-            return "hunter.dashscope.api_key"
-        }
-        let safeName = environmentName
-            .lowercased()
-            .filter { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" || $0 == "." }
-        return "hunter.api_key.\(safeName)"
+    private func applicationSupportEnvURL() throws -> URL {
+        let base = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )
+        return base
+            .appendingPathComponent("Hunter", isDirectory: true)
+            .appendingPathComponent(".env.local")
     }
+
 }

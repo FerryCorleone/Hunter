@@ -193,6 +193,30 @@ struct ProviderEndpoint: Codable, Equatable {
         languageHint: "zh-CN,en-US"
     )
 
+    static let braveSearch = ProviderEndpoint(
+        providerName: "Brave Search",
+        baseURL: "https://api.search.brave.com/res/v1/web/search",
+        model: "brave-web-search",
+        apiKeyEnvironmentName: "BRAVE_SEARCH_API_KEY",
+        authorizationScheme: "X-Subscription-Token",
+        extraHeaders: "",
+        region: "",
+        supportsStreaming: false,
+        languageHint: "zh-CN,en-US"
+    )
+
+    static let tavilySearch = ProviderEndpoint(
+        providerName: "Tavily",
+        baseURL: "https://api.tavily.com/search",
+        model: "tavily-search",
+        apiKeyEnvironmentName: "TAVILY_API_KEY",
+        authorizationScheme: "Bearer",
+        extraHeaders: "",
+        region: "",
+        supportsStreaming: false,
+        languageHint: "zh-CN,en-US"
+    )
+
     enum CodingKeys: String, CodingKey {
         case providerName
         case baseURL
@@ -261,6 +285,8 @@ struct ProviderSettings: Codable, Equatable {
     var asr: ProviderEndpoint = .aliyunASR
     var llm: ProviderEndpoint = .deepSeekLLM
     var tts: ProviderEndpoint = .aliyunTTS
+    var webSearch: ProviderEndpoint = .braveSearch
+    var webSearchEnabled: Bool = false
     var voice: String = "longanyang"
     var asrMode: ModelExecutionMode = .localModel
     var ttsMode: ModelExecutionMode = .localModel
@@ -273,6 +299,8 @@ struct ProviderSettings: Codable, Equatable {
         case asr
         case llm
         case tts
+        case webSearch
+        case webSearchEnabled
         case voice
         case asrMode
         case ttsMode
@@ -286,6 +314,8 @@ struct ProviderSettings: Codable, Equatable {
         asr: ProviderEndpoint = .aliyunASR,
         llm: ProviderEndpoint = .deepSeekLLM,
         tts: ProviderEndpoint = .aliyunTTS,
+        webSearch: ProviderEndpoint = .braveSearch,
+        webSearchEnabled: Bool = false,
         voice: String = "longanyang",
         asrMode: ModelExecutionMode = .localModel,
         ttsMode: ModelExecutionMode = .localModel,
@@ -297,6 +327,8 @@ struct ProviderSettings: Codable, Equatable {
         self.asr = asr
         self.llm = llm
         self.tts = tts
+        self.webSearch = webSearch
+        self.webSearchEnabled = webSearchEnabled
         self.voice = voice
         self.asrMode = asrMode
         self.ttsMode = ttsMode
@@ -311,6 +343,8 @@ struct ProviderSettings: Codable, Equatable {
         asr = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .asr) ?? .aliyunASR
         llm = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .llm) ?? .deepSeekLLM
         tts = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .tts) ?? .aliyunTTS
+        webSearch = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .webSearch) ?? .braveSearch
+        webSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .webSearchEnabled) ?? false
         voice = try container.decodeIfPresent(String.self, forKey: .voice) ?? "longanyang"
         asrMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .asrMode) ?? .localModel
         ttsMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .ttsMode) ?? .localModel
@@ -537,18 +571,86 @@ struct Incident: Identifiable, Codable, Equatable {
     var targetName: String
     var appName: String
     var url: String?
+    var pageTitle: String?
     var roast: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case date
+        case targetName
+        case appName
+        case url
+        case pageTitle
+        case roast
+    }
+
+    init(
+        id: UUID = UUID(),
+        date: Date = Date(),
+        targetName: String,
+        appName: String,
+        url: String?,
+        pageTitle: String? = nil,
+        roast: String
+    ) {
+        self.id = id
+        self.date = date
+        self.targetName = targetName
+        self.appName = appName
+        self.url = url
+        self.pageTitle = pageTitle
+        self.roast = roast
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        date = try container.decodeIfPresent(Date.self, forKey: .date) ?? Date()
+        targetName = try container.decode(String.self, forKey: .targetName)
+        appName = try container.decode(String.self, forKey: .appName)
+        url = try container.decodeIfPresent(String.self, forKey: .url)
+        pageTitle = try container.decodeIfPresent(String.self, forKey: .pageTitle)
+        roast = try container.decode(String.self, forKey: .roast)
+    }
 }
 
 struct FrontmostContext: Equatable {
     var appName: String
     var bundleID: String?
     var url: String?
+    var pageTitle: String? = nil
 
     var displayTarget: String {
+        if let pageTitle, !pageTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return pageTitle
+        }
         if let url, let host = URL(string: url)?.host {
             return host
         }
         return appName
+    }
+}
+
+struct BrowserTabInfo: Equatable {
+    var url: String
+    var title: String?
+}
+
+struct SearchResultSnippet: Equatable {
+    var title: String
+    var url: String
+    var snippet: String
+}
+
+struct PageSearchContext: Equatable {
+    var providerName: String
+    var query: String
+    var results: [SearchResultSnippet]
+
+    var promptText: String {
+        guard !results.isEmpty else { return "none" }
+        return results.enumerated().map { index, result in
+            "\(index + 1). \(result.title) — \(result.snippet) [\(result.url)]"
+        }.joined(separator: "\n")
     }
 }

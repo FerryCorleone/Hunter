@@ -131,6 +131,8 @@ struct DurationParserTests {
         #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRModelID == LocalModelCatalog.defaultASR.id)
         #expect(settings.localTTSModelID == LocalModelCatalog.defaultTTS.id)
+        #expect(settings.webSearch.providerName == "Brave Search")
+        #expect(!settings.webSearchEnabled)
     }
 
     @Test func providerSettingsDecodeKeepsDefaultsForNewLocalModelFields() throws {
@@ -141,11 +143,14 @@ struct DurationParserTests {
         #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRInstallPath == nil)
         #expect(settings.localTTSInstallPath == nil)
+        #expect(settings.webSearch.apiKeyEnvironmentName == "BRAVE_SEARCH_API_KEY")
     }
 
     @Test func providerRoleStoresDeepSeekKeySeparately() {
         #expect(ProviderRole.llm.apiKeyName(for: "DeepSeek") == "DEEPSEEK_API_KEY")
         #expect(ProviderRole.llm.apiKeyName(for: "deepseek api") == "DEEPSEEK_API_KEY")
+        #expect(ProviderRole.search.apiKeyName(for: "Brave Search") == "BRAVE_SEARCH_API_KEY")
+        #expect(ProviderRole.search.apiKeyName(for: "Tavily") == "TAVILY_API_KEY")
     }
 
     @Test func focusSessionPauseResumeAndExtendKeepsRemainingStable() {

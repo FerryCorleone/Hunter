@@ -32,7 +32,7 @@
 普通效率工具太严肃、太弱提醒，用户容易忽略；而“被 AI 当场抓包并开骂”的强冲突体验更容易制造自律压力和传播素材。
 
 **Proposed Solution**  
-开发一个 Mac 端轻量 AI 监工应用。主体验是桌面悬浮球/小组件：用户配置工作时间、黑名单和 ASR/LLM/TTS Provider 后，Hunter 在后台检测前台 App 与浏览器 URL；一旦命中摸鱼目标，悬浮小组件展开并调用用户配置的 LLM 生成吐槽文案，再用 TTS 直接播报。用户可以用快捷键语音反驳，系统通过 ASR 转写后继续生成语音回应。主窗口只承载设置、Provider、历史记录和语言/音色配置。
+开发一个 Mac 端轻量 AI 监工应用。主体验是桌面悬浮球/小组件：用户配置工作时间、黑名单和 ASR/LLM/TTS Provider 后，Hunter 在后台检测前台 App、浏览器 URL 与标签页标题；一旦命中摸鱼目标，悬浮小组件展开并调用用户配置的 LLM 生成吐槽文案，再用 TTS 直接播报。用户可开启联网搜索增强，让 Hunter 用当前页面标题/域名取少量搜索摘要，使吐槽更贴合用户正在看的内容。用户可以用快捷键或悬浮卡片按钮语音反驳，系统通过 ASR 转写后继续生成语音回应。主窗口只承载设置、Provider、历史记录和语言/音色配置。
 
 **Success Criteria**
 
@@ -142,14 +142,14 @@ As a user, I want to configure my own ASR, LLM, and TTS providers so that I can 
 
 Acceptance Criteria:
 
-- ASR、LLM、TTS 三类 Provider 可独立配置和启用。
+- ASR、LLM、TTS、Web Search Provider 可独立配置和启用。
 - 每类 Provider 的 MVP UI 只展示四个必填项：Provider、Base URL、Model、API Key。
 - ASR/TTS 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源和下载按钮。
 - 本地 ASR 使用 SenseVoice Small INT8，下载后可在本机完成短音频识别，不上传用户录音。
 - 本地 TTS 使用 Qwen3-TTS 克隆 worker；未配置授权样本或模型未就绪时，使用 macOS 系统语音本地降级。
-- API Key 进入 Keychain，不以明文写入配置文件或日志。
-- 提供“测试 ASR”“测试 LLM”“测试 TTS”“端到端测试”四类检查。
-- 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、本地 Qwen3-TTS 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。
+- API Key 进入本机 `Application Support/Hunter/.env.local` 和进程内缓存，不提交仓库、不进入日志；运行热路径不访问 Keychain，避免系统钥匙串授权弹窗。
+- 提供“测试 ASR”“测试 LLM”“测试 TTS”“测试搜索”“端到端测试”五类检查。
+- 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、本地 Qwen3-TTS、Brave Search 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。
 - 任一 Provider 未配置时，监督检测仍可运行，但语音链路显示明确缺失状态。
 
 **Story 7：中英文界面和监督语言**  
@@ -180,7 +180,8 @@ Acceptance Criteria:
 - ASR：实时或准实时语音识别，支持普通话、英语、中英混合、口语化表达、短音频低延迟。
 - LLM：中英文吐槽、角色扮演、上下文记忆、粗口边界控制、低成本。
 - TTS：中英文自然语音，支持指定音色；优先支持音色复刻或音色设计。
-- Provider 层：统一封装 `transcribe(audio, options)`, `generateRoast(context, options)`, `speak(text, voice, options)`。
+- Web Search：可选增强，只用页面标题/域名发起查询，返回少量搜索摘要给 LLM，不上传完整浏览历史。
+- Provider 层：统一封装 `transcribe(audio, options)`, `generateRoast(context, options)`, `speak(text, voice, options)`, `search(query, options)`。
 - Provider 配置层：支持内置模板、自定义 provider、连接测试、启停、成本备注和能力标签。
 
 ### Prompt Requirements
@@ -188,6 +189,7 @@ Acceptance Criteria:
 LLM 输入最少包含：
 
 - 命中对象：App 名称、URL 域名或规则名。
+- 页面上下文：浏览器标签标题、URL、可选搜索摘要。
 - 当前阶段：首次抓包、连续摸鱼、用户反驳。
 - 用户配置：吐槽强度、角色、禁用词、是否允许粗口、输出语言。
 - Provider 能力：模型名称、语言支持、TTS 音色语言、是否支持流式。
@@ -217,6 +219,8 @@ flowchart LR
   Q --> A
   D --> E["Incident Controller"]
   E --> P["Provider Registry"]
+  P --> S["Web Search Provider"]
+  S --> F
   P --> F["LLM Roast Generator"]
   P --> G["TTS Player"]
   E --> H["Local Event Store"]
@@ -240,9 +244,9 @@ flowchart LR
 ### Integration Points
 
 - macOS 权限：辅助功能、自动化、麦克风、通知。
-- Chrome/Safari：通过脚本读取当前标签 URL。
+- Chrome/Safari：通过脚本读取当前标签 URL；监控循环只做静默自动化权限检查，未授权时不主动弹系统授权框。
 - 云端模型 API：ASR、LLM、TTS。
-- Keychain：保存 API Key 和用户授权状态。
+- Local Secret Store：保存 API Key 引用和本机 `.env.local` 密钥。
 - i18n 资源：中英文 UI 文案、默认角色 prompt、默认吐槽模板。
 
 ### Security & Privacy

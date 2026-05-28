@@ -15,6 +15,7 @@ final class MonitorService {
     private var activeBundleID: String?
     private var hasActiveApplication = false
     private var lastBrowserURL: String?
+    private var lastBrowserTitle: String?
     private let browserURLPollInterval: TimeInterval = 1.5
     private let lifecycleInterval: TimeInterval = 15
 
@@ -82,6 +83,7 @@ final class MonitorService {
         } else {
             stopBrowserURLWatcher()
             lastBrowserURL = nil
+            lastBrowserTitle = nil
         }
     }
 
@@ -100,6 +102,7 @@ final class MonitorService {
         activeBundleID = bundleID
         if appChanged {
             lastBrowserURL = nil
+            lastBrowserTitle = nil
         }
 
         guard state.isMonitoring, shouldMonitorNow else {
@@ -107,7 +110,7 @@ final class MonitorService {
             return
         }
 
-        evaluateContext(appName: activeAppName, bundleID: activeBundleID, url: nil)
+        evaluateContext(appName: activeAppName, bundleID: activeBundleID, url: nil, pageTitle: nil)
 
         if BrowserURLReader.isSupportedBrowser(bundleID: activeBundleID) {
             startBrowserURLWatcher()
@@ -147,29 +150,30 @@ final class MonitorService {
         let appName = activeAppName
         let bundleID = activeBundleID
         browserURLTask = Task { [weak self, appName, bundleID] in
-            let urlTask = Task.detached(priority: .utility) {
-                BrowserURLReader().currentURL(for: bundleID)
+            let tabTask = Task.detached(priority: .utility) {
+                BrowserURLReader().currentTabInfo(for: bundleID)
             }
-            let url = await urlTask.value
+            let tab = await tabTask.value
 
             guard !Task.isCancelled else { return }
-            self?.completeBrowserURLRead(appName: appName, bundleID: bundleID, url: url)
+            self?.completeBrowserURLRead(appName: appName, bundleID: bundleID, tab: tab)
         }
     }
 
-    private func completeBrowserURLRead(appName: String, bundleID: String?, url: String?) {
+    private func completeBrowserURLRead(appName: String, bundleID: String?, tab: BrowserTabInfo?) {
         browserURLTask = nil
         guard state.isMonitoring, shouldMonitorNow else { return }
         guard activeBundleID == bundleID else { return }
-        guard let url, !url.isEmpty else { return }
-        guard url != lastBrowserURL else { return }
+        guard let tab, !tab.url.isEmpty else { return }
+        guard tab.url != lastBrowserURL || tab.title != lastBrowserTitle else { return }
 
-        lastBrowserURL = url
-        evaluateContext(appName: appName, bundleID: bundleID, url: url)
+        lastBrowserURL = tab.url
+        lastBrowserTitle = tab.title
+        evaluateContext(appName: appName, bundleID: bundleID, url: tab.url, pageTitle: tab.title)
     }
 
-    private func evaluateContext(appName: String, bundleID: String?, url: String?) {
-        let context = FrontmostContext(appName: appName, bundleID: bundleID, url: url)
+    private func evaluateContext(appName: String, bundleID: String?, url: String?, pageTitle: String?) {
+        let context = FrontmostContext(appName: appName, bundleID: bundleID, url: url, pageTitle: pageTitle)
         state.currentContext = context
 
         guard state.isMonitoring, shouldMonitorNow else { return }

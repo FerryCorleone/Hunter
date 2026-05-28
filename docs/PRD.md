@@ -12,8 +12,8 @@
 - 核心玩法：工作时间内通过桌面悬浮球/小组件监控摸鱼网站/App，命中后 AI 语音高强度吐槽。
 - 语音互动路线：`ASR -> LLM -> TTS`，支持云端 API，也支持 ASR/TTS 本地模型。
 - ASR、LLM、TTS 均需要做成用户可配置 Provider；当前本机 LLM 测试链路先用 DeepSeek `deepseek-v4-flash`。
-- ASR/TTS 要提供本地模型下载入口；首选本地 ASR 为 SenseVoice Small INT8，首选本地 TTS 为 Qwen3-TTS 0.6B Base。
-- TTS 需要支持用户指定音色，最好支持音色复刻/克隆；本地路线优先用 Qwen3-TTS 的短参考音频克隆。
+- ASR/TTS 要提供本地模型下载入口；首选本地 ASR 为 SenseVoice Small INT8，首选本地 TTS 为 Qwen3-TTS 0.6B CustomVoice。
+- TTS 需要支持用户指定音色；本地预置音色走 Qwen3-TTS CustomVoice，音色复刻/克隆走 Qwen3-TTS Base + 用户授权样本。
 - 软件界面需要支持中英文。
 - AI 监督和语音对喷内容需要支持中文和英文。
 - 悬浮球需要支持语音快速创建时长任务，例如“监督我接下来的 40 分钟”。
@@ -146,7 +146,7 @@ Acceptance Criteria:
 - 每类 Provider 的 MVP UI 只展示四个必填项：Provider、Base URL、Model、API Key。
 - ASR/TTS 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源和下载按钮。
 - 本地 ASR 使用 SenseVoice Small INT8，下载后可在本机完成短音频识别，不上传用户录音。
-- 本地 TTS 使用 Qwen3-TTS 克隆 worker；未配置授权样本或模型未就绪时，使用 macOS 系统语音本地降级。
+- 本地 TTS 默认使用 Qwen3-TTS CustomVoice 的预置 speaker，不需要授权样本；只有用户选择“克隆声音”时才要求确认授权并提供声音样本。
 - API Key 进入本机 `Application Support/Hunter/.env.local` 和进程内缓存，不提交仓库、不进入日志；运行热路径不访问 Keychain，避免系统钥匙串授权弹窗。
 - 提供“测试 ASR”“测试 LLM”“测试 TTS”“测试搜索”“端到端测试”五类检查。
 - 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、本地 Qwen3-TTS、Brave Search 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。

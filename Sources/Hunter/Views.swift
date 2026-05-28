@@ -974,6 +974,10 @@ struct VoicePanel: View {
                 state.persist()
             }
             .onChange(of: state.voiceClone) {
+                if state.providers.ttsMode == .localModel && state.voiceClone.source == .preset {
+                    state.providers.localTTSModelID = LocalModelCatalog.defaultTTS.id
+                    state.providers.voice = LocalTTSSpeaker.normalized(state.providers.voice)
+                }
                 state.persist()
             }
         }
@@ -995,8 +999,26 @@ struct VoicePanel: View {
             }
 
             labeledRow(state.copy("音色 ID", "Voice ID")) {
-                TextField(state.copy("例如 longanyang 或克隆音色 ID", "e.g. longanyang or cloned voice ID"), text: $state.providers.voice)
-                    .textFieldStyle(.roundedBorder)
+                if state.providers.ttsMode == .localModel && state.voiceClone.source == .preset {
+                    Picker("", selection: localSpeakerBinding) {
+                        ForEach(LocalTTSSpeaker.allCases) { speaker in
+                            Text(speaker.label(language: state.interfaceLanguage)).tag(speaker.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                } else {
+                    TextField(state.copy("例如 longanyang 或克隆音色 ID", "e.g. longanyang or cloned voice ID"), text: $state.providers.voice)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+
+            if state.providers.ttsMode == .localModel && state.voiceClone.source == .preset {
+                Text(state.copy(
+                    "本地预置音色使用 Qwen3-TTS CustomVoice，不需要上传声音样本。",
+                    "Local preset voices use Qwen3-TTS CustomVoice and do not require a voice sample."
+                ))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
 
             if state.voiceClone.source == .cloned {
@@ -1046,6 +1068,13 @@ struct VoicePanel: View {
 
     private var isRecording: Bool {
         voiceRecorder != nil
+    }
+
+    private var localSpeakerBinding: Binding<String> {
+        Binding(
+            get: { LocalTTSSpeaker.normalized(state.providers.voice) },
+            set: { state.providers.voice = $0 }
+        )
     }
 
     private var sampleStatus: String {

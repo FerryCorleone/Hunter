@@ -287,7 +287,7 @@ struct ProviderSettings: Codable, Equatable {
     var tts: ProviderEndpoint = .aliyunTTS
     var webSearch: ProviderEndpoint = .braveSearch
     var webSearchEnabled: Bool = false
-    var voice: String = "longanyang"
+    var voice: String = "Vivian"
     var asrMode: ModelExecutionMode = .localModel
     var ttsMode: ModelExecutionMode = .localModel
     var localASRModelID: String = LocalModelCatalog.defaultASR.id
@@ -316,7 +316,7 @@ struct ProviderSettings: Codable, Equatable {
         tts: ProviderEndpoint = .aliyunTTS,
         webSearch: ProviderEndpoint = .braveSearch,
         webSearchEnabled: Bool = false,
-        voice: String = "longanyang",
+        voice: String = "Vivian",
         asrMode: ModelExecutionMode = .localModel,
         ttsMode: ModelExecutionMode = .localModel,
         localASRModelID: String = LocalModelCatalog.defaultASR.id,
@@ -345,7 +345,7 @@ struct ProviderSettings: Codable, Equatable {
         tts = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .tts) ?? .aliyunTTS
         webSearch = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .webSearch) ?? .braveSearch
         webSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .webSearchEnabled) ?? false
-        voice = try container.decodeIfPresent(String.self, forKey: .voice) ?? "longanyang"
+        voice = try container.decodeIfPresent(String.self, forKey: .voice) ?? "Vivian"
         asrMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .asrMode) ?? .localModel
         ttsMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .ttsMode) ?? .localModel
         localASRModelID = try container.decodeIfPresent(String.self, forKey: .localASRModelID) ?? LocalModelCatalog.defaultASR.id
@@ -376,6 +376,47 @@ struct VoiceCloneSettings: Codable, Equatable {
     var samplePath: String?
     var sampleTranscript: String?
     var consentConfirmed: Bool = false
+}
+
+enum LocalTTSSpeaker: String, CaseIterable, Identifiable, Codable {
+    case vivian = "Vivian"
+    case serena = "Serena"
+    case uncleFu = "Uncle_Fu"
+    case dylan = "Dylan"
+    case eric = "Eric"
+    case ryan = "Ryan"
+    case aiden = "Aiden"
+    case onoAnna = "Ono_Anna"
+    case sohee = "Sohee"
+
+    var id: String { rawValue }
+
+    static let fallback: LocalTTSSpeaker = .vivian
+
+    static func normalized(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return allCases.first { $0.rawValue.caseInsensitiveCompare(trimmed) == .orderedSame }?.rawValue
+            ?? fallback.rawValue
+    }
+
+    static func isSupported(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return allCases.contains { $0.rawValue.caseInsensitiveCompare(trimmed) == .orderedSame }
+    }
+
+    func label(language: AppLanguage) -> String {
+        switch self {
+        case .vivian: language == .english ? "Vivian · bright female · Chinese" : "Vivian · 明亮女声 · 中文"
+        case .serena: language == .english ? "Serena · warm female · Chinese" : "Serena · 温柔女声 · 中文"
+        case .uncleFu: language == .english ? "Uncle Fu · mellow male · Chinese" : "Uncle_Fu · 醇厚男声 · 中文"
+        case .dylan: language == .english ? "Dylan · Beijing male · Chinese" : "Dylan · 北京青年男声 · 中文"
+        case .eric: language == .english ? "Eric · Chengdu male · Chinese" : "Eric · 成都男声 · 中文"
+        case .ryan: language == .english ? "Ryan · rhythmic male · English" : "Ryan · 节奏男声 · 英文"
+        case .aiden: language == .english ? "Aiden · sunny American male · English" : "Aiden · 阳光美式男声 · 英文"
+        case .onoAnna: language == .english ? "Ono Anna · playful female · Japanese" : "Ono_Anna · 活泼女声 · 日文"
+        case .sohee: language == .english ? "Sohee · warm female · Korean" : "Sohee · 温暖女声 · 韩文"
+        }
+    }
 }
 
 struct WorkPeriod: Identifiable, Codable, Equatable {

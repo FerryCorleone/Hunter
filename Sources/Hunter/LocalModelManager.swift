@@ -47,12 +47,27 @@ enum LocalModelCatalog {
     )
 
     static let defaultTTS = LocalModelDescriptor(
+        id: "qwen3-tts-0.6b-customvoice",
+        kind: .tts,
+        name: "Qwen3-TTS 0.6B CustomVoice",
+        nameEnglish: "Qwen3-TTS 0.6B CustomVoice",
+        summary: "开源多语言 TTS，内置 9 个预置音色并支持语气控制；适合作为无需克隆样本的本地默认 TTS。",
+        summaryEnglish: "Open multilingual TTS with 9 preset speakers and style control; recommended local TTS without voice-clone samples.",
+        sizeHint: "0.6B 参数 / 需要下载模型与 tokenizer",
+        sourceURL: URL(string: "https://github.com/QwenLM/Qwen3-TTS")!,
+        download: .huggingFace(repositories: [
+            "Qwen/Qwen3-TTS-Tokenizer-12Hz",
+            "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+        ])
+    )
+
+    static let voiceCloneTTS = LocalModelDescriptor(
         id: "qwen3-tts-0.6b-base",
         kind: .tts,
         name: "Qwen3-TTS 0.6B Base",
         nameEnglish: "Qwen3-TTS 0.6B Base",
-        summary: "开源多语言 TTS，支持中英文和 3 秒级声音克隆；适合作为本地 TTS 首选。",
-        summaryEnglish: "Open multilingual TTS with Chinese/English support and short-reference voice cloning; recommended local TTS baseline.",
+        summary: "开源多语言 TTS，支持 3 秒级声音克隆；只有选择克隆声音并提供授权样本时使用。",
+        summaryEnglish: "Open multilingual TTS for short-reference voice cloning; used only when cloned voice is selected with an authorized sample.",
         sizeHint: "0.6B 参数 / 需要下载模型与 tokenizer",
         sourceURL: URL(string: "https://github.com/QwenLM/Qwen3-TTS")!,
         download: .huggingFace(repositories: [
@@ -64,7 +79,7 @@ enum LocalModelCatalog {
     static func models(for kind: LocalModelKind) -> [LocalModelDescriptor] {
         switch kind {
         case .asr: [defaultASR]
-        case .tts: [defaultTTS]
+        case .tts: [defaultTTS, voiceCloneTTS]
         }
     }
 

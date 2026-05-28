@@ -105,22 +105,23 @@ enum CommandLineRunner {
             }
             return true
         case "--smoke-local-tts":
-            guard args.count >= 4 else {
-                fputs("usage: Hunter --smoke-local-tts \"text\" /path/to/ref-audio.wav [/path/to/output.wav]\n", stderr)
+            guard args.count >= 2 else {
+                fputs("usage: Hunter --smoke-local-tts \"text\" [/path/to/ref-audio.wav] [/path/to/output.wav]\n", stderr)
                 exit(2)
             }
             let text = String(args.dropFirst().first!)
-            let sample = String(args.dropFirst(2).first!)
-            let outputPath = args.dropFirst(3).first.map { String($0) }
+            let sample = args.dropFirst(2).first.map { String($0) }
+            let outputPath = args.dropFirst(sample == nil ? 2 : 3).first.map { String($0) }
                 ?? FileManager.default.temporaryDirectory.appendingPathComponent("hunter-local-tts-smoke.wav").path
             waitForAsync {
                 var settings = ProviderSettings()
                 settings.ttsMode = .localModel
+                settings.localTTSModelID = sample == nil ? LocalModelCatalog.defaultTTS.id : LocalModelCatalog.voiceCloneTTS.id
                 let voiceClone = VoiceCloneSettings(
-                    source: .cloned,
+                    source: sample == nil ? .preset : .cloned,
                     samplePath: sample,
                     sampleTranscript: nil,
-                    consentConfirmed: true
+                    consentConfirmed: sample != nil
                 )
                 let data = try await LocalSpeechClient().synthesizeSpeech(
                     text: text,

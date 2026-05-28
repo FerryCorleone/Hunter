@@ -131,6 +131,8 @@ struct DurationParserTests {
         #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRModelID == LocalModelCatalog.defaultASR.id)
         #expect(settings.localTTSModelID == LocalModelCatalog.defaultTTS.id)
+        #expect(settings.localTTSModelID == "qwen3-tts-0.6b-customvoice")
+        #expect(settings.voice == "Vivian")
         #expect(settings.webSearch.providerName == "Brave Search")
         #expect(!settings.webSearchEnabled)
     }
@@ -144,6 +146,13 @@ struct DurationParserTests {
         #expect(settings.localASRInstallPath == nil)
         #expect(settings.localTTSInstallPath == nil)
         #expect(settings.webSearch.apiKeyEnvironmentName == "BRAVE_SEARCH_API_KEY")
+    }
+
+    @Test func localTTSSpeakersNormalizeUnknownVoiceIDs() {
+        #expect(LocalTTSSpeaker.normalized("dylan") == "Dylan")
+        #expect(LocalTTSSpeaker.normalized("longanyang") == "Vivian")
+        #expect(LocalTTSSpeaker.isSupported("Serena"))
+        #expect(!LocalTTSSpeaker.isSupported("longanyang"))
     }
 
     @Test func providerRoleStoresDeepSeekKeySeparately() {

@@ -48,8 +48,25 @@ final class AppState: ObservableObject {
         rules = snapshot.rules
         providers = snapshot.providers
         voiceClone = snapshot.voiceClone
+        normalizeLocalSpeechSettings()
         focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
         events = snapshot.events
+    }
+
+    private func normalizeLocalSpeechSettings() {
+        let cloneIsUsable = voiceClone.source == .cloned
+            && voiceClone.consentConfirmed
+            && (voiceClone.samplePath?.isEmpty == false)
+        if voiceClone.source == .cloned && !cloneIsUsable {
+            voiceClone.source = .preset
+        }
+
+        if providers.ttsMode == .localModel && voiceClone.source == .preset {
+            providers.localTTSModelID = LocalModelCatalog.defaultTTS.id
+            if !LocalTTSSpeaker.isSupported(providers.voice) {
+                providers.voice = LocalTTSSpeaker.fallback.rawValue
+            }
+        }
     }
 
     func persist() {

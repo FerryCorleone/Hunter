@@ -140,12 +140,14 @@ Hunter：40 分钟监督已开始
 保持三段完全独立配置，不做全局“基础配置”联动：
 
 ```text
-ASR  Provider  Base URL  Model  API Key
+ASR  [本地模型 / 云端 API]  SenseVoice Small / Provider Base URL Model API Key
 LLM  Provider  Base URL  Model  API Key
-TTS  Provider  Base URL  Model  API Key
+TTS  [本地模型 / 云端 API]  Qwen3-TTS 0.6B / Provider Base URL Model API Key
 ```
 
 用户可以让 ASR、LLM、TTS 分别使用不同厂商。API Key 通过设置页写入本机 Keychain，不作为普通文本配置持久化。鉴权 scheme、headers、region、语言提示和流式能力不在 MVP UI 中展示，由 adapter 默认处理。
+
+ASR/TTS 的本地模型模式只展示模型名称、能力说明、来源和“下载到本机”按钮。模型保存在 Hunter 的 Application Support 目录，不混进项目仓库，也不上传用户音频。
 
 ### Voice & Language
 

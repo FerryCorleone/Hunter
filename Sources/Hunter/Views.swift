@@ -634,9 +634,23 @@ struct ProvidersPanel: View {
     var body: some View {
         PanelContainer(title: state.copy("AI 配置", "AI"), subtitle: state.copy("ASR、LLM、TTS 各自独立配置，可使用不同服务商。", "ASR, LLM, and TTS are configured independently.")) {
             VStack(alignment: .leading, spacing: 14) {
-                ProviderEditor(role: .asr, provider: $state.providers.asr, language: state.interfaceLanguage)
+                ProviderEditor(
+                    role: .asr,
+                    provider: $state.providers.asr,
+                    mode: $state.providers.asrMode,
+                    localModelID: $state.providers.localASRModelID,
+                    localInstallPath: $state.providers.localASRInstallPath,
+                    language: state.interfaceLanguage
+                )
                 ProviderEditor(role: .llm, provider: $state.providers.llm, language: state.interfaceLanguage)
-                ProviderEditor(role: .tts, provider: $state.providers.tts, language: state.interfaceLanguage)
+                ProviderEditor(
+                    role: .tts,
+                    provider: $state.providers.tts,
+                    mode: $state.providers.ttsMode,
+                    localModelID: $state.providers.localTTSModelID,
+                    localInstallPath: $state.providers.localTTSInstallPath,
+                    language: state.interfaceLanguage
+                )
 
                 HStack(spacing: 10) {
                     Button(state.copy("测试 ASR", "Test ASR")) {
@@ -690,6 +704,10 @@ struct ProvidersPanel: View {
     }
 
     private func testTTS() {
+        guard state.providers.ttsMode == .cloudAPI else {
+            state.providerStatus = state.copy("本地 TTS 模型下载入口已就绪，推理适配器下一步接入。", "Local TTS download is ready; runtime adapter is next.")
+            return
+        }
         state.providerStatus = state.copy("正在测试 TTS...", "Testing TTS...")
         Task {
             do {
@@ -706,6 +724,10 @@ struct ProvidersPanel: View {
     }
 
     private func testASR() {
+        guard state.providers.asrMode == .cloudAPI else {
+            state.providerStatus = state.copy("本地 ASR 模型下载入口已就绪，推理适配器下一步接入。", "Local ASR download is ready; runtime adapter is next.")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -724,6 +746,10 @@ struct ProvidersPanel: View {
     }
 
     private func testEndToEnd() {
+        guard state.providers.ttsMode == .cloudAPI else {
+            state.providerStatus = state.copy("端到端语音测试暂需云端 TTS；本地 TTS 推理适配器下一步接入。", "End-to-end voice test still needs cloud TTS until the local TTS adapter lands.")
+            return
+        }
         state.providerStatus = state.copy("正在端到端测试...", "Testing end-to-end...")
         Task {
             do {
@@ -1168,8 +1194,16 @@ enum ProviderRole: String, CaseIterable {
     var defaultEndpoint: ProviderEndpoint {
         switch self {
         case .asr: .aliyunASR
-        case .llm: .aliyunLLM
+        case .llm: .deepSeekLLM
         case .tts: .aliyunTTS
+        }
+    }
+
+    var localModelKind: LocalModelKind? {
+        switch self {
+        case .asr: .asr
+        case .llm: nil
+        case .tts: .tts
         }
     }
 
@@ -1194,6 +1228,9 @@ enum ProviderRole: String, CaseIterable {
         if normalized.contains("aliyun") || normalized.contains("dashscope") || providerName.contains("阿里") {
             return "DASHSCOPE_API_KEY"
         }
+        if normalized.contains("deepseek") {
+            return "DEEPSEEK_API_KEY"
+        }
         return "HUNTER_\(rawValue)_API_KEY"
     }
 }
@@ -1201,48 +1238,86 @@ enum ProviderRole: String, CaseIterable {
 struct ProviderEditor: View {
     var role: ProviderRole
     @Binding var provider: ProviderEndpoint
+    var mode: Binding<ModelExecutionMode>?
+    var localModelID: Binding<String>?
+    var localInstallPath: Binding<String?>?
     var language: AppLanguage
     @State private var apiKey = ""
     @State private var saveMessage = ""
+    @State private var installMessage = ""
+    @State private var isInstalling = false
+
+    init(
+        role: ProviderRole,
+        provider: Binding<ProviderEndpoint>,
+        mode: Binding<ModelExecutionMode>? = nil,
+        localModelID: Binding<String>? = nil,
+        localInstallPath: Binding<String?>? = nil,
+        language: AppLanguage
+    ) {
+        self.role = role
+        self._provider = provider
+        self.mode = mode
+        self.localModelID = localModelID
+        self.localInstallPath = localInstallPath
+        self.language = language
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(role.title(language: language), systemImage: role.icon)
-                .font(.system(size: 14, weight: .bold))
+            HStack {
+                Label(role.title(language: language), systemImage: role.icon)
+                    .font(.system(size: 14, weight: .bold))
+                Spacer()
+                if let mode {
+                    Picker("", selection: mode) {
+                        ForEach(ModelExecutionMode.allCases) { item in
+                            Text(item.label(language: language)).tag(item)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(width: 190)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 12) {
-                    labeledRow("Provider") {
-                        TextField(copy("例如 Aliyun Bailian", "e.g. Aliyun Bailian"), text: providerNameBinding)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    labeledRow("Model") {
-                        TextField(copy("模型名", "Model name"), text: $provider.model)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                }
-
-                labeledRow("Base URL") {
-                    TextField("https://", text: $provider.baseURL)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                labeledRow("API Key") {
-                    HStack(spacing: 10) {
-                        SecureField(copy("保存到本机钥匙串", "Saved to local Keychain"), text: $apiKey)
-                            .textFieldStyle(.roundedBorder)
-                        Button(copy("保存", "Save")) {
-                            saveAPIKey()
+                if mode?.wrappedValue == .localModel, let descriptor = localModelDescriptor {
+                    localModelView(descriptor)
+                } else {
+                    HStack(spacing: 12) {
+                        labeledRow("Provider") {
+                            TextField(copy("例如 DeepSeek", "e.g. DeepSeek"), text: providerNameBinding)
+                                .textFieldStyle(.roundedBorder)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        labeledRow("Model") {
+                            TextField(copy("模型名", "Model name"), text: $provider.model)
+                                .textFieldStyle(.roundedBorder)
+                        }
                     }
-                }
 
-                if !saveMessage.isEmpty {
-                    Text(saveMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    labeledRow("Base URL") {
+                        TextField("https://", text: $provider.baseURL)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    labeledRow("API Key") {
+                        HStack(spacing: 10) {
+                            SecureField(copy("保存到本机钥匙串", "Saved to local Keychain"), text: $apiKey)
+                                .textFieldStyle(.roundedBorder)
+                            Button(copy("保存", "Save")) {
+                                saveAPIKey()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                    }
+
+                    if !saveMessage.isEmpty {
+                        Text(saveMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -1263,6 +1338,97 @@ struct ProviderEditor: View {
             saveMessage = copy("已保存到钥匙串", "Saved to Keychain")
         } catch {
             saveMessage = copy("钥匙串保存失败：\(error.localizedDescription)", "Keychain save failed: \(error.localizedDescription)")
+        }
+    }
+
+    @ViewBuilder
+    private func localModelView(_ descriptor: LocalModelDescriptor) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(descriptor.localizedName(language))
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(descriptor.localizedSummary(language))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text(descriptor.sizeHint)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    NSWorkspace.shared.open(descriptor.sourceURL)
+                } label: {
+                    Label(copy("来源", "Source"), systemImage: "safari")
+                }
+                .buttonStyle(.bordered)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    installLocalModel(descriptor)
+                } label: {
+                    Label(localInstallPath?.wrappedValue == nil ? copy("下载到本机", "Download") : copy("重新下载", "Re-download"), systemImage: "arrow.down.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isInstalling)
+
+                if let path = localInstallPath?.wrappedValue, !path.isEmpty {
+                    Button {
+                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+                    } label: {
+                        Label(copy("显示文件", "Reveal"), systemImage: "folder")
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                if isInstalling {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+
+            Text(localStatusText)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            if !installMessage.isEmpty {
+                Text(installMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var localModelDescriptor: LocalModelDescriptor? {
+        guard let kind = role.localModelKind else { return nil }
+        let id = localModelID?.wrappedValue ?? (kind == .asr ? LocalModelCatalog.defaultASR.id : LocalModelCatalog.defaultTTS.id)
+        return LocalModelCatalog.model(id: id, kind: kind)
+    }
+
+    private var localStatusText: String {
+        if let path = localInstallPath?.wrappedValue, !path.isEmpty {
+            let name = URL(fileURLWithPath: path).lastPathComponent
+            return copy("本机模型：\(name)", "Local model: \(name)")
+        }
+        return copy("未下载。下载后模型会保存在 Hunter 的本机应用支持目录。", "Not downloaded. Models are stored in Hunter's local Application Support folder.")
+    }
+
+    private func installLocalModel(_ descriptor: LocalModelDescriptor) {
+        isInstalling = true
+        installMessage = copy("准备下载模型...", "Preparing download...")
+        localModelID?.wrappedValue = descriptor.id
+        Task {
+            do {
+                let path = try await LocalModelInstaller().install(descriptor) { message in
+                    installMessage = message
+                }
+                localInstallPath?.wrappedValue = path.path
+                installMessage = copy("模型已下载到本机。", "Model downloaded locally.")
+            } catch {
+                installMessage = copy("下载失败：\(error.localizedDescription)", "Download failed: \(error.localizedDescription)")
+            }
+            isInstalling = false
         }
     }
 

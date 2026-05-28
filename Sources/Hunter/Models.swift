@@ -157,6 +157,18 @@ struct ProviderEndpoint: Codable, Equatable {
         languageHint: "zh-CN,en-US,mixed"
     )
 
+    static let deepSeekLLM = ProviderEndpoint(
+        providerName: "DeepSeek",
+        baseURL: "https://api.deepseek.com",
+        model: "deepseek-v4-flash",
+        apiKeyEnvironmentName: "DEEPSEEK_API_KEY",
+        authorizationScheme: "Bearer",
+        extraHeaders: "",
+        region: "",
+        supportsStreaming: true,
+        languageHint: "zh-CN,en-US,mixed"
+    )
+
     static let aliyunASR = ProviderEndpoint(
         providerName: "Aliyun Bailian",
         baseURL: "wss://dashscope.aliyuncs.com/api-ws/v1/inference",
@@ -229,11 +241,84 @@ struct ProviderEndpoint: Codable, Equatable {
     }
 }
 
+enum ModelExecutionMode: String, CaseIterable, Codable, Identifiable {
+    case localModel
+    case cloudAPI
+
+    var id: String { rawValue }
+
+    func label(language: AppLanguage) -> String {
+        switch self {
+        case .localModel:
+            return language == .english ? "Local model" : "本地模型"
+        case .cloudAPI:
+            return language == .english ? "Cloud API" : "云端 API"
+        }
+    }
+}
+
 struct ProviderSettings: Codable, Equatable {
     var asr: ProviderEndpoint = .aliyunASR
-    var llm: ProviderEndpoint = .aliyunLLM
+    var llm: ProviderEndpoint = .deepSeekLLM
     var tts: ProviderEndpoint = .aliyunTTS
     var voice: String = "longanyang"
+    var asrMode: ModelExecutionMode = .cloudAPI
+    var ttsMode: ModelExecutionMode = .cloudAPI
+    var localASRModelID: String = LocalModelCatalog.defaultASR.id
+    var localTTSModelID: String = LocalModelCatalog.defaultTTS.id
+    var localASRInstallPath: String?
+    var localTTSInstallPath: String?
+
+    enum CodingKeys: String, CodingKey {
+        case asr
+        case llm
+        case tts
+        case voice
+        case asrMode
+        case ttsMode
+        case localASRModelID
+        case localTTSModelID
+        case localASRInstallPath
+        case localTTSInstallPath
+    }
+
+    init(
+        asr: ProviderEndpoint = .aliyunASR,
+        llm: ProviderEndpoint = .deepSeekLLM,
+        tts: ProviderEndpoint = .aliyunTTS,
+        voice: String = "longanyang",
+        asrMode: ModelExecutionMode = .cloudAPI,
+        ttsMode: ModelExecutionMode = .cloudAPI,
+        localASRModelID: String = LocalModelCatalog.defaultASR.id,
+        localTTSModelID: String = LocalModelCatalog.defaultTTS.id,
+        localASRInstallPath: String? = nil,
+        localTTSInstallPath: String? = nil
+    ) {
+        self.asr = asr
+        self.llm = llm
+        self.tts = tts
+        self.voice = voice
+        self.asrMode = asrMode
+        self.ttsMode = ttsMode
+        self.localASRModelID = localASRModelID
+        self.localTTSModelID = localTTSModelID
+        self.localASRInstallPath = localASRInstallPath
+        self.localTTSInstallPath = localTTSInstallPath
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        asr = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .asr) ?? .aliyunASR
+        llm = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .llm) ?? .deepSeekLLM
+        tts = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .tts) ?? .aliyunTTS
+        voice = try container.decodeIfPresent(String.self, forKey: .voice) ?? "longanyang"
+        asrMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .asrMode) ?? .cloudAPI
+        ttsMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .ttsMode) ?? .cloudAPI
+        localASRModelID = try container.decodeIfPresent(String.self, forKey: .localASRModelID) ?? LocalModelCatalog.defaultASR.id
+        localTTSModelID = try container.decodeIfPresent(String.self, forKey: .localTTSModelID) ?? LocalModelCatalog.defaultTTS.id
+        localASRInstallPath = try container.decodeIfPresent(String.self, forKey: .localASRInstallPath)
+        localTTSInstallPath = try container.decodeIfPresent(String.self, forKey: .localTTSInstallPath)
+    }
 }
 
 enum VoiceSource: String, CaseIterable, Codable, Identifiable {

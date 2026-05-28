@@ -56,6 +56,10 @@ final class VoiceCommandController {
                 state.toastMessage = state.copy("没有听到清晰语音，请靠近麦克风再试", "No clear voice detected. Try closer to the microphone.")
                 return
             }
+            guard state.providers.asrMode == .cloudAPI else {
+                state.toastMessage = state.copy("本地 ASR 模型已可下载，推理适配器下一步接入；当前不会上传音频。", "Local ASR download is ready; runtime adapter is next. Audio was not uploaded.")
+                return
+            }
             state.toastMessage = state.interfaceLanguage == .english ? "Transcribing..." : "正在识别..."
             Task {
                 do {

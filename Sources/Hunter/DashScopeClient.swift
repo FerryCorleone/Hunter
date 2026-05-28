@@ -7,8 +7,8 @@ struct DashScopeClient {
 
         var errorDescription: String? {
             switch self {
-            case .missingAPIKey: "Missing DashScope API key"
-            case .invalidResponse: "DashScope returned an invalid response"
+            case .missingAPIKey: "Missing provider API key"
+            case .invalidResponse: "Provider returned an invalid response"
             }
         }
     }
@@ -38,7 +38,7 @@ struct DashScopeClient {
             bannedTerms: bannedTerms,
             languageCode: languageCode
         )
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": endpoint.model,
             "messages": [
                 ["role": "system", "content": prompt.system],
@@ -47,6 +47,7 @@ struct DashScopeClient {
             "temperature": 0.9,
             "max_tokens": 100
         ]
+        applyLLMBodyDefaults(&body, endpoint: endpoint)
 
         var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
         request.httpMethod = "POST"
@@ -83,7 +84,7 @@ struct DashScopeClient {
 
         let languageInstruction = languageCode == "en" ? "Write in English." : "用中文输出。"
         let boundary = RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms)
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": endpoint.model,
             "messages": [
                 [
@@ -106,6 +107,7 @@ struct DashScopeClient {
             "temperature": 0.92,
             "max_tokens": 100
         ]
+        applyLLMBodyDefaults(&body, endpoint: endpoint)
 
         var request = URLRequest(url: endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
         request.httpMethod = "POST"
@@ -212,6 +214,14 @@ struct DashScopeClient {
     private func endpointURL(baseURL: String, path: String) -> URL {
         let trimmedBase = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         return URL(string: "\(trimmedBase)/\(path)")!
+    }
+
+    private func applyLLMBodyDefaults(_ body: inout [String: Any], endpoint: ProviderEndpoint) {
+        let normalizedProvider = endpoint.providerName.lowercased()
+        let normalizedModel = endpoint.model.lowercased()
+        if normalizedProvider.contains("deepseek") || normalizedModel.contains("deepseek-v4") {
+            body["thinking"] = ["type": "disabled"]
+        }
     }
 }
 

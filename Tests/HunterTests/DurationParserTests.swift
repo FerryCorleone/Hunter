@@ -121,6 +121,33 @@ struct DurationParserTests {
         #expect(request.value(forHTTPHeaderField: "X-Trace") == "hunter")
     }
 
+    @Test func providerSettingsDefaultToDeepSeekLLMAndLocalModelChoices() {
+        let settings = ProviderSettings()
+        #expect(settings.llm.providerName == "DeepSeek")
+        #expect(settings.llm.baseURL == "https://api.deepseek.com")
+        #expect(settings.llm.model == "deepseek-v4-flash")
+        #expect(settings.llm.apiKeyEnvironmentName == "DEEPSEEK_API_KEY")
+        #expect(settings.asrMode == .cloudAPI)
+        #expect(settings.ttsMode == .cloudAPI)
+        #expect(settings.localASRModelID == LocalModelCatalog.defaultASR.id)
+        #expect(settings.localTTSModelID == LocalModelCatalog.defaultTTS.id)
+    }
+
+    @Test func providerSettingsDecodeKeepsDefaultsForNewLocalModelFields() throws {
+        let data = Data("{}".utf8)
+        let settings = try JSONDecoder.hunter.decode(ProviderSettings.self, from: data)
+        #expect(settings.llm.model == "deepseek-v4-flash")
+        #expect(settings.asrMode == .cloudAPI)
+        #expect(settings.ttsMode == .cloudAPI)
+        #expect(settings.localASRInstallPath == nil)
+        #expect(settings.localTTSInstallPath == nil)
+    }
+
+    @Test func providerRoleStoresDeepSeekKeySeparately() {
+        #expect(ProviderRole.llm.apiKeyName(for: "DeepSeek") == "DEEPSEEK_API_KEY")
+        #expect(ProviderRole.llm.apiKeyName(for: "deepseek api") == "DEEPSEEK_API_KEY")
+    }
+
     @Test func focusSessionPauseResumeAndExtendKeepsRemainingStable() {
         let calendar = Calendar(identifier: .gregorian)
         let started = DateComponents(calendar: calendar, year: 2026, month: 5, day: 27, hour: 10, minute: 0).date!

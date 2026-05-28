@@ -10,6 +10,18 @@ enum CommandLineRunner {
         }
 
         switch command {
+        case "--smoke-llm":
+            waitForAsync {
+                let client = DashScopeClient()
+                let settings = ProviderSettings()
+                let context = FrontmostContext(appName: "Smoke Test", bundleID: nil, url: "https://www.youtube.com/")
+                let roast = try await client.generateRoast(context: context, settings: settings, intensity: .gentle, persona: .officeBoss, languageCode: "zh")
+                print("llm_ok=true")
+                print("llm_provider=\(settings.llm.providerName)")
+                print("llm_model=\(settings.llm.model)")
+                print("llm_text=\(roast.prefix(80))")
+            }
+            return true
         case "--smoke-llm-tts":
             waitForAsync {
                 let client = DashScopeClient()

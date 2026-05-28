@@ -1,7 +1,7 @@
 # Hunter PRD
 
-版本：v0.3  
-日期：2026-05-27  
+版本：v0.4
+日期：2026-05-28
 状态：待审阅
 
 ## 0. Discovery Notes
@@ -10,9 +10,10 @@
 
 - 目标平台：Mac 桌面端。
 - 核心玩法：工作时间内通过桌面悬浮球/小组件监控摸鱼网站/App，命中后 AI 语音高强度吐槽。
-- 语音互动路线：`ASR -> LLM -> TTS`，使用大厂云端 API。
-- ASR、LLM、TTS 均需要做成用户可配置 Provider；项目默认测试链路先用阿里云百炼。
-- TTS 需要支持用户指定音色，最好支持音色复刻/克隆。
+- 语音互动路线：`ASR -> LLM -> TTS`，支持云端 API，也支持 ASR/TTS 本地模型。
+- ASR、LLM、TTS 均需要做成用户可配置 Provider；当前本机 LLM 测试链路先用 DeepSeek `deepseek-v4-flash`。
+- ASR/TTS 要提供本地模型下载入口；首选本地 ASR 为 SenseVoice Small INT8，首选本地 TTS 为 Qwen3-TTS 0.6B Base。
+- TTS 需要支持用户指定音色，最好支持音色复刻/克隆；本地路线优先用 Qwen3-TTS 的短参考音频克隆。
 - 软件界面需要支持中英文。
 - AI 监督和语音对喷内容需要支持中文和英文。
 - 悬浮球需要支持语音快速创建时长任务，例如“监督我接下来的 40 分钟”。
@@ -59,7 +60,7 @@
 3. 设置工作时间。
 4. 添加网站/App 黑名单。
 5. 选择界面语言和 AI 监督语言。
-6. 配置 ASR/LLM/TTS Provider；可从阿里云百炼默认模板开始，也可填写自己的供应商配置。
+6. 配置 ASR/LLM/TTS；LLM 可先用 DeepSeek API，ASR/TTS 可选择本地模型下载或填写云端 API。
 7. 选择 AI 监工角色、吐槽强度和 TTS 音色。
 8. 点击“开始监督”，桌面出现轻量悬浮球。
 9. 用户也可以按住快捷键说“监督我接下来的 40 分钟”，Hunter 解析出时长并立刻开启一个 40 分钟 Focus Session。
@@ -143,9 +144,10 @@ Acceptance Criteria:
 
 - ASR、LLM、TTS 三类 Provider 可独立配置和启用。
 - 每类 Provider 的 MVP UI 只展示四个必填项：Provider、Base URL、Model、API Key。
+- ASR/TTS 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源和下载按钮。
 - API Key 进入 Keychain，不以明文写入配置文件或日志。
 - 提供“测试 ASR”“测试 LLM”“测试 TTS”“端到端测试”四类检查。
-- 内置阿里云百炼推荐模板，但用户可以新增 OpenAI-compatible 或 custom HTTP provider。
+- 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、本地 Qwen3-TTS 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。
 - 任一 Provider 未配置时，监督检测仍可运行，但语音链路显示明确缺失状态。
 
 **Story 7：中英文界面和监督语言**  
@@ -155,7 +157,7 @@ Acceptance Criteria:
 
 - UI 支持 Simplified Chinese 和 English。
 - AI 监督语言可选择：跟随界面、中文、English。
-- ASR 语言提示可选择：自动、中文、English、中英混合。
+- ASR 语言提示由 provider/local adapter 默认处理；后续高级模式再展示自动、中文、English、中英混合。
 - LLM prompt 必须显式传入目标输出语言。
 - TTS 选择音色时展示该音色支持的语言。
 - 声音页支持预置音色和克隆声音入口；克隆声音必须先确认授权，再支持选择本地音频样本或直接录制声音样本。

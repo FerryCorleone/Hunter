@@ -124,7 +124,10 @@ final class IncidentController {
                     voiceClone: state.voiceClone,
                     languageCode: state.targetLanguageCode()
                 )
-                state.providerStatus = state.copy("\(statusPrefix) + 本地克隆 TTS 正常", "\(statusPrefix) + local cloned TTS OK")
+                let ttsLabel = state.voiceClone.source == .cloned
+                    ? state.copy("本地克隆 TTS", "local cloned TTS")
+                    : state.copy("本地预置 TTS", "local preset TTS")
+                state.providerStatus = state.copy("\(statusPrefix) + \(ttsLabel) 正常", "\(statusPrefix) + \(ttsLabel) OK")
                 Task {
                     await notifications.notifyCatch(target: target, roast: text)
                 }
@@ -132,17 +135,18 @@ final class IncidentController {
                     let duration = try speechPlayer.play(audioData: audio)
                     await waitForPlayback(duration)
                 } catch {
-                    state.providerStatus = state.copy("本地 TTS 播放失败：\(error.localizedDescription)", "Local TTS audio playback failed: \(error.localizedDescription)")
-                    let duration = speechPlayer.speak(text)
-                    await waitForPlayback(duration)
+                    state.providerStatus = state.copy(
+                        "本地 TTS 音频播放失败：\(error.localizedDescription)。未使用系统朗读。",
+                        "Local TTS audio playback failed: \(error.localizedDescription). System speech was not used."
+                    )
+                    state.voiceInteractionStatus = state.providerStatus
                 }
             } catch {
-                state.providerStatus = state.copy("本地 TTS 降级：\(error.localizedDescription)；已改用系统朗读", "Local TTS fallback: \(error.localizedDescription); using system speech")
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
-                }
-                let duration = speechPlayer.speak(text)
-                await waitForPlayback(duration)
+                state.providerStatus = state.copy(
+                    "本地 TTS 失败：\(error.localizedDescription)。未使用系统朗读。",
+                    "Local TTS failed: \(error.localizedDescription). System speech was not used."
+                )
+                state.voiceInteractionStatus = state.providerStatus
             }
             return
         }

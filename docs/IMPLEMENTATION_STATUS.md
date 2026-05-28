@@ -29,7 +29,8 @@
 - OpenAI-compatible LLM 抓包吐槽和语音回击代码路径；当前本机默认 LLM 配置为 DeepSeek `deepseek-v4-flash`，请求体会对 DeepSeek V4 自动关闭 thinking 以保证短吐槽直接出现在 `content`。
 - 抓包 prompt 已升级：输入包含 App、URL、标签页标题和可选搜索摘要，要求模型先识别用户正在看的具体内容，再把它和逃避工作连接起来，最后输出短 punchline；允许粗口时可使用普通脏话，但仍过滤禁用词和受保护属性攻击。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
-- 播报音量已调到产品可用级：本地系统朗读、云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
+- 播报音量已调到产品可用级：本地/云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
+- 选择本地 TTS 时不再静默降级到 macOS 系统朗读；本地合成或播放失败会在状态里明确报错，避免用户误以为系统 TTS 是本地模型效果。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
 - ASR / LLM / TTS / Search Provider 配置在设置页可编辑，四类能力互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
 - ASR / TTS 增加“本地模型 / 云端 API”切换；默认新配置优先本地模式，本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B CustomVoice，并提供下载到本机按钮。

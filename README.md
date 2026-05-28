@@ -38,8 +38,8 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 - macOS 原生菜单栏应用：SwiftUI + AppKit
 - 前台 App 检测：`NSWorkspace`
 - Chrome/Safari URL 检测：AppleScript/ScriptingBridge 起步
-- 语音链路：`ASR -> LLM -> TTS`，ASR/TTS 支持本地模型或云端 API
-- 默认测试模板：本地 SenseVoice ASR + DeepSeek `deepseek-v4-flash` + 本地 Qwen3-TTS/系统语音降级
+- 语音链路：`ASR -> LLM -> TTS`，ASR 支持本地模型或云端 API，TTS 统一走云端 Provider
+- 默认测试模板：本地 SenseVoice ASR + DeepSeek `deepseek-v4-flash` + 阿里 CosyVoice `cosyvoice-v3-flash`
 - 云端模板：阿里云百炼 `paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3-flash`
 - 本地存储：SQLite 或 SwiftData
 - 密钥存储：macOS Keychain
@@ -78,7 +78,7 @@ afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-current-context
 ```
 
-ASR / LLM / TTS 的 provider 名称、base URL、model 和 API Key 可以在设置页编辑，并提供 LLM/TTS/ASR/端到端测试入口。当前内置 adapter 覆盖本地 SenseVoice ASR、DeepSeek/OpenAI-compatible LLM、阿里 ASR/TTS 和 Qwen3-TTS 本地克隆 worker；接入完全不同协议的供应商时，需要新增 adapter。
+ASR / LLM / TTS 的 provider 名称、base URL、model 和 API Key 可以在设置页编辑，并提供 LLM/TTS/ASR/端到端测试入口。当前内置 adapter 覆盖本地 SenseVoice ASR、DeepSeek/OpenAI-compatible LLM、阿里 ASR/TTS；TTS 本地模型方案已移除，接入完全不同协议的供应商时，需要新增 adapter。
 
 时长任务支持开始、暂停、恢复、延长 10 分钟和结束，也支持语音指令控制，例如“暂停监督”“恢复监督”“延长 10 分钟”“结束监督”。
 

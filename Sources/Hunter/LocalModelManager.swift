@@ -2,12 +2,10 @@ import Foundation
 
 enum LocalModelKind: String, Codable {
     case asr
-    case tts
 }
 
 enum LocalModelDownload: Equatable {
     case archive(url: URL, extractedFolderName: String)
-    case huggingFace(repositories: [String])
 }
 
 struct LocalModelDescriptor: Identifiable, Equatable {
@@ -46,45 +44,14 @@ enum LocalModelCatalog {
         )
     )
 
-    static let defaultTTS = LocalModelDescriptor(
-        id: "qwen3-tts-0.6b-customvoice",
-        kind: .tts,
-        name: "Qwen3-TTS 0.6B CustomVoice",
-        nameEnglish: "Qwen3-TTS 0.6B CustomVoice",
-        summary: "开源多语言 TTS，内置 9 个预置音色并支持语气控制；适合作为无需克隆样本的本地默认 TTS。",
-        summaryEnglish: "Open multilingual TTS with 9 preset speakers and style control; recommended local TTS without voice-clone samples.",
-        sizeHint: "0.6B 参数 / 需要下载模型与 tokenizer",
-        sourceURL: URL(string: "https://github.com/QwenLM/Qwen3-TTS")!,
-        download: .huggingFace(repositories: [
-            "Qwen/Qwen3-TTS-Tokenizer-12Hz",
-            "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
-        ])
-    )
-
-    static let voiceCloneTTS = LocalModelDescriptor(
-        id: "qwen3-tts-0.6b-base",
-        kind: .tts,
-        name: "Qwen3-TTS 0.6B Base",
-        nameEnglish: "Qwen3-TTS 0.6B Base",
-        summary: "开源多语言 TTS，支持 3 秒级声音克隆；只有选择克隆声音并提供授权样本时使用。",
-        summaryEnglish: "Open multilingual TTS for short-reference voice cloning; used only when cloned voice is selected with an authorized sample.",
-        sizeHint: "0.6B 参数 / 需要下载模型与 tokenizer",
-        sourceURL: URL(string: "https://github.com/QwenLM/Qwen3-TTS")!,
-        download: .huggingFace(repositories: [
-            "Qwen/Qwen3-TTS-Tokenizer-12Hz",
-            "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
-        ])
-    )
-
     static func models(for kind: LocalModelKind) -> [LocalModelDescriptor] {
         switch kind {
         case .asr: [defaultASR]
-        case .tts: [defaultTTS, voiceCloneTTS]
         }
     }
 
     static func model(id: String, kind: LocalModelKind) -> LocalModelDescriptor {
-        models(for: kind).first { $0.id == id } ?? (kind == .asr ? defaultASR : defaultTTS)
+        models(for: kind).first { $0.id == id } ?? defaultASR
     }
 }
 
@@ -112,9 +79,6 @@ struct LocalModelInstaller {
         case .archive(let url, let extractedFolderName):
             await progress("Downloading \(descriptor.nameEnglish)...")
             installedPath = try await installArchive(url: url, root: root, extractedFolderName: extractedFolderName)
-        case .huggingFace(let repositories):
-            await progress("Preparing Hugging Face downloader...")
-            installedPath = try await installHuggingFaceRepositories(repositories, root: root, folderName: descriptor.id, progress: progress)
         }
 
         if descriptor.kind == .asr {
@@ -129,13 +93,6 @@ struct LocalModelInstaller {
         case .archive(_, let extractedFolderName):
             let path = root?.appendingPathComponent(extractedFolderName, isDirectory: true)
             return path.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
-        case .huggingFace(let repositories):
-            let base = root?.appendingPathComponent(descriptor.id, isDirectory: true)
-            guard let base, FileManager.default.fileExists(atPath: base.path) else { return nil }
-            let allPresent = repositories.allSatisfy {
-                FileManager.default.fileExists(atPath: base.appendingPathComponent(repoFolderName($0), isDirectory: true).path)
-            }
-            return allPresent ? base : nil
         }
     }
 
@@ -168,32 +125,6 @@ struct LocalModelInstaller {
         try await runShell("/usr/bin/tar -xjf \(shellQuote(archive.path)) -C \(shellQuote(root.path))")
         try? FileManager.default.removeItem(at: archive)
         return target
-    }
-
-    private func installHuggingFaceRepositories(
-        _ repositories: [String],
-        root: URL,
-        folderName: String,
-        progress: @escaping @MainActor (String) -> Void
-    ) async throws -> URL {
-        let base = root.appendingPathComponent(folderName, isDirectory: true)
-        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        let python = try await LocalSpeechRuntime().ensureDownloadRuntime(progress: progress)
-
-        for repository in repositories {
-            await progress("Downloading \(repository)...")
-            let destination = base.appendingPathComponent(repoFolderName(repository), isDirectory: true)
-            let script = """
-            from huggingface_hub import snapshot_download
-            snapshot_download(repo_id=\(pythonString(repository)), local_dir=\(pythonString(destination.path)), local_dir_use_symlinks=False)
-            """
-            _ = try await LocalProcess.run(
-                executable: python,
-                arguments: ["-c", script],
-                timeout: 3_600
-            )
-        }
-        return base
     }
 
     private func installRoot(for kind: LocalModelKind) throws -> URL {
@@ -231,15 +162,7 @@ struct LocalModelInstaller {
         }
     }
 
-    private func repoFolderName(_ repository: String) -> String {
-        repository.split(separator: "/").last.map(String.init) ?? repository
-    }
-
     private func shellQuote(_ value: String) -> String {
         "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
-    }
-
-    private func pythonString(_ value: String) -> String {
-        "\"\(value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\""
     }
 }

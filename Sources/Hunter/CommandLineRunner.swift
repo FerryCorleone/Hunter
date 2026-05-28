@@ -94,57 +94,6 @@ enum CommandLineRunner {
                 print("local_asr_path=\(path.path)")
             }
             return true
-        case "--install-local-tts":
-            waitForAsync {
-                let descriptor = LocalModelCatalog.defaultTTS
-                let path = try await LocalModelInstaller().install(descriptor) { message in
-                    print("progress=\(message)")
-                }
-                print("local_tts_installed=true")
-                print("local_tts_path=\(path.path)")
-            }
-            return true
-        case "--smoke-local-tts":
-            guard args.count >= 2 else {
-                fputs("usage: Hunter --smoke-local-tts \"text\" [/path/to/ref-audio.wav] [/path/to/output.wav]\n", stderr)
-                exit(2)
-            }
-            let text = String(args.dropFirst().first!)
-            let extraArgs = Array(args.dropFirst(2))
-            let sample: String?
-            let explicitOutputPath: String?
-            if let firstExtra = extraArgs.first, FileManager.default.fileExists(atPath: firstExtra) {
-                sample = firstExtra
-                explicitOutputPath = extraArgs.dropFirst().first
-            } else {
-                sample = nil
-                explicitOutputPath = extraArgs.first
-            }
-            let outputPath = explicitOutputPath
-                ?? FileManager.default.temporaryDirectory.appendingPathComponent("hunter-local-tts-smoke.wav").path
-            waitForAsync {
-                var settings = ProviderSettings()
-                settings.ttsMode = .localModel
-                settings.localTTSModelID = sample == nil ? LocalModelCatalog.defaultTTS.id : LocalModelCatalog.voiceCloneTTS.id
-                let voiceClone = VoiceCloneSettings(
-                    source: sample == nil ? .preset : .cloned,
-                    samplePath: sample,
-                    sampleTranscript: nil,
-                    consentConfirmed: sample != nil
-                )
-                let data = try await LocalSpeechClient().synthesizeSpeech(
-                    text: text,
-                    settings: settings,
-                    voiceClone: voiceClone,
-                    languageCode: "zh"
-                )
-                try data.write(to: URL(fileURLWithPath: outputPath))
-                print("local_tts_ok=true")
-                print("local_tts_model=\(settings.localTTSModelID)")
-                print("tts_output=\(outputPath)")
-                print("tts_bytes=\(data.count)")
-            }
-            return true
         case "--smoke-voice-focus":
             guard args.count >= 2 else {
                 fputs("usage: Hunter --smoke-voice-focus /path/to/audio.wav\n", stderr)

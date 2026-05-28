@@ -1,8 +1,8 @@
 # Hunter Design Draft
 
-版本：v0.3  
-日期：2026-05-27  
-状态：待审阅
+版本：v0.4
+日期：2026-05-29
+状态：MVP 同步中
 
 ## Design Positioning
 
@@ -142,13 +142,13 @@ Hunter：40 分钟监督已开始
 ```text
 ASR  [本地模型 / 云端 API]  SenseVoice Small / Provider Base URL Model API Key
 LLM  Provider  Base URL  Model  API Key
-TTS  [本地模型 / 云端 API]  Qwen3-TTS 0.6B / Provider Base URL Model API Key
+TTS  Provider  Base URL  Model  API Key
 Search  [开关]  Brave Search / Tavily  Base URL  Model  API Key
 ```
 
 用户可以让 ASR、LLM、TTS 和搜索增强分别使用不同厂商。API Key 通过设置页写入本机 Application Support `.env.local`，不提交仓库、不展示明文、不进入日志。鉴权 scheme、headers、region、语言提示和流式能力不在 MVP UI 中展示，由 adapter 默认处理。
 
-ASR/TTS 的本地模型模式只展示模型名称、能力说明、来源和“下载到本机”按钮。模型保存在 Hunter 的 Application Support 目录，不混进项目仓库，也不上传用户音频。本地 ASR 下载后可直接用于语音时长任务；本地 TTS 默认使用 Qwen3-TTS CustomVoice 预置音色，不需要授权样本。
+ASR 的本地模型模式只展示模型名称、能力说明、来源和“下载到本机”按钮。模型保存在 Hunter 的 Application Support 目录，不混进项目仓库，也不上传用户音频。本地 ASR 下载后可直接用于语音时长任务。TTS 不再提供本地模型模式，只使用云端 Provider。
 
 搜索增强默认关闭。打开后只显示一个轻量 Search 卡片，推荐 Brave Search，允许改 Tavily。说明文案必须明确：只用当前页面标题/域名做 query，返回少量摘要给 LLM，不上传完整浏览历史。
 
@@ -156,11 +156,10 @@ ASR/TTS 的本地模型模式只展示模型名称、能力说明、来源和“
 
 - 界面语言：中文 / English。
 - AI 监督语言：跟随界面 / 中文 / English。
-- ASR 语言提示：自动 / 中文 / English / Mixed。
 - 角色：毒舌同事、老板附体、自律教练。
 - 强度：温柔、阴阳怪气、破防模式。
-- 音色：本地预置 speaker、云端音色 ID、授权克隆声音。
-- 克隆声音：用户确认授权后，可选择本地音频样本或直接录制声音样本，并可填写样本参考文本；样本保存在本机，本地 Qwen3-TTS Base worker 会使用授权样本生成克隆语音，云端克隆生成音色 ID 由后续 TTS Provider adapter 执行。
+- 音色：云端 TTS voice id，默认 `longanyang`。
+- 克隆声音：MVP 不再提供本地声音克隆入口；后续如接云端克隆/音色设计，只保存 Provider 返回的授权音色 ID。
 
 ### History
 

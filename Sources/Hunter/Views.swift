@@ -1,5 +1,4 @@
 import AppKit
-import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -694,14 +693,7 @@ struct ProvidersPanel: View {
                     language: state.interfaceLanguage
                 )
                 ProviderEditor(role: .llm, provider: $state.providers.llm, language: state.interfaceLanguage)
-                ProviderEditor(
-                    role: .tts,
-                    provider: $state.providers.tts,
-                    mode: $state.providers.ttsMode,
-                    localModelID: $state.providers.localTTSModelID,
-                    localInstallPath: $state.providers.localTTSInstallPath,
-                    language: state.interfaceLanguage
-                )
+                ProviderEditor(role: .tts, provider: $state.providers.tts, language: state.interfaceLanguage)
 
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -788,21 +780,11 @@ struct ProvidersPanel: View {
         state.providerStatus = state.copy("正在测试 TTS...", "Testing TTS...")
         Task {
             do {
-                let audio: Data
-                if state.providers.ttsMode == .localModel {
-                    audio = try await LocalSpeechClient().synthesizeSpeech(
-                        text: state.copy("测试", "test"),
-                        settings: state.providers,
-                        voiceClone: state.voiceClone,
-                        languageCode: state.targetLanguageCode()
-                    )
-                } else {
-                    audio = try await DashScopeClient().synthesizeSpeech(
-                        text: state.copy("测试", "test"),
-                        settings: state.providers,
-                        languageCode: state.targetLanguageCode()
-                    )
-                }
+                let audio = try await DashScopeClient().synthesizeSpeech(
+                    text: state.copy("测试", "test"),
+                    settings: state.providers,
+                    languageCode: state.targetLanguageCode()
+                )
                 state.providerStatus = state.copy("TTS 正常：\(audio.count) bytes", "TTS OK: \(audio.count) bytes")
             } catch {
                 state.providerStatus = state.copy("TTS 测试失败：\(error.localizedDescription)", "TTS test failed: \(error.localizedDescription)")
@@ -872,21 +854,11 @@ struct ProvidersPanel: View {
                     bannedTerms: state.bannedTerms,
                     languageCode: state.targetLanguageCode()
                 )
-                let audio: Data
-                if state.providers.ttsMode == .localModel {
-                    audio = try await LocalSpeechClient().synthesizeSpeech(
-                        text: text,
-                        settings: state.providers,
-                        voiceClone: state.voiceClone,
-                        languageCode: state.targetLanguageCode()
-                    )
-                } else {
-                    audio = try await DashScopeClient().synthesizeSpeech(
-                        text: text,
-                        settings: state.providers,
-                        languageCode: state.targetLanguageCode()
-                    )
-                }
+                let audio = try await DashScopeClient().synthesizeSpeech(
+                    text: text,
+                    settings: state.providers,
+                    languageCode: state.targetLanguageCode()
+                )
                 state.providerStatus = state.copy("端到端正常：\(audio.count) bytes", "End-to-end OK: \(audio.count) bytes")
             } catch {
                 state.providerStatus = state.copy("端到端测试失败：\(error.localizedDescription)", "End-to-end test failed: \(error.localizedDescription)")
@@ -897,11 +869,9 @@ struct ProvidersPanel: View {
 
 struct VoicePanel: View {
     @ObservedObject var state: AppState
-    @State private var voiceRecorder: AVAudioRecorder?
-    @State private var voiceCloneMessage = ""
 
     var body: some View {
-        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置语言、吐槽强度和音色来源。", "Language, persona, intensity, and voice source.")) {
+        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置语言、吐槽强度和云端 TTS 音色。", "Language, persona, intensity, and cloud TTS voice.")) {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 12) {
                     labeledRow(state.copy("界面语言", "Interface")) {
@@ -943,12 +913,14 @@ struct VoicePanel: View {
                             .lineLimit(1...3)
                             .textFieldStyle(.roundedBorder)
                     }
+                    labeledRow(state.copy("TTS 音色 ID", "TTS voice ID")) {
+                        TextField(state.copy("例如 longanyang 或云端克隆音色 ID", "e.g. longanyang or a cloud cloned voice ID"), text: $state.providers.voice)
+                            .textFieldStyle(.roundedBorder)
+                    }
                 }
                 .padding(16)
                 .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
-
-                voiceCloneCard
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -973,123 +945,7 @@ struct VoicePanel: View {
             .onChange(of: state.providers.voice) {
                 state.persist()
             }
-            .onChange(of: state.voiceClone) {
-                if state.providers.ttsMode == .localModel && state.voiceClone.source == .preset {
-                    state.providers.localTTSModelID = LocalModelCatalog.defaultTTS.id
-                    state.providers.voice = LocalTTSSpeaker.normalized(state.providers.voice)
-                }
-                state.persist()
-            }
         }
-    }
-
-    private var voiceCloneCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(state.copy("声音克隆", "Voice clone"), systemImage: "waveform.badge.mic")
-                .font(.system(size: 14, weight: .bold))
-
-            labeledRow(state.copy("音色来源", "Source")) {
-                Picker("", selection: $state.voiceClone.source) {
-                    ForEach(VoiceSource.allCases) { source in
-                        Text(source.label(language: state.interfaceLanguage)).tag(source)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 180)
-            }
-
-            labeledRow(state.copy("音色 ID", "Voice ID")) {
-                if state.providers.ttsMode == .localModel && state.voiceClone.source == .preset {
-                    Picker("", selection: localSpeakerBinding) {
-                        ForEach(LocalTTSSpeaker.allCases) { speaker in
-                            Text(speaker.label(language: state.interfaceLanguage)).tag(speaker.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                } else {
-                    TextField(state.copy("例如 longanyang 或克隆音色 ID", "e.g. longanyang or cloned voice ID"), text: $state.providers.voice)
-                        .textFieldStyle(.roundedBorder)
-                }
-            }
-
-            if state.providers.ttsMode == .localModel && state.voiceClone.source == .preset {
-                Text(state.copy(
-                    "本地预置音色使用 Qwen3-TTS CustomVoice，不需要上传声音样本。",
-                    "Local preset voices use Qwen3-TTS CustomVoice and do not require a voice sample."
-                ))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
-            if state.voiceClone.source == .cloned {
-                labeledRow(state.copy("授权确认", "Consent")) {
-                    Toggle(state.copy("我确认有权使用这段声音", "I have the right to use this voice"), isOn: $state.voiceClone.consentConfirmed)
-                        .toggleStyle(.checkbox)
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        importVoiceSample()
-                    } label: {
-                        Label(state.copy("选择音频样本", "Choose sample"), systemImage: "square.and.arrow.down")
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button {
-                        isRecording ? stopVoiceSampleRecording() : startVoiceSampleRecording()
-                    } label: {
-                        Label(isRecording ? state.copy("停止录制", "Stop recording") : state.copy("录制样本", "Record sample"), systemImage: isRecording ? "stop.fill" : "record.circle")
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(isRecording ? .red : .accentColor)
-                }
-
-                labeledRow(state.copy("参考文本", "Reference text")) {
-                    TextField(state.copy("可选：声音样本里说了什么，填写后克隆更稳", "Optional transcript of the sample for better cloning"), text: sampleTranscriptBinding, axis: .vertical)
-                        .lineLimit(1...3)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                Text(sampleStatus)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            if !voiceCloneMessage.isEmpty {
-                Text(voiceCloneMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(16)
-        .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
-    }
-
-    private var isRecording: Bool {
-        voiceRecorder != nil
-    }
-
-    private var localSpeakerBinding: Binding<String> {
-        Binding(
-            get: { LocalTTSSpeaker.normalized(state.providers.voice) },
-            set: { state.providers.voice = $0 }
-        )
-    }
-
-    private var sampleStatus: String {
-        guard let path = state.voiceClone.samplePath, !path.isEmpty else {
-            return state.copy("还没有声音样本。", "No voice sample yet.")
-        }
-        let name = URL(fileURLWithPath: path).lastPathComponent
-        return state.copy("本机样本：\(name)", "Local sample: \(name)")
-    }
-
-    private var sampleTranscriptBinding: Binding<String> {
-        Binding(
-            get: { state.voiceClone.sampleTranscript ?? "" },
-            set: { state.voiceClone.sampleTranscript = $0 }
-        )
     }
 
     @ViewBuilder
@@ -1103,83 +959,6 @@ struct VoicePanel: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 86, alignment: .leading)
         }
-    }
-
-    private func importVoiceSample() {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.wav, .mpeg4Audio, .mp3, .audio]
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let destination = try copyVoiceSample(from: url)
-            state.voiceClone.source = .cloned
-            state.voiceClone.samplePath = destination.path
-            state.persist()
-            voiceCloneMessage = state.copy("声音样本已保存到本机。", "Voice sample saved locally.")
-        } catch {
-            voiceCloneMessage = state.copy("保存声音样本失败：\(error.localizedDescription)", "Failed to save voice sample: \(error.localizedDescription)")
-        }
-    }
-
-    private func startVoiceSampleRecording() {
-        AVCaptureDevice.requestAccess(for: .audio) { granted in
-            Task { @MainActor in
-                guard granted else {
-                    voiceCloneMessage = state.copy("需要麦克风权限才能录制声音样本。", "Microphone permission is required to record a voice sample.")
-                    return
-                }
-                beginVoiceSampleRecording()
-            }
-        }
-    }
-
-    private func beginVoiceSampleRecording() {
-        do {
-            let url = try voiceSampleDirectory()
-                .appendingPathComponent("hunter-voice-sample-\(Int(Date().timeIntervalSince1970)).m4a")
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 44_100,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ]
-            let recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder.record()
-            voiceRecorder = recorder
-            voiceCloneMessage = state.copy("正在录制声音样本。", "Recording voice sample.")
-        } catch {
-            voiceCloneMessage = state.copy("录制启动失败：\(error.localizedDescription)", "Recording failed to start: \(error.localizedDescription)")
-        }
-    }
-
-    private func stopVoiceSampleRecording() {
-        guard let recorder = voiceRecorder else { return }
-        recorder.stop()
-        state.voiceClone.source = .cloned
-        state.voiceClone.samplePath = recorder.url.path
-        state.persist()
-        voiceRecorder = nil
-        voiceCloneMessage = state.copy("声音样本已录制并保存到本机。", "Voice sample recorded and saved locally.")
-    }
-
-    private func copyVoiceSample(from source: URL) throws -> URL {
-        let directory = try voiceSampleDirectory()
-        let ext = source.pathExtension.isEmpty ? "audio" : source.pathExtension
-        let destination = directory.appendingPathComponent("hunter-voice-sample-\(Int(Date().timeIntervalSince1970)).\(ext)")
-        if FileManager.default.fileExists(atPath: destination.path) {
-            try FileManager.default.removeItem(at: destination)
-        }
-        try FileManager.default.copyItem(at: source, to: destination)
-        return destination
-    }
-
-    private func voiceSampleDirectory() throws -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        let directory = base.appendingPathComponent("Hunter/VoiceSamples", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory
     }
 }
 
@@ -1366,7 +1145,7 @@ enum ProviderRole: String, CaseIterable {
         switch self {
         case .asr: .asr
         case .llm: nil
-        case .tts: .tts
+        case .tts: nil
         case .search: nil
         }
     }
@@ -1585,7 +1364,7 @@ struct ProviderEditor: View {
 
     private var localModelDescriptor: LocalModelDescriptor? {
         guard let kind = role.localModelKind else { return nil }
-        let id = localModelID?.wrappedValue ?? (kind == .asr ? LocalModelCatalog.defaultASR.id : LocalModelCatalog.defaultTTS.id)
+        let id = localModelID?.wrappedValue ?? LocalModelCatalog.defaultASR.id
         return LocalModelCatalog.model(id: id, kind: kind)
     }
 

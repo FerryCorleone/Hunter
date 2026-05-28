@@ -15,7 +15,6 @@ final class AppState: ObservableObject {
     @Published var bannedTerms: String = ""
     @Published var rules: [BlacklistRule] = BlacklistRule.defaultRules
     @Published var providers: ProviderSettings = ProviderSettings()
-    @Published var voiceClone: VoiceCloneSettings = VoiceCloneSettings()
     @Published var focusSession: FocusSession?
     @Published var currentIncident: Incident?
     @Published var toastMessage: String?
@@ -47,26 +46,8 @@ final class AppState: ObservableObject {
         bannedTerms = snapshot.bannedTerms
         rules = snapshot.rules
         providers = snapshot.providers
-        voiceClone = snapshot.voiceClone
-        normalizeLocalSpeechSettings()
         focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
         events = snapshot.events
-    }
-
-    private func normalizeLocalSpeechSettings() {
-        let cloneIsUsable = voiceClone.source == .cloned
-            && voiceClone.consentConfirmed
-            && (voiceClone.samplePath?.isEmpty == false)
-        if voiceClone.source == .cloned && !cloneIsUsable {
-            voiceClone.source = .preset
-        }
-
-        if providers.ttsMode == .localModel && voiceClone.source == .preset {
-            providers.localTTSModelID = LocalModelCatalog.defaultTTS.id
-            if !LocalTTSSpeaker.isSupported(providers.voice) {
-                providers.voice = LocalTTSSpeaker.fallback.rawValue
-            }
-        }
     }
 
     func persist() {
@@ -83,7 +64,6 @@ final class AppState: ObservableObject {
             bannedTerms: bannedTerms,
             rules: rules,
             providers: providers,
-            voiceClone: voiceClone,
             focusSession: focusSession,
             events: Array(events.prefix(100))
         ))

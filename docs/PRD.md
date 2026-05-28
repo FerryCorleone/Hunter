@@ -1,7 +1,7 @@
 # Hunter PRD
 
-版本：v0.5
-日期：2026-05-28
+版本：v0.6
+日期：2026-05-29
 状态：实现中，MVP 验收推进
 
 ## 0. Discovery Notes
@@ -10,10 +10,10 @@
 
 - 目标平台：Mac 桌面端。
 - 核心玩法：工作时间内通过桌面悬浮球/小组件监控摸鱼网站/App，命中后 AI 语音高强度吐槽。
-- 语音互动路线：`ASR -> LLM -> TTS`，支持云端 API，也支持 ASR/TTS 本地模型。
+- 语音互动路线：`ASR -> LLM -> TTS`；ASR 支持云端 API 和本地模型，TTS 统一走云端 Provider。
 - ASR、LLM、TTS 均需要做成用户可配置 Provider；当前本机 LLM 测试链路先用 DeepSeek `deepseek-v4-flash`。
-- ASR/TTS 要提供本地模型下载入口；首选本地 ASR 为 SenseVoice Small INT8，首选本地 TTS 为 Qwen3-TTS 0.6B CustomVoice。
-- TTS 需要支持用户指定音色；本地预置音色走 Qwen3-TTS CustomVoice，音色复刻/克隆走 Qwen3-TTS Base + 用户授权样本。
+- ASR 要提供本地模型下载入口；首选本地 ASR 为 SenseVoice Small INT8。
+- TTS 需要支持用户指定云端音色 ID；本地 TTS 方案已否掉，MVP 不再提供本地 TTS 下载、Qwen worker 或本机声音克隆入口。
 - 软件界面需要支持中英文。
 - AI 监督和语音对喷内容需要支持中文和英文。
 - 悬浮球需要支持语音快速创建时长任务，例如“监督我接下来的 40 分钟”。
@@ -60,7 +60,7 @@
 3. 设置工作时间。
 4. 添加网站/App 黑名单。
 5. 选择界面语言和 AI 监督语言。
-6. 配置 ASR/LLM/TTS；默认 LLM 使用 DeepSeek API，默认 ASR/TTS 优先本地模型，用户也可切换为云端 API。
+6. 配置 ASR/LLM/TTS；默认 LLM 使用 DeepSeek API，默认 ASR 使用本地 SenseVoice，TTS 使用云端 Provider。
 7. 选择 AI 监工角色、吐槽强度和 TTS 音色。
 8. 点击“开始监督”，桌面出现轻量悬浮球。
 9. 用户也可以按住快捷键说“监督我接下来的 40 分钟”，Hunter 解析出时长并立刻开启一个 40 分钟 Focus Session。
@@ -144,12 +144,12 @@ Acceptance Criteria:
 
 - ASR、LLM、TTS、Web Search Provider 可独立配置和启用。
 - 每类 Provider 的 MVP UI 只展示四个必填项：Provider、Base URL、Model、API Key。
-- ASR/TTS 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源和下载按钮。
+- ASR 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源和下载按钮。
 - 本地 ASR 使用 SenseVoice Small INT8，下载后可在本机完成短音频识别，不上传用户录音。
-- 本地 TTS 默认使用 Qwen3-TTS CustomVoice 的预置 speaker，不需要授权样本；只有用户选择“克隆声音”时才要求确认授权并提供声音样本。
+- TTS 仅走云端 Provider，声音页只配置云端音色 ID；云端音色克隆/音色设计后续由对应 Provider adapter 接入。
 - API Key 进入本机 `Application Support/Hunter/.env.local` 和进程内缓存，不提交仓库、不进入日志；运行热路径不访问 Keychain，避免系统钥匙串授权弹窗。
 - 提供“测试 ASR”“测试 LLM”“测试 TTS”“测试搜索”“端到端测试”五类检查。
-- 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、本地 Qwen3-TTS、Brave Search 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。
+- 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、Brave Search 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。
 - 任一 Provider 未配置时，监督检测仍可运行，但语音链路显示明确缺失状态。
 
 **Story 7：中英文界面和监督语言**  
@@ -161,8 +161,8 @@ Acceptance Criteria:
 - AI 监督语言可选择：跟随界面、中文、English。
 - ASR 语言提示由 provider/local adapter 默认处理；后续高级模式再展示自动、中文、English、中英混合。
 - LLM prompt 必须显式传入目标输出语言。
-- TTS 选择音色时展示该音色支持的语言。
-- 声音页支持预置音色和克隆声音入口；克隆声音必须先确认授权，再支持选择本地音频样本或直接录制声音样本。
+- TTS 音色以云端 Provider 的 voice id 为准，默认 `longanyang`。
+- MVP 不提供本地声音克隆入口；云端克隆/音色设计进入后必须要求用户确认授权，且不复刻未授权第三方声音。
 
 ### Non-Goals
 

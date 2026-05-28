@@ -3,7 +3,6 @@
 struct LocalSpeechClient {
     enum LocalSpeechError: Error, LocalizedError {
         case modelNotInstalled(String)
-        case voiceCloneRequired
         case runtimeUnavailable(String)
         case commandFailed(String)
         case invalidOutput
@@ -13,8 +12,6 @@ struct LocalSpeechClient {
             switch self {
             case .modelNotInstalled(let model):
                 "Local model is not installed: \(model)"
-            case .voiceCloneRequired:
-                "Local Qwen3-TTS needs an authorized voice sample before it can clone a voice"
             case .runtimeUnavailable(let message):
                 message
             case .commandFailed(let message):
@@ -29,11 +26,13 @@ struct LocalSpeechClient {
 
     private let installer = LocalModelInstaller()
     private let runtime = LocalSpeechRuntime()
-    private let audioCache = AudioCache()
 
     func transcribeWAV(_ audioData: Data, settings: ProviderSettings, languageCode: String) async throws -> String {
         let descriptor = LocalModelCatalog.model(id: settings.localASRModelID, kind: .asr)
+        let startedAt = Date()
+        ASRDiagnostics.record("LOCAL_ASR_START model=\(descriptor.id) bytes=\(audioData.count) language=\(languageCode)")
         guard let modelDirectory = installer.resolvedInstalledPath(for: descriptor, overridePath: settings.localASRInstallPath) else {
+            ASRDiagnostics.record("LOCAL_ASR_MODEL_MISSING model=\(descriptor.id)")
             throw LocalSpeechError.modelNotInstalled(descriptor.nameEnglish)
         }
 
@@ -46,133 +45,30 @@ struct LocalSpeechClient {
         let python = try await runtime.ensureASRRuntime { _ in }
         let script = try runtime.writeSenseVoiceScript()
         let language = languageCode == "en" ? "en" : "auto"
-        let output = try await LocalProcess.run(
-            executable: python,
-            arguments: [
-                script.path,
-                "--model-dir", modelDirectory.path,
-                "--audio", audioURL.path,
-                "--language", language
-            ],
-            timeout: 90
-        )
-        let result = try decodeJSON(LocalASROutput.self, from: output)
-        let clean = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty else {
-            throw LocalSpeechError.noTranscript
-        }
-        return clean
-    }
-
-    func synthesizeSpeech(
-        text: String,
-        settings: ProviderSettings,
-        voiceClone: VoiceCloneSettings,
-        languageCode: String
-    ) async throws -> Data {
-        let usesClone = voiceClone.source == .cloned
-        let descriptor = usesClone ? LocalModelCatalog.voiceCloneTTS : LocalModelCatalog.defaultTTS
-        let overridePath = settings.localTTSModelID == descriptor.id ? settings.localTTSInstallPath : nil
-        let cacheKey = AudioCache.Key(
-            model: descriptor.id,
-            voice: cacheVoiceKey(settings: settings, voiceClone: voiceClone, usesClone: usesClone),
-            languageCode: languageCode,
-            text: text
-        )
-        if let cached = audioCache.data(for: cacheKey) {
-            TTSDiagnostics.record("LOCAL_TTS_CACHE_HIT mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) bytes=\(cached.count)")
-            return cached
-        }
-
-        let startedAt = Date()
-        TTSDiagnostics.record("LOCAL_TTS_START mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) voice=\(settings.voice) language=\(languageCode) text_chars=\(text.count)")
-        guard let modelDirectory = installer.resolvedInstalledPath(for: descriptor, overridePath: overridePath) else {
-            TTSDiagnostics.record("LOCAL_TTS_MODEL_MISSING model=\(descriptor.id)")
-            throw LocalSpeechError.modelNotInstalled(descriptor.nameEnglish)
-        }
-
-        let samplePath: String?
-        if usesClone {
-            guard voiceClone.consentConfirmed,
-                  let configuredSamplePath = voiceClone.samplePath,
-                  !configuredSamplePath.isEmpty,
-                  FileManager.default.fileExists(atPath: configuredSamplePath)
-            else {
-                throw LocalSpeechError.voiceCloneRequired
-            }
-            samplePath = configuredSamplePath
-        } else {
-            samplePath = nil
-        }
-
-        let python = try await runtime.ensureTTSRuntime { _ in }
-        let script = try runtime.writeQwenTTSScript()
-        let modelFolderName = usesClone
-            ? "Qwen3-TTS-12Hz-0.6B-Base"
-            : "Qwen3-TTS-12Hz-0.6B-CustomVoice"
-        let bundledQwenDirectory = modelDirectory.appendingPathComponent(modelFolderName, isDirectory: true)
-        let qwenModelDirectory = FileManager.default.fileExists(atPath: bundledQwenDirectory.path)
-            ? bundledQwenDirectory
-            : modelDirectory
-        let outputURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("hunter-local-tts-\(UUID().uuidString)")
-            .appendingPathExtension("wav")
-        defer { try? FileManager.default.removeItem(at: outputURL) }
-
-        var arguments = [
-            script.path,
-            "--mode", usesClone ? "clone" : "custom",
-            "--model-dir", qwenModelDirectory.path,
-            "--text", text,
-            "--language", languageCode == "en" ? "English" : "Chinese",
-            "--output", outputURL.path
-        ]
-
-        if usesClone, let samplePath {
-            arguments.append(contentsOf: ["--ref-audio", samplePath])
-            if let transcript = voiceClone.sampleTranscript?.trimmingCharacters(in: .whitespacesAndNewlines), !transcript.isEmpty {
-                arguments.append(contentsOf: ["--ref-text", transcript])
-            } else {
-                arguments.append("--x-vector-only")
-            }
-        } else {
-            arguments.append(contentsOf: [
-                "--speaker", LocalTTSSpeaker.normalized(settings.voice),
-                "--instruct", localTTSInstruction(languageCode: languageCode)
-            ])
-        }
-
         do {
-            _ = try await LocalProcess.run(executable: python, arguments: arguments, timeout: 240)
-            let data = try Data(contentsOf: outputURL)
-            audioCache.store(data, for: cacheKey)
+            let output = try await LocalProcess.run(
+                executable: python,
+                arguments: [
+                    script.path,
+                    "--model-dir", modelDirectory.path,
+                    "--audio", audioURL.path,
+                    "--language", language
+                ],
+                timeout: 90
+            )
+            let result = try decodeJSON(LocalASROutput.self, from: output)
+            let clean = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !clean.isEmpty else {
+                throw LocalSpeechError.noTranscript
+            }
             let elapsed = Date().timeIntervalSince(startedAt)
-            TTSDiagnostics.record("LOCAL_TTS_SUCCESS mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) bytes=\(data.count) elapsed=\(formatSeconds(elapsed)) output=\(outputURL.path)")
-            return data
+            ASRDiagnostics.record("LOCAL_ASR_SUCCESS model=\(descriptor.id) chars=\(clean.count) elapsed=\(formatSeconds(elapsed))")
+            return clean
         } catch {
             let elapsed = Date().timeIntervalSince(startedAt)
-            TTSDiagnostics.record("LOCAL_TTS_FAILED mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) elapsed=\(formatSeconds(elapsed)) error=\(error.localizedDescription)")
+            ASRDiagnostics.record("LOCAL_ASR_FAILED model=\(descriptor.id) elapsed=\(formatSeconds(elapsed)) error=\(error.localizedDescription)")
             throw error
         }
-    }
-
-    private func cacheVoiceKey(settings: ProviderSettings, voiceClone: VoiceCloneSettings, usesClone: Bool) -> String {
-        if usesClone {
-            return [
-                "clone",
-                voiceClone.samplePath ?? "",
-                voiceClone.sampleTranscript ?? "",
-                "qwen3-tts-base-v1"
-            ].joined(separator: ":")
-        }
-        return "custom:\(LocalTTSSpeaker.normalized(settings.voice)):conversational-v2"
-    }
-
-    private func localTTSInstruction(languageCode: String) -> String {
-        if languageCode == "en" {
-            return "Sound like a real person talking next to me, not a narrator or a robot. Use a sharp, conversational, slightly impatient tone with natural rhythm."
-        }
-        return "像真人在旁边当面吐槽，不要播音腔，不要机器人腔。语速稍快，口语化，带一点不耐烦和压迫感，停顿自然。"
     }
 
     private func formatSeconds(_ value: TimeInterval) -> String {
@@ -200,14 +96,6 @@ private struct LocalASROutput: Decodable {
 }
 
 struct LocalSpeechRuntime {
-    func ensureDownloadRuntime(progress: @escaping @MainActor (String) -> Void) async throws -> URL {
-        try await ensureVenv(
-            name: "download",
-            packages: ["huggingface_hub"],
-            progress: progress
-        )
-    }
-
     func ensureASRRuntime(progress: @escaping @MainActor (String) -> Void) async throws -> URL {
         try await ensureVenv(
             name: "asr",
@@ -216,27 +104,13 @@ struct LocalSpeechRuntime {
         )
     }
 
-    func ensureTTSRuntime(progress: @escaping @MainActor (String) -> Void) async throws -> URL {
-        try await ensureVenv(
-            name: "tts",
-            packages: ["qwen-tts", "soundfile"],
-            preferPython312: true,
-            progress: progress
-        )
-    }
-
     func writeSenseVoiceScript() throws -> URL {
         try writeScript(named: "sensevoice_transcribe.py", contents: senseVoiceScript)
-    }
-
-    func writeQwenTTSScript() throws -> URL {
-        try writeScript(named: "qwen3_tts_clone.py", contents: qwenTTSScript)
     }
 
     private func ensureVenv(
         name: String,
         packages: [String],
-        preferPython312: Bool = false,
         progress: @escaping @MainActor (String) -> Void
     ) async throws -> URL {
         let root = try runtimeRoot()
@@ -250,13 +124,8 @@ struct LocalSpeechRuntime {
         }
 
         await progress("Preparing \(name.uppercased()) runtime...")
-        if preferPython312,
-           !FileManager.default.fileExists(atPath: python.path),
-           let uv = try? await resolveExecutable("uv") {
-            _ = try await LocalProcess.run(executable: uv, arguments: ["venv", "--python", "3.12", venv.path], timeout: 900)
-        }
         if !FileManager.default.fileExists(atPath: python.path) {
-            let systemPython = try await selectPython(preferPython312: preferPython312)
+            let systemPython = try await selectPython()
             _ = try await LocalProcess.run(executable: systemPython, arguments: ["-m", "venv", venv.path], timeout: 120)
         }
         await progress("Installing \(name.uppercased()) runtime packages...")
@@ -288,10 +157,8 @@ struct LocalSpeechRuntime {
         }
     }
 
-    private func selectPython(preferPython312: Bool) async throws -> URL {
-        let candidates = preferPython312
-            ? ["/opt/homebrew/bin/python3.12", "/usr/local/bin/python3.12", "python3.12", "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
-            : ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3", "python3"]
+    private func selectPython() async throws -> URL {
+        let candidates = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3", "python3"]
         for candidate in candidates {
             if candidate.contains("/") {
                 let url = URL(fileURLWithPath: candidate)
@@ -452,67 +319,6 @@ def main():
     stream.accept_waveform(sample_rate, audio)
     recognizer.decode_stream(stream)
     print(json.dumps({"text": stream.result.text}, ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()
-"""#
-
-private let qwenTTSScript = #"""
-#!/usr/bin/env python3
-import argparse
-import json
-
-import soundfile as sf
-import torch
-from qwen_tts import Qwen3TTSModel
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["custom", "clone"], default="custom")
-    parser.add_argument("--model-dir", required=True)
-    parser.add_argument("--text", required=True)
-    parser.add_argument("--language", required=True)
-    parser.add_argument("--speaker", default="Vivian")
-    parser.add_argument("--instruct", default="")
-    parser.add_argument("--ref-audio", default="")
-    parser.add_argument("--ref-text", default="")
-    parser.add_argument("--x-vector-only", action="store_true")
-    parser.add_argument("--output", required=True)
-    args = parser.parse_args()
-
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    dtype = torch.float32
-    model = Qwen3TTSModel.from_pretrained(
-        args.model_dir,
-        device_map=device,
-        dtype=dtype,
-        attn_implementation="sdpa",
-    )
-    if args.mode == "clone":
-        if not args.ref_audio:
-            raise ValueError("--ref-audio is required in clone mode")
-        kwargs = {
-            "text": args.text,
-            "language": args.language,
-            "ref_audio": args.ref_audio,
-            "x_vector_only_mode": args.x_vector_only,
-        }
-        if args.ref_text:
-            kwargs["ref_text"] = args.ref_text
-        wavs, sr = model.generate_voice_clone(**kwargs)
-    else:
-        kwargs = {
-            "text": args.text,
-            "language": args.language,
-            "speaker": args.speaker,
-        }
-        if args.instruct:
-            kwargs["instruct"] = args.instruct
-        wavs, sr = model.generate_custom_voice(**kwargs)
-    sf.write(args.output, wavs[0], sr)
-    print(json.dumps({"ok": True, "sample_rate": sr}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

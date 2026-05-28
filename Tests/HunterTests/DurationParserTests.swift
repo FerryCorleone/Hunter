@@ -121,38 +121,35 @@ struct DurationParserTests {
         #expect(request.value(forHTTPHeaderField: "X-Trace") == "hunter")
     }
 
-    @Test func providerSettingsDefaultToDeepSeekLLMAndLocalModelChoices() {
+    @Test func providerSettingsDefaultToDeepSeekLLMLocalASRAndCloudTTS() {
         let settings = ProviderSettings()
         #expect(settings.llm.providerName == "DeepSeek")
         #expect(settings.llm.baseURL == "https://api.deepseek.com")
         #expect(settings.llm.model == "deepseek-v4-flash")
         #expect(settings.llm.apiKeyEnvironmentName == "DEEPSEEK_API_KEY")
         #expect(settings.asrMode == .localModel)
-        #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRModelID == LocalModelCatalog.defaultASR.id)
-        #expect(settings.localTTSModelID == LocalModelCatalog.defaultTTS.id)
-        #expect(settings.localTTSModelID == "qwen3-tts-0.6b-customvoice")
-        #expect(settings.voice == "Vivian")
+        #expect(settings.tts.providerName == "Aliyun Bailian")
+        #expect(settings.tts.model == "cosyvoice-v3-flash")
+        #expect(settings.voice == ProviderSettings.defaultCloudVoice)
         #expect(settings.webSearch.providerName == "Brave Search")
         #expect(!settings.webSearchEnabled)
     }
 
-    @Test func providerSettingsDecodeKeepsDefaultsForNewLocalModelFields() throws {
+    @Test func providerSettingsDecodeKeepsDefaultsForLocalASRAndCloudTTS() throws {
         let data = Data("{}".utf8)
         let settings = try JSONDecoder.hunter.decode(ProviderSettings.self, from: data)
         #expect(settings.llm.model == "deepseek-v4-flash")
         #expect(settings.asrMode == .localModel)
-        #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRInstallPath == nil)
-        #expect(settings.localTTSInstallPath == nil)
+        #expect(settings.voice == ProviderSettings.defaultCloudVoice)
         #expect(settings.webSearch.apiKeyEnvironmentName == "BRAVE_SEARCH_API_KEY")
     }
 
-    @Test func localTTSSpeakersNormalizeUnknownVoiceIDs() {
-        #expect(LocalTTSSpeaker.normalized("dylan") == "Dylan")
-        #expect(LocalTTSSpeaker.normalized("longanyang") == "Vivian")
-        #expect(LocalTTSSpeaker.isSupported("Serena"))
-        #expect(!LocalTTSSpeaker.isSupported("longanyang"))
+    @Test func providerSettingsDecodeMigratesRetiredVoiceToCloudDefault() throws {
+        let data = Data(#"{"voice":"Vivian"}"#.utf8)
+        let settings = try JSONDecoder.hunter.decode(ProviderSettings.self, from: data)
+        #expect(settings.voice == ProviderSettings.defaultCloudVoice)
     }
 
     @Test func providerRoleStoresDeepSeekKeySeparately() {

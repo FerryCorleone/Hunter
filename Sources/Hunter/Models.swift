@@ -282,18 +282,20 @@ enum ModelExecutionMode: String, CaseIterable, Codable, Identifiable {
 }
 
 struct ProviderSettings: Codable, Equatable {
+    static let defaultCloudVoice = "longanyang"
+    private static let retiredLocalVoiceIDs: Set<String> = [
+        "Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"
+    ]
+
     var asr: ProviderEndpoint = .aliyunASR
     var llm: ProviderEndpoint = .deepSeekLLM
     var tts: ProviderEndpoint = .aliyunTTS
     var webSearch: ProviderEndpoint = .braveSearch
     var webSearchEnabled: Bool = false
-    var voice: String = "Vivian"
+    var voice: String = ProviderSettings.defaultCloudVoice
     var asrMode: ModelExecutionMode = .localModel
-    var ttsMode: ModelExecutionMode = .localModel
     var localASRModelID: String = LocalModelCatalog.defaultASR.id
-    var localTTSModelID: String = LocalModelCatalog.defaultTTS.id
     var localASRInstallPath: String?
-    var localTTSInstallPath: String?
 
     enum CodingKeys: String, CodingKey {
         case asr
@@ -303,11 +305,8 @@ struct ProviderSettings: Codable, Equatable {
         case webSearchEnabled
         case voice
         case asrMode
-        case ttsMode
         case localASRModelID
-        case localTTSModelID
         case localASRInstallPath
-        case localTTSInstallPath
     }
 
     init(
@@ -316,26 +315,20 @@ struct ProviderSettings: Codable, Equatable {
         tts: ProviderEndpoint = .aliyunTTS,
         webSearch: ProviderEndpoint = .braveSearch,
         webSearchEnabled: Bool = false,
-        voice: String = "Vivian",
+        voice: String = ProviderSettings.defaultCloudVoice,
         asrMode: ModelExecutionMode = .localModel,
-        ttsMode: ModelExecutionMode = .localModel,
         localASRModelID: String = LocalModelCatalog.defaultASR.id,
-        localTTSModelID: String = LocalModelCatalog.defaultTTS.id,
-        localASRInstallPath: String? = nil,
-        localTTSInstallPath: String? = nil
+        localASRInstallPath: String? = nil
     ) {
         self.asr = asr
         self.llm = llm
         self.tts = tts
         self.webSearch = webSearch
         self.webSearchEnabled = webSearchEnabled
-        self.voice = voice
+        self.voice = ProviderSettings.normalizedCloudVoice(voice)
         self.asrMode = asrMode
-        self.ttsMode = ttsMode
         self.localASRModelID = localASRModelID
-        self.localTTSModelID = localTTSModelID
         self.localASRInstallPath = localASRInstallPath
-        self.localTTSInstallPath = localTTSInstallPath
     }
 
     init(from decoder: Decoder) throws {
@@ -345,77 +338,18 @@ struct ProviderSettings: Codable, Equatable {
         tts = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .tts) ?? .aliyunTTS
         webSearch = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .webSearch) ?? .braveSearch
         webSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .webSearchEnabled) ?? false
-        voice = try container.decodeIfPresent(String.self, forKey: .voice) ?? "Vivian"
+        voice = ProviderSettings.normalizedCloudVoice(
+            try container.decodeIfPresent(String.self, forKey: .voice) ?? ProviderSettings.defaultCloudVoice
+        )
         asrMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .asrMode) ?? .localModel
-        ttsMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .ttsMode) ?? .localModel
         localASRModelID = try container.decodeIfPresent(String.self, forKey: .localASRModelID) ?? LocalModelCatalog.defaultASR.id
-        localTTSModelID = try container.decodeIfPresent(String.self, forKey: .localTTSModelID) ?? LocalModelCatalog.defaultTTS.id
         localASRInstallPath = try container.decodeIfPresent(String.self, forKey: .localASRInstallPath)
-        localTTSInstallPath = try container.decodeIfPresent(String.self, forKey: .localTTSInstallPath)
     }
-}
 
-enum VoiceSource: String, CaseIterable, Codable, Identifiable {
-    case preset
-    case cloned
-
-    var id: String { rawValue }
-
-    func label(language: AppLanguage) -> String {
-        switch self {
-        case .preset:
-            return language == .english ? "Preset voice" : "预置音色"
-        case .cloned:
-            return language == .english ? "Cloned voice" : "克隆声音"
-        }
-    }
-}
-
-struct VoiceCloneSettings: Codable, Equatable {
-    var source: VoiceSource = .preset
-    var samplePath: String?
-    var sampleTranscript: String?
-    var consentConfirmed: Bool = false
-}
-
-enum LocalTTSSpeaker: String, CaseIterable, Identifiable, Codable {
-    case vivian = "Vivian"
-    case serena = "Serena"
-    case uncleFu = "Uncle_Fu"
-    case dylan = "Dylan"
-    case eric = "Eric"
-    case ryan = "Ryan"
-    case aiden = "Aiden"
-    case onoAnna = "Ono_Anna"
-    case sohee = "Sohee"
-
-    var id: String { rawValue }
-
-    static let fallback: LocalTTSSpeaker = .vivian
-
-    static func normalized(_ value: String) -> String {
+    private static func normalizedCloudVoice(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return allCases.first { $0.rawValue.caseInsensitiveCompare(trimmed) == .orderedSame }?.rawValue
-            ?? fallback.rawValue
-    }
-
-    static func isSupported(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return allCases.contains { $0.rawValue.caseInsensitiveCompare(trimmed) == .orderedSame }
-    }
-
-    func label(language: AppLanguage) -> String {
-        switch self {
-        case .vivian: language == .english ? "Vivian · bright female · Chinese" : "Vivian · 明亮女声 · 中文"
-        case .serena: language == .english ? "Serena · warm female · Chinese" : "Serena · 温柔女声 · 中文"
-        case .uncleFu: language == .english ? "Uncle Fu · mellow male · Chinese" : "Uncle_Fu · 醇厚男声 · 中文"
-        case .dylan: language == .english ? "Dylan · Beijing male · Chinese" : "Dylan · 北京青年男声 · 中文"
-        case .eric: language == .english ? "Eric · Chengdu male · Chinese" : "Eric · 成都男声 · 中文"
-        case .ryan: language == .english ? "Ryan · rhythmic male · English" : "Ryan · 节奏男声 · 英文"
-        case .aiden: language == .english ? "Aiden · sunny American male · English" : "Aiden · 阳光美式男声 · 英文"
-        case .onoAnna: language == .english ? "Ono Anna · playful female · Japanese" : "Ono_Anna · 活泼女声 · 日文"
-        case .sohee: language == .english ? "Sohee · warm female · Korean" : "Sohee · 温暖女声 · 韩文"
-        }
+        guard !trimmed.isEmpty else { return defaultCloudVoice }
+        return retiredLocalVoiceIDs.contains(trimmed) ? defaultCloudVoice : trimmed
     }
 }
 

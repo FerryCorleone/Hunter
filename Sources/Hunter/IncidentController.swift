@@ -5,7 +5,6 @@ final class IncidentController {
     private let state: AppState
     private let dashScope = DashScopeClient()
     private let webSearch = WebSearchClient()
-    private let localSpeech = LocalSpeechClient()
     private let speechPlayer = SpeechPlayer()
     private let notifications = NotificationController()
     private var lastIncidentByRule: [UUID: Date] = [:]
@@ -113,54 +112,7 @@ final class IncidentController {
     }
 
     private func synthesizeAndPlay(text: String, target: String, statusPrefix: String) async {
-        TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=\(state.providers.ttsMode.rawValue) target=\(target) voice=\(state.providers.voice) voice_source=\(state.voiceClone.source.rawValue)")
-        if state.providers.ttsMode == .localModel {
-            do {
-                let localLabel = state.voiceClone.source == .cloned
-                    ? state.copy("本地克隆 TTS", "local cloned TTS")
-                    : state.copy("本地预置 TTS", "local preset TTS")
-                state.providerStatus = state.copy(
-                    "\(statusPrefix) + \(localLabel) 合成中，本机首次生成可能需要 20-40 秒",
-                    "\(statusPrefix) + \(localLabel) synthesizing, first local run can take 20-40s"
-                )
-                state.voiceInteractionStatus = state.providerStatus
-                let startedAt = Date()
-                let audio = try await localSpeech.synthesizeSpeech(
-                    text: text,
-                    settings: state.providers,
-                    voiceClone: state.voiceClone,
-                    languageCode: state.targetLanguageCode()
-                )
-                let elapsed = Date().timeIntervalSince(startedAt)
-                TTSDiagnostics.record("INCIDENT_TTS_SYNTH_DONE mode=local elapsed=\(formatSeconds(elapsed)) bytes=\(audio.count)")
-                state.providerStatus = state.copy(
-                    "\(statusPrefix) + \(localLabel) 完成 \(formatSeconds(elapsed))，正在播放",
-                    "\(statusPrefix) + \(localLabel) ready in \(formatSeconds(elapsed)), playing"
-                )
-                state.voiceInteractionStatus = state.providerStatus
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
-                }
-                do {
-                    let duration = try speechPlayer.play(audioData: audio)
-                    await waitForPlayback(duration)
-                } catch {
-                    state.providerStatus = state.copy(
-                        "本地 TTS 音频播放失败：\(error.localizedDescription)。未使用系统朗读。",
-                        "Local TTS audio playback failed: \(error.localizedDescription). System speech was not used."
-                    )
-                    state.voiceInteractionStatus = state.providerStatus
-                }
-            } catch {
-                state.providerStatus = state.copy(
-                    "本地 TTS 失败：\(error.localizedDescription)。未使用系统朗读。",
-                    "Local TTS failed: \(error.localizedDescription). System speech was not used."
-                )
-                state.voiceInteractionStatus = state.providerStatus
-            }
-            return
-        }
-
+        TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=cloud target=\(target) provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
         do {
             TTSDiagnostics.record("CLOUD_TTS_START provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
             state.providerStatus = state.copy("\(statusPrefix) + 云端 TTS 合成中", "\(statusPrefix) + cloud TTS synthesizing")

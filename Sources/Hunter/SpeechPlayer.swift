@@ -8,6 +8,7 @@ final class SpeechPlayer {
 
     @discardableResult
     func speak(_ text: String) -> TimeInterval {
+        TTSDiagnostics.record("SYSTEM_SPEECH_START text_chars=\(text.count)")
         player?.stop()
         synthesizer?.stopSpeaking(at: .immediate)
         let next = AVSpeechSynthesizer()
@@ -16,11 +17,14 @@ final class SpeechPlayer {
         utterance.volume = 1.0
         utterance.rate = 0.5
         next.speak(utterance)
-        return estimatedSpeechDuration(for: text)
+        let duration = estimatedSpeechDuration(for: text)
+        TTSDiagnostics.record("SYSTEM_SPEECH_SUBMITTED duration_estimate=\(duration)")
+        return duration
     }
 
     @discardableResult
     func play(audioData: Data) throws -> TimeInterval {
+        TTSDiagnostics.record("AUDIO_PLAYER_START bytes=\(audioData.count)")
         synthesizer?.stopSpeaking(at: .immediate)
         player?.stop()
         let next = try AVAudioPlayer(data: audioData)
@@ -28,7 +32,9 @@ final class SpeechPlayer {
         next.prepareToPlay()
         player = next
         next.play()
-        return max(next.duration, 0.8)
+        let duration = max(next.duration, 0.8)
+        TTSDiagnostics.record("AUDIO_PLAYER_PLAYING duration=\(duration)")
+        return duration
     }
 
     private func estimatedSpeechDuration(for text: String) -> TimeInterval {

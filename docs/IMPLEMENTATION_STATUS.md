@@ -31,6 +31,7 @@
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - 播报音量已调到产品可用级：本地/云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
 - 选择本地 TTS 时不再静默降级到 macOS 系统朗读；本地合成或播放失败会在状态里明确报错，避免用户误以为系统 TTS 是本地模型效果。
+- TTS 路径诊断日志已接入：`~/Library/Application Support/Hunter/Logs/tts.log` 会记录 `LOCAL_TTS_START` / `LOCAL_TTS_SUCCESS`、`AUDIO_PLAYER_PLAYING` 或 `SYSTEM_SPEECH_START`，用于确认真实抓包是否走本地模型还是系统朗读。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
 - ASR / LLM / TTS / Search Provider 配置在设置页可编辑，四类能力互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
 - ASR / TTS 增加“本地模型 / 云端 API”切换；默认新配置优先本地模式，本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B CustomVoice，并提供下载到本机按钮。
@@ -56,7 +57,7 @@
   - `./.build/debug/Hunter --smoke-local-asr /path/to/audio.wav`
   - `./.build/debug/Hunter --smoke-local-voice-focus /path/to/audio.wav`
   - `./.build/debug/Hunter --install-local-tts`
-  - `./.build/debug/Hunter --smoke-local-tts "文本" /path/to/ref-audio.wav`
+  - `./.build/debug/Hunter --smoke-local-tts "文本" [/path/to/ref-audio.wav]`
   - `./.build/debug/Hunter --smoke-current-context`
 
 ## 已验证
@@ -76,7 +77,7 @@
 - 本地 ASR 安装通过：`--install-local-asr` 下载 SenseVoice Small INT8 并安装 ASR runtime。
 - 本地 ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> `--smoke-local-asr` 识别为 `监督我接下来的四十分钟`。
 - 本地语音时长任务烟测通过：同一段 WAV -> 本地 SenseVoice -> `DurationParser` -> `focus_minutes=40`。
-- 本地 TTS 预置音色烟测通过：`--smoke-local-tts "别再刷视频了，先把手头的正事做完。"` -> `local_tts_ok=true`，模型 `qwen3-tts-0.6b-customvoice`，生成 24kHz WAV。
+- 本地 TTS 预置音色烟测通过：`--smoke-local-tts "日志测试：如果这句话是本地模型生成，tts.log 里应该能看到 LOCAL_TTS_SUCCESS。"` -> `local_tts_ok=true`，模型 `qwen3-tts-0.6b-customvoice`，生成 24kHz WAV；`tts.log` 记录 `LOCAL_TTS_START mode=custom model=qwen3-tts-0.6b-customvoice voice=Vivian` 和 `LOCAL_TTS_SUCCESS`。
 - 阿里 `qwen-turbo` 抓包吐槽烟测曾通过；本机默认 LLM 已切到 DeepSeek `deepseek-v4-flash`，早前 `--smoke-llm` 已用旧本机密钥验证通过。Keychain 访问完全移除后，如果密钥只存在旧钥匙串里，需要在设置页重新保存一次 API Key，或写入 `.env.local` 后再跑烟测。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`

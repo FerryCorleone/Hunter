@@ -72,7 +72,9 @@ struct LocalSpeechClient {
         let usesClone = voiceClone.source == .cloned
         let descriptor = usesClone ? LocalModelCatalog.voiceCloneTTS : LocalModelCatalog.defaultTTS
         let overridePath = settings.localTTSModelID == descriptor.id ? settings.localTTSInstallPath : nil
+        TTSDiagnostics.record("LOCAL_TTS_START mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) voice=\(settings.voice) language=\(languageCode) text_chars=\(text.count)")
         guard let modelDirectory = installer.resolvedInstalledPath(for: descriptor, overridePath: overridePath) else {
+            TTSDiagnostics.record("LOCAL_TTS_MODEL_MISSING model=\(descriptor.id)")
             throw LocalSpeechError.modelNotInstalled(descriptor.nameEnglish)
         }
 
@@ -129,8 +131,15 @@ struct LocalSpeechClient {
             ])
         }
 
-        _ = try await LocalProcess.run(executable: python, arguments: arguments, timeout: 240)
-        return try Data(contentsOf: outputURL)
+        do {
+            _ = try await LocalProcess.run(executable: python, arguments: arguments, timeout: 240)
+            let data = try Data(contentsOf: outputURL)
+            TTSDiagnostics.record("LOCAL_TTS_SUCCESS mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) bytes=\(data.count) output=\(outputURL.path)")
+            return data
+        } catch {
+            TTSDiagnostics.record("LOCAL_TTS_FAILED mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) error=\(error.localizedDescription)")
+            throw error
+        }
     }
 
     private func decodeJSON<T: Decodable>(_ type: T.Type, from output: String) throws -> T {

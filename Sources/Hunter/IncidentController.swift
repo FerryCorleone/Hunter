@@ -116,6 +116,7 @@ final class IncidentController {
     }
 
     private func synthesizeAndPlay(text: String, target: String, statusPrefix: String) async {
+        TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=\(state.providers.ttsMode.rawValue) target=\(target) voice=\(state.providers.voice) voice_source=\(state.voiceClone.source.rawValue)")
         if state.providers.ttsMode == .localModel {
             do {
                 let audio = try await localSpeech.synthesizeSpeech(
@@ -152,12 +153,14 @@ final class IncidentController {
         }
 
         do {
+            TTSDiagnostics.record("CLOUD_TTS_START provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
             let audio = try await dashScope.synthesizeSpeech(
                 text: text,
                 settings: state.providers,
                 languageCode: state.targetLanguageCode()
             )
             state.providerStatus = state.copy("\(statusPrefix) + 云端 TTS 正常", "\(statusPrefix) + cloud TTS OK")
+            TTSDiagnostics.record("CLOUD_TTS_SUCCESS bytes=\(audio.count)")
             Task {
                 await notifications.notifyCatch(target: target, roast: text)
             }
@@ -171,6 +174,7 @@ final class IncidentController {
             }
         } catch {
             state.providerStatus = state.copy("云端 TTS 降级：\(error.localizedDescription)", "Cloud TTS fallback: \(error.localizedDescription)")
+            TTSDiagnostics.record("CLOUD_TTS_FAILED error=\(error.localizedDescription) fallback=system_speech")
             Task {
                 await notifications.notifyCatch(target: target, roast: text)
             }

@@ -125,9 +125,7 @@ struct LocalSpeechClient {
         } else {
             arguments.append(contentsOf: [
                 "--speaker", LocalTTSSpeaker.normalized(settings.voice),
-                "--instruct", languageCode == "en"
-                    ? "Speak naturally, clearly, with a sharp and energetic tone."
-                    : "用自然、清晰、带一点压迫感的语气说"
+                "--instruct", localTTSInstruction(languageCode: languageCode)
             ])
         }
 
@@ -140,6 +138,13 @@ struct LocalSpeechClient {
             TTSDiagnostics.record("LOCAL_TTS_FAILED mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) error=\(error.localizedDescription)")
             throw error
         }
+    }
+
+    private func localTTSInstruction(languageCode: String) -> String {
+        if languageCode == "en" {
+            return "Sound like a real person talking next to me, not a narrator or a robot. Use a sharp, conversational, slightly impatient tone with natural rhythm."
+        }
+        return "像真人在旁边当面吐槽，不要播音腔，不要机器人腔。语速稍快，口语化，带一点不耐烦和压迫感，停顿自然。"
     }
 
     private func decodeJSON<T: Decodable>(_ type: T.Type, from output: String) throws -> T {

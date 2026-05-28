@@ -30,8 +30,8 @@
 - 抓包 prompt 已升级：输入包含 App、URL、标签页标题和可选搜索摘要，要求模型先识别用户正在看的具体内容，再把它和逃避工作连接起来，最后输出短 punchline；允许粗口时可使用普通脏话，但仍过滤禁用词和受保护属性攻击。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - 播报音量已调到产品可用级：本地/云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
-- 选择本地 TTS 时不再静默降级到 macOS 系统朗读；本地合成或播放失败会在状态里明确报错，避免用户误以为系统 TTS 是本地模型效果。
-- TTS 路径诊断日志已接入：`~/Library/Application Support/Hunter/Logs/tts.log` 会记录 `LOCAL_TTS_START` / `LOCAL_TTS_SUCCESS`、`AUDIO_PLAYER_PLAYING` 或 `SYSTEM_SPEECH_START`，用于确认真实抓包是否走本地模型还是系统朗读。
+- 抓包/对喷播报链路不再静默降级到 macOS 系统朗读；LLM 失败后的兜底吐槽也会继续走当前配置的 TTS，TTS 合成或播放失败会在状态里明确报错。
+- TTS 路径诊断日志已接入：`~/Library/Application Support/Hunter/Logs/tts.log` 会记录 `LOCAL_TTS_START` / `LOCAL_TTS_SUCCESS` 和 `AUDIO_PLAYER_PLAYING`，用于确认真实抓包是否走本地模型并完成音频播放；当前构建不应再出现 `SYSTEM_SPEECH_START`，若出现代表仍在运行旧版。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
 - ASR / LLM / TTS / Search Provider 配置在设置页可编辑，四类能力互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
 - ASR / TTS 增加“本地模型 / 云端 API”切换；默认新配置优先本地模式，本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B CustomVoice，并提供下载到本机按钮。

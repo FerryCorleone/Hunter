@@ -63,11 +63,8 @@ final class IncidentController {
             } catch {
                 await MainActor.run {
                     state.providerStatus = state.copy("LLM 降级：\(error.localizedDescription)", "LLM fallback: \(error.localizedDescription)")
-                    Task {
-                        await notifications.notifyCatch(target: incident.targetName, roast: fallback)
-                    }
-                    speechPlayer.speak(fallback)
                 }
+                await synthesizeAndPlay(text: fallback, target: incident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"))
             }
         }
     }
@@ -168,18 +165,22 @@ final class IncidentController {
                 let duration = try speechPlayer.play(audioData: audio)
                 await waitForPlayback(duration)
             } catch {
-                state.providerStatus = state.copy("云端 TTS 播放失败：\(error.localizedDescription)", "Cloud TTS audio playback failed: \(error.localizedDescription)")
-                let duration = speechPlayer.speak(text)
-                await waitForPlayback(duration)
+                state.providerStatus = state.copy(
+                    "云端 TTS 播放失败：\(error.localizedDescription)。未使用系统朗读。",
+                    "Cloud TTS audio playback failed: \(error.localizedDescription). System speech was not used."
+                )
+                state.voiceInteractionStatus = state.providerStatus
             }
         } catch {
-            state.providerStatus = state.copy("云端 TTS 降级：\(error.localizedDescription)", "Cloud TTS fallback: \(error.localizedDescription)")
-            TTSDiagnostics.record("CLOUD_TTS_FAILED error=\(error.localizedDescription) fallback=system_speech")
+            state.providerStatus = state.copy(
+                "云端 TTS 失败：\(error.localizedDescription)。未使用系统朗读。",
+                "Cloud TTS failed: \(error.localizedDescription). System speech was not used."
+            )
+            TTSDiagnostics.record("CLOUD_TTS_FAILED error=\(error.localizedDescription) fallback=none")
             Task {
                 await notifications.notifyCatch(target: target, roast: text)
             }
-            let duration = speechPlayer.speak(text)
-            await waitForPlayback(duration)
+            state.voiceInteractionStatus = state.providerStatus
         }
     }
 

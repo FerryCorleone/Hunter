@@ -21,19 +21,21 @@
 - 语音时长任务解析：中文/英文样例已加测试。
 - Option+Space 全局事件监听入口，未授权时只提示需要辅助功能权限，不在启动时反复弹系统授权请求。
 - 麦克风短录音入口：悬浮球/快捷键默认 4 秒，设置页“录制测试”使用 7 秒窗口便于桌面验收。
+- 抓包语音回击已升级为连续对喷：用户回击后，Hunter 等待自己播报结束再自动继续监听；若下一轮录音为空或识别不到语音，则自动结束对喷。
 - 录音音量检测：录到明显静音时先给本地提示，减少无效 ASR 请求；ASR 空结果会提示靠近麦克风重试。
 - 权限引导：设置页展示辅助功能、麦克风、通知状态；支持打开对应系统设置或请求通知权限。
 - 本地通知：如果用户授权通知，抓包/回击成功时会发送无声本地通知作为可见降级反馈。
 - 阿里 Paraformer WebSocket ASR 代码路径。
 - OpenAI-compatible LLM 抓包吐槽和语音回击代码路径；当前本机默认 LLM 配置为 DeepSeek `deepseek-v4-flash`，请求体会对 DeepSeek V4 自动关闭 thinking 以保证短吐槽直接出现在 `content`。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
+- 播报音量已调到产品可用级：本地系统朗读、云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
 - ASR / LLM / TTS Provider 配置在设置页可编辑，三类模型互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
 - ASR / TTS 增加“本地模型 / 云端 API”切换；默认新配置优先本地模式，本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B Base，并提供下载到本机按钮。
 - 本地 SenseVoice ASR runtime：下载模型后创建 Hunter 私有 Python runtime，通过 `sherpa_onnx` 本地识别短 WAV，不上传用户录音。
 - 本地 Qwen3-TTS 克隆 worker：已接入本地模型、授权样本和参考文本参数；未配置样本/模型或运行失败时，使用 macOS 系统语音本地降级。
 - Provider 面板提供测试 LLM、测试 TTS、测试 ASR（选择本地音频文件）和端到端测试入口。
-- 设置页可把每类模型的 API Key 分别写入 macOS Keychain。
+- 设置页可把每类模型的 API Key 分别写入 macOS Keychain；运行期首次读到密钥后会进内存缓存，避免每次抓包/回击都重复触发钥匙串访问。
 - 声音页支持预置音色和克隆声音入口；用户可选择本地音频样本或直接录制声音样本，样本保存到本机 Application Support。
 - 本机密钥读取：`.env.local` / Keychain，仓库忽略 `.env.local`。
 - 设置页、菜单栏、悬浮小组件和主要运行时状态文案支持中文/英文切换；主要可见控件、枚举标签和 Provider 表单已补齐双语。
@@ -82,6 +84,7 @@
 
 - 继续补完整悬浮窗抓包卡片和状态栏菜单验收。
 - 验证 Option+Space 辅助功能授权后的真实按住说话流程。
+- 验证连续对喷真实体验：抓包后回击一句 -> Hunter 回击 -> 自动继续监听 -> 用户静音后结束。
 - 真人麦克风端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
 - Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。

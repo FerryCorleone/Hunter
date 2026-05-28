@@ -111,7 +111,7 @@ struct FloatingOverlayView: View {
 
             HStack(spacing: 12) {
                 Button(action: onReply) {
-                    Label(state.copy("按住 Option Space\n语音回击", "Hold Option Space\nto reply"), systemImage: "mic.fill")
+                    Label(state.copy("语音回击\n连续对喷", "Voice reply\ncontinuous duel"), systemImage: "mic.fill")
                         .labelStyle(.titleAndIcon)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)

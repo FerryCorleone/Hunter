@@ -31,7 +31,7 @@ final class HunterApp: NSObject, NSApplicationDelegate {
         state.refreshPermissions()
         floatingWindow = FloatingWindowController(
             state: state,
-            onReply: { [weak self] in self?.voiceCommands.recordShortCommand() },
+            onReply: { [weak self] in self?.voiceCommands.startReplyLoop() },
             onPause: { [weak self] in self?.pauseForFiveMinutes() }
         )
         settingsWindow = SettingsWindowController(

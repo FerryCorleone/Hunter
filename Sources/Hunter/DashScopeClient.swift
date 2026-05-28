@@ -149,7 +149,7 @@ struct DashScopeClient {
                 "voice": settings.voice,
                 "format": "wav",
                 "sample_rate": 24000,
-                "volume": 35,
+                "volume": 100,
                 "rate": 1.0,
                 "language_hints": [languageCode]
             ]

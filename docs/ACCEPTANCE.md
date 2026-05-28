@@ -25,17 +25,17 @@
 | 时长任务暂停/延长/结束 | Pass | 设置页和菜单栏提供暂停/恢复/延长/结束；GUI 验证 40 分钟任务会启用暂停、+10、结束按钮；单测覆盖 pause/resume/extend |
 | ASR 默认链路 | Pass | 本地 SenseVoice Small INT8 安装和识别通过；云端 `paraformer-realtime-v2` 仍保留为 fallback |
 | LLM 默认链路 | Pass | 默认配置已切到 DeepSeek `deepseek-v4-flash`；`--smoke-llm` 已用本机 Keychain 密钥验证通过 |
-| TTS 默认链路 | Partial | 本地 Qwen3-TTS 克隆 worker 已接入模型/样本/参考文本调用路径；未配置样本或模型时使用 macOS 系统语音本地降级；阿里 `cosyvoice-v3-flash + longanyang` 云端烟测曾通过 |
+| TTS 默认链路 | Partial | 本地 Qwen3-TTS 克隆 worker 已接入模型/样本/参考文本调用路径；未配置样本或模型时使用 macOS 系统语音本地降级；系统朗读和云端音频播放器已改为满音量，云端 TTS 请求音量参数为 `100`；阿里 `cosyvoice-v3-flash + longanyang` 云端烟测曾通过 |
 | TTS 本地缓存 | Pass | 按 model、voice、language、text 缓存音频，单测覆盖命中和隔离 |
 | Provider 可配置 | Pass | 设置页中 ASR/LLM/TTS 三类模型可独立配置；云端模式只填 Provider、Base URL、Model、API Key；ASR/TTS 提供本地模型下载入口；本地 ASR adapter 已实测通过 |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
 | 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
-| 语音对喷链路 | Partial | ASR/LLM/TTS 子链路已测，麦克风权限已允许，设置页录制测试入口可触发录音；本机正常音量 `say` 播报未被麦克风识别，需真人靠近麦克风复测 Option+Space |
+| 语音对喷链路 | Partial | 代码已从单次回击升级为连续对喷：用户说完 -> Hunter 生成并播报 -> 播报结束后自动继续监听，静音/无识别结果时结束；ASR/LLM/TTS 子链路已测，仍需真人靠近麦克风复测 Option+Space |
 | 前台 App 检测 | Partial | 代码使用 `NSWorkspace.didActivateApplicationNotification` 事件驱动；真实黑名单命中需桌面交互验收 |
 | Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 仅浏览器前台时启动后台 AppleScript URL watcher；需浏览器自动化授权后验收 |
 | 今日历史统计与清理 | Pass | 历史页展示今日抓包、今日最多命中和清除日志；GUI 验证演示抓包从 10 增至 11，且同次 LLM 升级不重复插入 |
 | 本地通知降级反馈 | Pass | 通知授权后，抓包/回击成功会发送无声本地通知 |
-| 安全与隐私 | Pass | `.env.local` 被忽略，API Key 可写 Keychain，仓库未发现明文 key |
+| 安全与隐私 | Pass | `.env.local` 被忽略，API Key 可写 Keychain，运行期首次读取后会缓存到内存以减少重复钥匙串弹窗，仓库未发现明文 key |
 | 音色克隆 | Partial | 声音页已支持授权确认、本机音频样本选择/录制和参考文本；本地 Qwen3-TTS 克隆 worker 已接入调用路径，但大模型首次下载/推理延迟仍需更多 Mac 机型压测 |
 | 登录时启动 | Pass | 设置页开关接入 `SMAppService.mainApp.register/unregister` |
 

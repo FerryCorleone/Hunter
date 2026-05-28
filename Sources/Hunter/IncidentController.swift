@@ -73,41 +73,38 @@ final class IncidentController {
         )
     }
 
-    func handleUserReply(_ transcript: String) {
+    @discardableResult
+    func handleUserReply(_ transcript: String) async -> Bool {
         guard let incident = state.currentIncident else {
             state.toastMessage = transcript
-            return
+            return false
         }
 
         state.toastMessage = state.copy("你：\(transcript)", "You: \(transcript)")
-        Task {
-            do {
-                let reply = try await dashScope.generateReply(
-                    userText: transcript,
-                    incident: incident,
-                    settings: state.providers,
-                    intensity: state.intensity,
-                    persona: state.persona,
-                    allowProfanity: state.allowProfanity,
-                    bannedTerms: state.bannedTerms,
-                    languageCode: state.targetLanguageCode()
-                )
-                let responseIncident = Incident(
-                    targetName: incident.targetName,
-                    appName: incident.appName,
-                    url: incident.url,
-                    roast: reply
-                )
-                await MainActor.run {
-                    state.recordIncident(responseIncident)
-                    state.providerStatus = state.copy("ASR + LLM 回击正常，等待 TTS", "ASR + LLM reply OK, TTS pending")
-                }
-                await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"))
-            } catch {
-                await MainActor.run {
-                    state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")
-                }
-            }
+        do {
+            let reply = try await dashScope.generateReply(
+                userText: transcript,
+                incident: incident,
+                settings: state.providers,
+                intensity: state.intensity,
+                persona: state.persona,
+                allowProfanity: state.allowProfanity,
+                bannedTerms: state.bannedTerms,
+                languageCode: state.targetLanguageCode()
+            )
+            let responseIncident = Incident(
+                targetName: incident.targetName,
+                appName: incident.appName,
+                url: incident.url,
+                roast: reply
+            )
+            state.recordIncident(responseIncident)
+            state.providerStatus = state.copy("ASR + LLM 回击正常，等待 TTS", "ASR + LLM reply OK, TTS pending")
+            await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"))
+            return true
+        } catch {
+            state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -120,26 +117,25 @@ final class IncidentController {
                     voiceClone: state.voiceClone,
                     languageCode: state.targetLanguageCode()
                 )
-                await MainActor.run {
-                    state.providerStatus = state.copy("\(statusPrefix) + 本地克隆 TTS 正常", "\(statusPrefix) + local cloned TTS OK")
-                    Task {
-                        await notifications.notifyCatch(target: target, roast: text)
-                    }
-                    do {
-                        try speechPlayer.play(audioData: audio)
-                    } catch {
-                        state.providerStatus = state.copy("本地 TTS 播放失败：\(error.localizedDescription)", "Local TTS audio playback failed: \(error.localizedDescription)")
-                        speechPlayer.speak(text)
-                    }
+                state.providerStatus = state.copy("\(statusPrefix) + 本地克隆 TTS 正常", "\(statusPrefix) + local cloned TTS OK")
+                Task {
+                    await notifications.notifyCatch(target: target, roast: text)
+                }
+                do {
+                    let duration = try speechPlayer.play(audioData: audio)
+                    await waitForPlayback(duration)
+                } catch {
+                    state.providerStatus = state.copy("本地 TTS 播放失败：\(error.localizedDescription)", "Local TTS audio playback failed: \(error.localizedDescription)")
+                    let duration = speechPlayer.speak(text)
+                    await waitForPlayback(duration)
                 }
             } catch {
-                await MainActor.run {
-                    state.providerStatus = state.copy("本地 TTS 降级：\(error.localizedDescription)；已改用系统朗读", "Local TTS fallback: \(error.localizedDescription); using system speech")
-                    Task {
-                        await notifications.notifyCatch(target: target, roast: text)
-                    }
-                    speechPlayer.speak(text)
+                state.providerStatus = state.copy("本地 TTS 降级：\(error.localizedDescription)；已改用系统朗读", "Local TTS fallback: \(error.localizedDescription); using system speech")
+                Task {
+                    await notifications.notifyCatch(target: target, roast: text)
                 }
+                let duration = speechPlayer.speak(text)
+                await waitForPlayback(duration)
             }
             return
         }
@@ -150,27 +146,31 @@ final class IncidentController {
                 settings: state.providers,
                 languageCode: state.targetLanguageCode()
             )
-            await MainActor.run {
-                state.providerStatus = state.copy("\(statusPrefix) + 云端 TTS 正常", "\(statusPrefix) + cloud TTS OK")
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
-                }
-                do {
-                    try speechPlayer.play(audioData: audio)
-                } catch {
-                    state.providerStatus = state.copy("云端 TTS 播放失败：\(error.localizedDescription)", "Cloud TTS audio playback failed: \(error.localizedDescription)")
-                    speechPlayer.speak(text)
-                }
+            state.providerStatus = state.copy("\(statusPrefix) + 云端 TTS 正常", "\(statusPrefix) + cloud TTS OK")
+            Task {
+                await notifications.notifyCatch(target: target, roast: text)
+            }
+            do {
+                let duration = try speechPlayer.play(audioData: audio)
+                await waitForPlayback(duration)
+            } catch {
+                state.providerStatus = state.copy("云端 TTS 播放失败：\(error.localizedDescription)", "Cloud TTS audio playback failed: \(error.localizedDescription)")
+                let duration = speechPlayer.speak(text)
+                await waitForPlayback(duration)
             }
         } catch {
-            await MainActor.run {
-                state.providerStatus = state.copy("云端 TTS 降级：\(error.localizedDescription)", "Cloud TTS fallback: \(error.localizedDescription)")
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
-                }
-                speechPlayer.speak(text)
+            state.providerStatus = state.copy("云端 TTS 降级：\(error.localizedDescription)", "Cloud TTS fallback: \(error.localizedDescription)")
+            Task {
+                await notifications.notifyCatch(target: target, roast: text)
             }
+            let duration = speechPlayer.speak(text)
+            await waitForPlayback(duration)
         }
+    }
+
+    private func waitForPlayback(_ duration: TimeInterval) async {
+        let delay = UInt64(max(duration + 0.2, 0.5) * 1_000_000_000)
+        try? await Task.sleep(nanoseconds: delay)
     }
 
     private func fallbackRoast(rule: BlacklistRule, context: FrontmostContext) -> String {

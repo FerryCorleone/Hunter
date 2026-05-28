@@ -1,6 +1,25 @@
 import Foundation
 import Security
 
+private final class SecretMemoryCache: @unchecked Sendable {
+    static let shared = SecretMemoryCache()
+
+    private let lock = NSLock()
+    private var values: [String: String] = [:]
+
+    func value(for service: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return values[service]
+    }
+
+    func setValue(_ value: String, for service: String) {
+        lock.lock()
+        values[service] = value
+        lock.unlock()
+    }
+}
+
 struct SecretStore {
     func dashScopeAPIKey() -> String? {
         apiKey(environmentName: "DASHSCOPE_API_KEY")
@@ -25,7 +44,15 @@ struct SecretStore {
         if let localValue = readEnvLocalValue(named: trimmed), !localValue.isEmpty {
             return localValue
         }
-        return readKeychain(service: keychainServiceName(for: trimmed))
+        let service = keychainServiceName(for: trimmed)
+        if let cached = SecretMemoryCache.shared.value(for: service), !cached.isEmpty {
+            return cached
+        }
+        guard let keychainValue = readKeychain(service: service), !keychainValue.isEmpty else {
+            return nil
+        }
+        SecretMemoryCache.shared.setValue(keychainValue, for: service)
+        return keychainValue
     }
 
     func saveAPIKey(_ apiKey: String, environmentName: String) throws {
@@ -43,10 +70,12 @@ struct SecretStore {
         SecItemDelete(query as CFDictionary)
         var attributes = query
         attributes[kSecValueData as String] = data
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let status = SecItemAdd(attributes as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
         }
+        SecretMemoryCache.shared.setValue(trimmedKey, for: service)
     }
 
     private func readEnvLocalValue(named name: String) -> String? {

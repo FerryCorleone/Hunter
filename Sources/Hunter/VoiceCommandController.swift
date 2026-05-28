@@ -7,6 +7,7 @@ final class VoiceCommandController {
     private let incidents: IncidentController
     private let parser = DurationParser()
     private let asr = ParaformerClient()
+    private let localSpeech = LocalSpeechClient()
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
     private var isRecording = false
@@ -56,17 +57,20 @@ final class VoiceCommandController {
                 state.toastMessage = state.copy("没有听到清晰语音，请靠近麦克风再试", "No clear voice detected. Try closer to the microphone.")
                 return
             }
-            guard state.providers.asrMode == .cloudAPI else {
-                state.toastMessage = state.copy("本地 ASR 模型已可下载，推理适配器下一步接入；当前不会上传音频。", "Local ASR download is ready; runtime adapter is next. Audio was not uploaded.")
-                return
-            }
             state.toastMessage = state.interfaceLanguage == .english ? "Transcribing..." : "正在识别..."
             Task {
                 do {
-                    let transcript = try await asr.transcribeWAV(audio, settings: state.providers, languageHint: state.targetLanguageCode())
+                    let transcript: String
+                    if state.providers.asrMode == .localModel {
+                        transcript = try await localSpeech.transcribeWAV(audio, settings: state.providers, languageCode: state.targetLanguageCode())
+                    } else {
+                        transcript = try await asr.transcribeWAV(audio, settings: state.providers, languageHint: state.targetLanguageCode())
+                    }
                     handleTranscript(transcript)
                 } catch ParaformerClient.ASRError.noTranscript {
                     state.toastMessage = state.copy("没有识别到语音，请靠近麦克风再试", "No speech was recognized. Try closer to the microphone.")
+                } catch LocalSpeechClient.LocalSpeechError.noTranscript {
+                    state.toastMessage = state.copy("本地 ASR 没有识别到语音，请靠近麦克风再试", "Local ASR recognized no speech. Try closer to the microphone.")
                 } catch {
                     state.toastMessage = state.copy("语音指令失败：\(error.localizedDescription)", "Voice command failed: \(error.localizedDescription)")
                 }

@@ -92,14 +92,20 @@ struct LocalModelInstaller {
         let root = try installRoot(for: descriptor.kind)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
 
+        let installedPath: URL
         switch descriptor.download {
         case .archive(let url, let extractedFolderName):
             await progress("Downloading \(descriptor.nameEnglish)...")
-            return try await installArchive(url: url, root: root, extractedFolderName: extractedFolderName)
+            installedPath = try await installArchive(url: url, root: root, extractedFolderName: extractedFolderName)
         case .huggingFace(let repositories):
             await progress("Preparing Hugging Face downloader...")
-            return try await installHuggingFaceRepositories(repositories, root: root, folderName: descriptor.id, progress: progress)
+            installedPath = try await installHuggingFaceRepositories(repositories, root: root, folderName: descriptor.id, progress: progress)
         }
+
+        if descriptor.kind == .asr {
+            _ = try await LocalSpeechRuntime().ensureASRRuntime(progress: progress)
+        }
+        return installedPath
     }
 
     func installedPath(for descriptor: LocalModelDescriptor) -> URL? {
@@ -116,6 +122,16 @@ struct LocalModelInstaller {
             }
             return allPresent ? base : nil
         }
+    }
+
+    func resolvedInstalledPath(for descriptor: LocalModelDescriptor, overridePath: String?) -> URL? {
+        if let overridePath, !overridePath.isEmpty {
+            let url = URL(fileURLWithPath: overridePath)
+            if FileManager.default.fileExists(atPath: url.path) {
+                return url
+            }
+        }
+        return installedPath(for: descriptor)
     }
 
     private func installArchive(url: URL, root: URL, extractedFolderName: String) async throws -> URL {
@@ -147,16 +163,20 @@ struct LocalModelInstaller {
     ) async throws -> URL {
         let base = root.appendingPathComponent(folderName, isDirectory: true)
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        try await runShell("/usr/bin/python3 -m pip install --user -U huggingface_hub")
+        let python = try await LocalSpeechRuntime().ensureDownloadRuntime(progress: progress)
 
         for repository in repositories {
             await progress("Downloading \(repository)...")
             let destination = base.appendingPathComponent(repoFolderName(repository), isDirectory: true)
-            let python = """
+            let script = """
             from huggingface_hub import snapshot_download
             snapshot_download(repo_id=\(pythonString(repository)), local_dir=\(pythonString(destination.path)), local_dir_use_symlinks=False)
             """
-            try await runShell("/usr/bin/python3 - <<'PY'\n\(python)\nPY")
+            _ = try await LocalProcess.run(
+                executable: python,
+                arguments: ["-c", script],
+                timeout: 3_600
+            )
         }
         return base
     }

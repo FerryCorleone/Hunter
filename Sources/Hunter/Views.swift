@@ -704,18 +704,24 @@ struct ProvidersPanel: View {
     }
 
     private func testTTS() {
-        guard state.providers.ttsMode == .cloudAPI else {
-            state.providerStatus = state.copy("本地 TTS 模型下载入口已就绪，推理适配器下一步接入。", "Local TTS download is ready; runtime adapter is next.")
-            return
-        }
         state.providerStatus = state.copy("正在测试 TTS...", "Testing TTS...")
         Task {
             do {
-                let audio = try await DashScopeClient().synthesizeSpeech(
-                    text: state.copy("测试", "test"),
-                    settings: state.providers,
-                    languageCode: state.targetLanguageCode()
-                )
+                let audio: Data
+                if state.providers.ttsMode == .localModel {
+                    audio = try await LocalSpeechClient().synthesizeSpeech(
+                        text: state.copy("测试", "test"),
+                        settings: state.providers,
+                        voiceClone: state.voiceClone,
+                        languageCode: state.targetLanguageCode()
+                    )
+                } else {
+                    audio = try await DashScopeClient().synthesizeSpeech(
+                        text: state.copy("测试", "test"),
+                        settings: state.providers,
+                        languageCode: state.targetLanguageCode()
+                    )
+                }
                 state.providerStatus = state.copy("TTS 正常：\(audio.count) bytes", "TTS OK: \(audio.count) bytes")
             } catch {
                 state.providerStatus = state.copy("TTS 测试失败：\(error.localizedDescription)", "TTS test failed: \(error.localizedDescription)")
@@ -724,20 +730,21 @@ struct ProvidersPanel: View {
     }
 
     private func testASR() {
-        guard state.providers.asrMode == .cloudAPI else {
-            state.providerStatus = state.copy("本地 ASR 模型下载入口已就绪，推理适配器下一步接入。", "Local ASR download is ready; runtime adapter is next.")
-            return
-        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.wav, .mpeg4Audio, .mp3, .audio]
+        panel.allowedContentTypes = state.providers.asrMode == .localModel ? [.wav] : [.wav, .mpeg4Audio, .mp3, .audio]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         state.providerStatus = state.copy("正在测试 ASR...", "Testing ASR...")
         Task {
             do {
                 let data = try Data(contentsOf: url)
-                let text = try await ParaformerClient().transcribeWAV(data, settings: state.providers, languageHint: state.targetLanguageCode())
+                let text: String
+                if state.providers.asrMode == .localModel {
+                    text = try await LocalSpeechClient().transcribeWAV(data, settings: state.providers, languageCode: state.targetLanguageCode())
+                } else {
+                    text = try await ParaformerClient().transcribeWAV(data, settings: state.providers, languageHint: state.targetLanguageCode())
+                }
                 state.providerStatus = state.copy("ASR 正常：\(text)", "ASR OK: \(text)")
             } catch {
                 state.providerStatus = state.copy("ASR 测试失败：\(error.localizedDescription)", "ASR test failed: \(error.localizedDescription)")
@@ -746,10 +753,6 @@ struct ProvidersPanel: View {
     }
 
     private func testEndToEnd() {
-        guard state.providers.ttsMode == .cloudAPI else {
-            state.providerStatus = state.copy("端到端语音测试暂需云端 TTS；本地 TTS 推理适配器下一步接入。", "End-to-end voice test still needs cloud TTS until the local TTS adapter lands.")
-            return
-        }
         state.providerStatus = state.copy("正在端到端测试...", "Testing end-to-end...")
         Task {
             do {
@@ -763,11 +766,21 @@ struct ProvidersPanel: View {
                     bannedTerms: state.bannedTerms,
                     languageCode: state.targetLanguageCode()
                 )
-                let audio = try await DashScopeClient().synthesizeSpeech(
-                    text: text,
-                    settings: state.providers,
-                    languageCode: state.targetLanguageCode()
-                )
+                let audio: Data
+                if state.providers.ttsMode == .localModel {
+                    audio = try await LocalSpeechClient().synthesizeSpeech(
+                        text: text,
+                        settings: state.providers,
+                        voiceClone: state.voiceClone,
+                        languageCode: state.targetLanguageCode()
+                    )
+                } else {
+                    audio = try await DashScopeClient().synthesizeSpeech(
+                        text: text,
+                        settings: state.providers,
+                        languageCode: state.targetLanguageCode()
+                    )
+                }
                 state.providerStatus = state.copy("端到端正常：\(audio.count) bytes", "End-to-end OK: \(audio.count) bytes")
             } catch {
                 state.providerStatus = state.copy("端到端测试失败：\(error.localizedDescription)", "End-to-end test failed: \(error.localizedDescription)")
@@ -903,6 +916,12 @@ struct VoicePanel: View {
                     .tint(isRecording ? .red : .accentColor)
                 }
 
+                labeledRow(state.copy("参考文本", "Reference text")) {
+                    TextField(state.copy("可选：声音样本里说了什么，填写后克隆更稳", "Optional transcript of the sample for better cloning"), text: sampleTranscriptBinding, axis: .vertical)
+                        .lineLimit(1...3)
+                        .textFieldStyle(.roundedBorder)
+                }
+
                 Text(sampleStatus)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -929,6 +948,13 @@ struct VoicePanel: View {
         }
         let name = URL(fileURLWithPath: path).lastPathComponent
         return state.copy("本机样本：\(name)", "Local sample: \(name)")
+    }
+
+    private var sampleTranscriptBinding: Binding<String> {
+        Binding(
+            get: { state.voiceClone.sampleTranscript ?? "" },
+            set: { state.voiceClone.sampleTranscript = $0 }
+        )
     }
 
     @ViewBuilder
@@ -1368,12 +1394,12 @@ struct ProviderEditor: View {
                 Button {
                     installLocalModel(descriptor)
                 } label: {
-                    Label(localInstallPath?.wrappedValue == nil ? copy("下载到本机", "Download") : copy("重新下载", "Re-download"), systemImage: "arrow.down.circle")
+                    Label(effectiveLocalInstallPath(for: descriptor) == nil ? copy("下载到本机", "Download") : copy("重新下载", "Re-download"), systemImage: "arrow.down.circle")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isInstalling)
 
-                if let path = localInstallPath?.wrappedValue, !path.isEmpty {
+                if let path = effectiveLocalInstallPath(for: descriptor), !path.isEmpty {
                     Button {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
                     } label: {
@@ -1388,7 +1414,7 @@ struct ProviderEditor: View {
                 }
             }
 
-            Text(localStatusText)
+            Text(localStatusText(for: descriptor))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -1406,12 +1432,19 @@ struct ProviderEditor: View {
         return LocalModelCatalog.model(id: id, kind: kind)
     }
 
-    private var localStatusText: String {
-        if let path = localInstallPath?.wrappedValue, !path.isEmpty {
+    private func localStatusText(for descriptor: LocalModelDescriptor) -> String {
+        if let path = effectiveLocalInstallPath(for: descriptor), !path.isEmpty {
             let name = URL(fileURLWithPath: path).lastPathComponent
             return copy("本机模型：\(name)", "Local model: \(name)")
         }
         return copy("未下载。下载后模型会保存在 Hunter 的本机应用支持目录。", "Not downloaded. Models are stored in Hunter's local Application Support folder.")
+    }
+
+    private func effectiveLocalInstallPath(for descriptor: LocalModelDescriptor) -> String? {
+        if let path = localInstallPath?.wrappedValue, !path.isEmpty, FileManager.default.fileExists(atPath: path) {
+            return path
+        }
+        return LocalModelInstaller().installedPath(for: descriptor)?.path
     }
 
     private func installLocalModel(_ descriptor: LocalModelDescriptor) {

@@ -4,6 +4,7 @@ import Foundation
 final class IncidentController {
     private let state: AppState
     private let dashScope = DashScopeClient()
+    private let localSpeech = LocalSpeechClient()
     private let speechPlayer = SpeechPlayer()
     private let notifications = NotificationController()
     private var lastIncidentByRule: [UUID: Date] = [:]
@@ -112,12 +113,33 @@ final class IncidentController {
 
     private func synthesizeAndPlay(text: String, target: String, statusPrefix: String) async {
         if state.providers.ttsMode == .localModel {
-            await MainActor.run {
-                state.providerStatus = state.copy("\(statusPrefix) 正常，本地 TTS 适配器待接入；暂用系统朗读降级", "\(statusPrefix) OK, local TTS adapter pending; using system speech fallback")
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
+            do {
+                let audio = try await localSpeech.synthesizeSpeech(
+                    text: text,
+                    settings: state.providers,
+                    voiceClone: state.voiceClone,
+                    languageCode: state.targetLanguageCode()
+                )
+                await MainActor.run {
+                    state.providerStatus = state.copy("\(statusPrefix) + 本地克隆 TTS 正常", "\(statusPrefix) + local cloned TTS OK")
+                    Task {
+                        await notifications.notifyCatch(target: target, roast: text)
+                    }
+                    do {
+                        try speechPlayer.play(audioData: audio)
+                    } catch {
+                        state.providerStatus = state.copy("本地 TTS 播放失败：\(error.localizedDescription)", "Local TTS audio playback failed: \(error.localizedDescription)")
+                        speechPlayer.speak(text)
+                    }
                 }
-                speechPlayer.speak(text)
+            } catch {
+                await MainActor.run {
+                    state.providerStatus = state.copy("本地 TTS 降级：\(error.localizedDescription)；已改用系统朗读", "Local TTS fallback: \(error.localizedDescription); using system speech")
+                    Task {
+                        await notifications.notifyCatch(target: target, roast: text)
+                    }
+                    speechPlayer.speak(text)
+                }
             }
             return
         }

@@ -1,17 +1,17 @@
 # Hunter MVP Acceptance Checklist
 
-日期：2026-05-27
+日期：2026-05-28
 
 ## 验收结论
 
-当前版本已经具备可运行的 macOS MVP 主链路：可打包启动、可配置监督规则、可创建时长任务、默认阿里 `ASR -> LLM -> TTS` 链路已通过低成本云端烟测。已补本机 GUI 基础验收：设置窗启动、40 分钟时长任务、演示抓包、历史记录、麦克风权限、录制测试入口和 DMG 打包均通过。Option+Space 真实按住说话、真人麦克风输入和真实浏览器黑名单命中仍需要继续做最终权限/桌面验收。
+当前版本已经具备可运行的 macOS MVP 主链路：可打包启动、可配置监督规则、可创建时长任务，默认 LLM 使用 DeepSeek，本地 ASR 使用 SenseVoice 并已通过“中文语音 -> 40 分钟监督任务”烟测。本机 GUI 基础验收、演示抓包、历史记录、麦克风权限、录制测试入口和 DMG 打包均通过。Option+Space 真人按住说话、真实浏览器黑名单命中和 Qwen3-TTS 大模型克隆延迟仍需要继续做桌面验收。
 
 ## Checklist
 
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，18 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
+| 单元测试通过 | Pass | `swift test`，21 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地模型配置、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
@@ -21,13 +21,13 @@
 | 工作时段配置 | Pass | 设置页支持多个时段、工作日/周末开关，单测覆盖日间、跨午夜、多时段和周末排除 |
 | 网站/App 黑名单配置 | Pass | 设置页支持新增、删除、启用/停用规则，并提供常见平台预设 |
 | 悬浮球/小组件 | Pass | 设置页可开启小组件，启动后保持监督入口；悬浮抓包卡片还需补单独截图验收 |
-| 语音快速创建监督时长 | Pass | `--smoke-voice-focus`：`监督我接下来的四十分钟` WAV -> ASR 文本 `监督我接下来的40分钟。` -> `focus_minutes=40` |
+| 语音快速创建监督时长 | Pass | `--smoke-local-voice-focus`：`监督我接下来的四十分钟` WAV -> 本地 SenseVoice 文本 `监督我接下来的四十分钟` -> `focus_minutes=40` |
 | 时长任务暂停/延长/结束 | Pass | 设置页和菜单栏提供暂停/恢复/延长/结束；GUI 验证 40 分钟任务会启用暂停、+10、结束按钮；单测覆盖 pause/resume/extend |
-| ASR 默认链路 | Pass | `paraformer-realtime-v2` 识别 `监督我接下来的40分钟。` |
+| ASR 默认链路 | Pass | 本地 SenseVoice Small INT8 安装和识别通过；云端 `paraformer-realtime-v2` 仍保留为 fallback |
 | LLM 默认链路 | Pass | 默认配置已切到 DeepSeek `deepseek-v4-flash`；`--smoke-llm` 已用本机 Keychain 密钥验证通过 |
-| TTS 默认链路 | Pass | `cosyvoice-v3-flash + longanyang` 返回 WAV 音频字节 |
+| TTS 默认链路 | Partial | 本地 Qwen3-TTS 克隆 worker 已接入模型/样本/参考文本调用路径；未配置样本或模型时使用 macOS 系统语音本地降级；阿里 `cosyvoice-v3-flash + longanyang` 云端烟测曾通过 |
 | TTS 本地缓存 | Pass | 按 model、voice、language、text 缓存音频，单测覆盖命中和隔离 |
-| Provider 可配置 | Partial | 设置页中 ASR/LLM/TTS 三类模型可独立配置；云端模式只填 Provider、Base URL、Model、API Key；ASR/TTS 提供本地模型下载入口；完全异构供应商和本地推理还需新增 adapter |
+| Provider 可配置 | Pass | 设置页中 ASR/LLM/TTS 三类模型可独立配置；云端模式只填 Provider、Base URL、Model、API Key；ASR/TTS 提供本地模型下载入口；本地 ASR adapter 已实测通过 |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
 | 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
 | 语音对喷链路 | Partial | ASR/LLM/TTS 子链路已测，麦克风权限已允许，设置页录制测试入口可触发录音；本机正常音量 `say` 播报未被麦克风识别，需真人靠近麦克风复测 Option+Space |
@@ -36,7 +36,7 @@
 | 今日历史统计与清理 | Pass | 历史页展示今日抓包、今日最多命中和清除日志；GUI 验证演示抓包从 10 增至 11，且同次 LLM 升级不重复插入 |
 | 本地通知降级反馈 | Pass | 通知授权后，抓包/回击成功会发送无声本地通知 |
 | 安全与隐私 | Pass | `.env.local` 被忽略，API Key 可写 Keychain，仓库未发现明文 key |
-| 音色克隆 | Partial | 声音页已支持授权确认、本机音频样本选择和录制；云端/本地克隆推理 adapter 尚未接入 |
+| 音色克隆 | Partial | 声音页已支持授权确认、本机音频样本选择/录制和参考文本；本地 Qwen3-TTS 克隆 worker 已接入调用路径，但大模型首次下载/推理延迟仍需更多 Mac 机型压测 |
 | 登录时启动 | Pass | 设置页开关接入 `SMAppService.mainApp.register/unregister` |
 
 ## 本轮验证命令
@@ -44,9 +44,12 @@
 ```bash
 swift build
 swift test
-./.build/debug/Hunter --smoke-llm-tts
+./.build/debug/Hunter --smoke-llm
 say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
 afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
+./.build/debug/Hunter --install-local-asr
+./.build/debug/Hunter --smoke-local-asr /tmp/hunter-asr.wav
+./.build/debug/Hunter --smoke-local-voice-focus /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-asr /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-voice-focus /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-current-context

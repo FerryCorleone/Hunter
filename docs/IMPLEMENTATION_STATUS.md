@@ -1,7 +1,7 @@
 # Hunter Implementation Status
 
 日期：2026-05-28
-状态：MVP 主链路可运行，设置页已按原生 macOS 控件和简化表单方向整理，语音录制入口和端到端验收继续推进
+状态：MVP 主链路可运行，本地 ASR 已接入并通过烟测，TTS 本地克隆 worker 已接入调用路径并保留系统语音降级
 
 ## 已完成
 
@@ -29,7 +29,9 @@
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
 - ASR / LLM / TTS Provider 配置在设置页可编辑，三类模型互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
-- ASR / TTS 增加“本地模型 / 云端 API”切换；本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B Base，并提供下载到本机按钮。
+- ASR / TTS 增加“本地模型 / 云端 API”切换；默认新配置优先本地模式，本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B Base，并提供下载到本机按钮。
+- 本地 SenseVoice ASR runtime：下载模型后创建 Hunter 私有 Python runtime，通过 `sherpa_onnx` 本地识别短 WAV，不上传用户录音。
+- 本地 Qwen3-TTS 克隆 worker：已接入本地模型、授权样本和参考文本参数；未配置样本/模型或运行失败时，使用 macOS 系统语音本地降级。
 - Provider 面板提供测试 LLM、测试 TTS、测试 ASR（选择本地音频文件）和端到端测试入口。
 - 设置页可把每类模型的 API Key 分别写入 macOS Keychain。
 - 声音页支持预置音色和克隆声音入口；用户可选择本地音频样本或直接录制声音样本，样本保存到本机 Application Support。
@@ -44,6 +46,11 @@
   - `./.build/debug/Hunter --smoke-llm`
   - `./.build/debug/Hunter --smoke-asr /path/to/audio.wav`
   - `./.build/debug/Hunter --smoke-voice-focus /path/to/audio.wav`
+  - `./.build/debug/Hunter --install-local-asr`
+  - `./.build/debug/Hunter --smoke-local-asr /path/to/audio.wav`
+  - `./.build/debug/Hunter --smoke-local-voice-focus /path/to/audio.wav`
+  - `./.build/debug/Hunter --install-local-tts`
+  - `./.build/debug/Hunter --smoke-local-tts "文本" /path/to/ref-audio.wav`
   - `./.build/debug/Hunter --smoke-current-context`
 
 ## 已验证
@@ -60,6 +67,9 @@
 - 本机 GUI 演示抓包验收通过：历史页今日抓包从 10 增至 11，新增 12:29 YouTube 抓包仅一条，说明 fallback/LLM 升级去重生效；截图证据在 `/tmp/hunter-history-1229.png`。
 - 本机权限验收：辅助功能和麦克风均已允许；设置页“录制测试”可触发录音、识别中和 ASR 空结果提示。
 - 本机正常音量 `say -v Tingting '监督我接下来的四十分钟'` 未被麦克风稳定拾取，界面正确提示“没有识别到语音，请靠近麦克风再试”；仍需真人靠近麦克风做最终语音输入验收。
+- 本地 ASR 安装通过：`--install-local-asr` 下载 SenseVoice Small INT8 并安装 ASR runtime。
+- 本地 ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> `--smoke-local-asr` 识别为 `监督我接下来的四十分钟`。
+- 本地语音时长任务烟测通过：同一段 WAV -> 本地 SenseVoice -> `DurationParser` -> `focus_minutes=40`。
 - 阿里 `qwen-turbo` 抓包吐槽烟测曾通过；本机默认 LLM 已切到 DeepSeek `deepseek-v4-flash`，`--smoke-llm` 已用本机 Keychain 密钥验证通过。
 - 阿里 `cosyvoice-v3-flash + longanyang` 极短文本烟测通过，TTS 用量 2 字符。
 - 阿里 `paraformer-realtime-v2` ASR 烟测通过：系统生成 WAV `监督我接下来的四十分钟` -> 识别为 `监督我接下来的40分钟。`
@@ -75,8 +85,8 @@
 - 真人麦克风端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
 - Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。
-- 本地 ASR/TTS 当前已完成模型选择和下载入口；本地推理 adapter 尚未接入，因此本地模式下不会把音频发到云端 ASR，TTS 会明确提示 adapter 待接入并暂用系统朗读降级。
-- 声音克隆目前已支持授权确认、本机样本上传/录制和样本路径持久化；具体云端克隆生成音色 ID 仍需接入对应 TTS Provider adapter。
+- 本地 Qwen3-TTS 模型体积大，需继续在 Apple Silicon 低/中/高配机器上压测首次合成延迟和内存占用。
+- 声音克隆目前已支持授权确认、本机样本上传/录制、参考文本和样本路径持久化；云端克隆生成音色 ID 仍需接入对应 TTS Provider adapter。
 
 ## 注意
 

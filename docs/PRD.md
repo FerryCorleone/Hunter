@@ -1,8 +1,8 @@
 # Hunter PRD
 
-版本：v0.4
+版本：v0.5
 日期：2026-05-28
-状态：待审阅
+状态：实现中，MVP 验收推进
 
 ## 0. Discovery Notes
 
@@ -17,7 +17,7 @@
 - 软件界面需要支持中英文。
 - AI 监督和语音对喷内容需要支持中文和英文。
 - 悬浮球需要支持语音快速创建时长任务，例如“监督我接下来的 40 分钟”。
-- 第一阶段产出 PRD、设计稿、技术评估和图像参考稿，供审阅后再开发。
+- 当前阶段产出可运行原生 macOS App、PRD、设计稿、技术评估、验收清单和可打包 DMG。
 
 待确认问题：
 
@@ -60,7 +60,7 @@
 3. 设置工作时间。
 4. 添加网站/App 黑名单。
 5. 选择界面语言和 AI 监督语言。
-6. 配置 ASR/LLM/TTS；LLM 可先用 DeepSeek API，ASR/TTS 可选择本地模型下载或填写云端 API。
+6. 配置 ASR/LLM/TTS；默认 LLM 使用 DeepSeek API，默认 ASR/TTS 优先本地模型，用户也可切换为云端 API。
 7. 选择 AI 监工角色、吐槽强度和 TTS 音色。
 8. 点击“开始监督”，桌面出现轻量悬浮球。
 9. 用户也可以按住快捷键说“监督我接下来的 40 分钟”，Hunter 解析出时长并立刻开启一个 40 分钟 Focus Session。
@@ -145,6 +145,8 @@ Acceptance Criteria:
 - ASR、LLM、TTS 三类 Provider 可独立配置和启用。
 - 每类 Provider 的 MVP UI 只展示四个必填项：Provider、Base URL、Model、API Key。
 - ASR/TTS 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源和下载按钮。
+- 本地 ASR 使用 SenseVoice Small INT8，下载后可在本机完成短音频识别，不上传用户录音。
+- 本地 TTS 使用 Qwen3-TTS 克隆 worker；未配置授权样本或模型未就绪时，使用 macOS 系统语音本地降级。
 - API Key 进入 Keychain，不以明文写入配置文件或日志。
 - 提供“测试 ASR”“测试 LLM”“测试 TTS”“端到端测试”四类检查。
 - 内置 DeepSeek LLM、阿里云百炼云端 ASR/TTS、本地 SenseVoice ASR、本地 Qwen3-TTS 模板；用户可以新增 OpenAI-compatible 或 custom HTTP provider。

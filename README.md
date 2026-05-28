@@ -4,7 +4,7 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 
 ## Current Stage
 
-当前仓库已进入原生 macOS MVP 开发阶段，包含产品文档、HTML 审稿原型和可编译、可打包的 SwiftUI/AppKit 应用：
+当前仓库已进入原生 macOS 可用版本打磨阶段，包含产品文档、HTML 审稿原型和可编译、可打包的 SwiftUI/AppKit 应用：
 
 - [PRD](docs/PRD.md)
 - [设计稿](docs/DESIGN.md)
@@ -38,8 +38,9 @@ Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，
 - macOS 原生菜单栏应用：SwiftUI + AppKit
 - 前台 App 检测：`NSWorkspace`
 - Chrome/Safari URL 检测：AppleScript/ScriptingBridge 起步
-- 语音链路：用户可配置 ASR 云端 API -> LLM 云端 API -> TTS 云端 API
-- 默认测试模板：阿里云百炼 `paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3-flash`
+- 语音链路：`ASR -> LLM -> TTS`，ASR/TTS 支持本地模型或云端 API
+- 默认测试模板：本地 SenseVoice ASR + DeepSeek `deepseek-v4-flash` + 本地 Qwen3-TTS/系统语音降级
+- 云端模板：阿里云百炼 `paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3-flash`
 - 本地存储：SQLite 或 SwiftData
 - 密钥存储：macOS Keychain
 
@@ -57,18 +58,27 @@ open build/Hunter.app
 
 ## Provider Smoke Tests
 
-在已配置 `DASHSCOPE_API_KEY` 后，可以用命令行入口低成本验证默认阿里链路：
+在已配置 `DEEPSEEK_API_KEY` 后，可以用命令行入口验证默认 LLM 和本地 ASR 链路：
+
+```bash
+./.build/debug/Hunter --smoke-llm
+./.build/debug/Hunter --install-local-asr
+say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
+afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
+./.build/debug/Hunter --smoke-local-asr /tmp/hunter-asr.wav
+./.build/debug/Hunter --smoke-local-voice-focus /tmp/hunter-asr.wav
+```
+
+如果用户选择云端 ASR/TTS，并配置了 `DASHSCOPE_API_KEY`，可以继续验证阿里链路：
 
 ```bash
 ./.build/debug/Hunter --smoke-llm-tts
-say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
-afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-asr /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-voice-focus /tmp/hunter-asr.wav
 ./.build/debug/Hunter --smoke-current-context
 ```
 
-ASR / LLM / TTS 的 provider 名称、base URL、model、API key 环境变量名、鉴权 scheme、额外 headers、region、语言提示和 TTS 音色 ID 都可以在设置页编辑，并提供 LLM/TTS/ASR/端到端测试入口。当前内置 adapter 覆盖阿里默认链路和 OpenAI-compatible LLM；接入完全不同协议的供应商时，需要新增 adapter。
+ASR / LLM / TTS 的 provider 名称、base URL、model 和 API Key 可以在设置页编辑，并提供 LLM/TTS/ASR/端到端测试入口。当前内置 adapter 覆盖本地 SenseVoice ASR、DeepSeek/OpenAI-compatible LLM、阿里 ASR/TTS 和 Qwen3-TTS 本地克隆 worker；接入完全不同协议的供应商时，需要新增 adapter。
 
 时长任务支持开始、暂停、恢复、延长 10 分钟和结束，也支持语音指令控制，例如“暂停监督”“恢复监督”“延长 10 分钟”“结束监督”。
 

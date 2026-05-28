@@ -127,8 +127,8 @@ struct DurationParserTests {
         #expect(settings.llm.baseURL == "https://api.deepseek.com")
         #expect(settings.llm.model == "deepseek-v4-flash")
         #expect(settings.llm.apiKeyEnvironmentName == "DEEPSEEK_API_KEY")
-        #expect(settings.asrMode == .cloudAPI)
-        #expect(settings.ttsMode == .cloudAPI)
+        #expect(settings.asrMode == .localModel)
+        #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRModelID == LocalModelCatalog.defaultASR.id)
         #expect(settings.localTTSModelID == LocalModelCatalog.defaultTTS.id)
     }
@@ -137,8 +137,8 @@ struct DurationParserTests {
         let data = Data("{}".utf8)
         let settings = try JSONDecoder.hunter.decode(ProviderSettings.self, from: data)
         #expect(settings.llm.model == "deepseek-v4-flash")
-        #expect(settings.asrMode == .cloudAPI)
-        #expect(settings.ttsMode == .cloudAPI)
+        #expect(settings.asrMode == .localModel)
+        #expect(settings.ttsMode == .localModel)
         #expect(settings.localASRInstallPath == nil)
         #expect(settings.localTTSInstallPath == nil)
     }

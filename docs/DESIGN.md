@@ -147,7 +147,7 @@ TTS  [本地模型 / 云端 API]  Qwen3-TTS 0.6B / Provider Base URL Model API K
 
 用户可以让 ASR、LLM、TTS 分别使用不同厂商。API Key 通过设置页写入本机 Keychain，不作为普通文本配置持久化。鉴权 scheme、headers、region、语言提示和流式能力不在 MVP UI 中展示，由 adapter 默认处理。
 
-ASR/TTS 的本地模型模式只展示模型名称、能力说明、来源和“下载到本机”按钮。模型保存在 Hunter 的 Application Support 目录，不混进项目仓库，也不上传用户音频。
+ASR/TTS 的本地模型模式只展示模型名称、能力说明、来源和“下载到本机”按钮。模型保存在 Hunter 的 Application Support 目录，不混进项目仓库，也不上传用户音频。本地 ASR 下载后可直接用于语音时长任务；本地 TTS 未配置授权样本时使用 macOS 系统语音降级。
 
 ### Voice & Language
 
@@ -157,7 +157,7 @@ ASR/TTS 的本地模型模式只展示模型名称、能力说明、来源和“
 - 角色：毒舌同事、老板附体、自律教练。
 - 强度：温柔、阴阳怪气、破防模式。
 - 音色：预置音色 ID、授权克隆声音。
-- 克隆声音：用户确认授权后，可选择本地音频样本或直接录制声音样本；样本保存在本机，具体云端克隆生成音色 ID 由 TTS Provider adapter 执行。
+- 克隆声音：用户确认授权后，可选择本地音频样本或直接录制声音样本，并可填写样本参考文本；样本保存在本机，本地 Qwen3-TTS worker 会优先使用授权样本生成克隆语音，云端克隆生成音色 ID 由后续 TTS Provider adapter 执行。
 
 ### History
 

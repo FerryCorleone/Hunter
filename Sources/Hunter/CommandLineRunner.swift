@@ -48,6 +48,93 @@ enum CommandLineRunner {
                 print("asr_text=\(text)")
             }
             return true
+        case "--smoke-local-asr":
+            guard args.count >= 2 else {
+                fputs("usage: Hunter --smoke-local-asr /path/to/audio.wav\n", stderr)
+                exit(2)
+            }
+            let path = String(args.dropFirst().first!)
+            waitForAsync {
+                var settings = ProviderSettings()
+                settings.asrMode = .localModel
+                let data = try Data(contentsOf: URL(fileURLWithPath: path))
+                let text = try await LocalSpeechClient().transcribeWAV(data, settings: settings, languageCode: "zh")
+                print("local_asr_ok=true")
+                print("local_asr_model=\(settings.localASRModelID)")
+                print("asr_text=\(text)")
+            }
+            return true
+        case "--smoke-local-voice-focus":
+            guard args.count >= 2 else {
+                fputs("usage: Hunter --smoke-local-voice-focus /path/to/audio.wav\n", stderr)
+                exit(2)
+            }
+            let path = String(args.dropFirst().first!)
+            waitForAsync {
+                var settings = ProviderSettings()
+                settings.asrMode = .localModel
+                let data = try Data(contentsOf: URL(fileURLWithPath: path))
+                let text = try await LocalSpeechClient().transcribeWAV(data, settings: settings, languageCode: "zh")
+                guard let duration = DurationParser().parse(text) else {
+                    fputs("local_voice_focus_ok=false\nasr_text=\(text)\n", stderr)
+                    exit(1)
+                }
+                print("local_voice_focus_ok=true")
+                print("asr_text=\(text)")
+                print("focus_minutes=\(Int(duration / 60))")
+            }
+            return true
+        case "--install-local-asr":
+            waitForAsync {
+                let descriptor = LocalModelCatalog.defaultASR
+                let path = try await LocalModelInstaller().install(descriptor) { message in
+                    print("progress=\(message)")
+                }
+                print("local_asr_installed=true")
+                print("local_asr_path=\(path.path)")
+            }
+            return true
+        case "--install-local-tts":
+            waitForAsync {
+                let descriptor = LocalModelCatalog.defaultTTS
+                let path = try await LocalModelInstaller().install(descriptor) { message in
+                    print("progress=\(message)")
+                }
+                print("local_tts_installed=true")
+                print("local_tts_path=\(path.path)")
+            }
+            return true
+        case "--smoke-local-tts":
+            guard args.count >= 4 else {
+                fputs("usage: Hunter --smoke-local-tts \"text\" /path/to/ref-audio.wav [/path/to/output.wav]\n", stderr)
+                exit(2)
+            }
+            let text = String(args.dropFirst().first!)
+            let sample = String(args.dropFirst(2).first!)
+            let outputPath = args.dropFirst(3).first.map { String($0) }
+                ?? FileManager.default.temporaryDirectory.appendingPathComponent("hunter-local-tts-smoke.wav").path
+            waitForAsync {
+                var settings = ProviderSettings()
+                settings.ttsMode = .localModel
+                let voiceClone = VoiceCloneSettings(
+                    source: .cloned,
+                    samplePath: sample,
+                    sampleTranscript: nil,
+                    consentConfirmed: true
+                )
+                let data = try await LocalSpeechClient().synthesizeSpeech(
+                    text: text,
+                    settings: settings,
+                    voiceClone: voiceClone,
+                    languageCode: "zh"
+                )
+                try data.write(to: URL(fileURLWithPath: outputPath))
+                print("local_tts_ok=true")
+                print("local_tts_model=\(settings.localTTSModelID)")
+                print("tts_output=\(outputPath)")
+                print("tts_bytes=\(data.count)")
+            }
+            return true
         case "--smoke-voice-focus":
             guard args.count >= 2 else {
                 fputs("usage: Hunter --smoke-voice-focus /path/to/audio.wav\n", stderr)
@@ -81,7 +168,7 @@ enum CommandLineRunner {
     }
 
     private static func waitForAsync(_ operation: @escaping @Sendable () async throws -> Void) {
-        let semaphore = DispatchSemaphore(value: 0)
+        let completion = CommandLineCompletion()
         Task {
             do {
                 try await operation()
@@ -89,8 +176,27 @@ enum CommandLineRunner {
                 fputs("error=\(error.localizedDescription)\n", stderr)
                 exit(1)
             }
-            semaphore.signal()
+            completion.complete()
         }
-        semaphore.wait()
+        while !completion.isComplete {
+            RunLoop.current.run(mode: .default, before: Date(timeIntervalSinceNow: 0.05))
+        }
+    }
+}
+
+private final class CommandLineCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var isComplete: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func complete() {
+        lock.lock()
+        value = true
+        lock.unlock()
     }
 }

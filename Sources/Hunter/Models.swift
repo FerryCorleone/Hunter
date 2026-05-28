@@ -262,8 +262,8 @@ struct ProviderSettings: Codable, Equatable {
     var llm: ProviderEndpoint = .deepSeekLLM
     var tts: ProviderEndpoint = .aliyunTTS
     var voice: String = "longanyang"
-    var asrMode: ModelExecutionMode = .cloudAPI
-    var ttsMode: ModelExecutionMode = .cloudAPI
+    var asrMode: ModelExecutionMode = .localModel
+    var ttsMode: ModelExecutionMode = .localModel
     var localASRModelID: String = LocalModelCatalog.defaultASR.id
     var localTTSModelID: String = LocalModelCatalog.defaultTTS.id
     var localASRInstallPath: String?
@@ -287,8 +287,8 @@ struct ProviderSettings: Codable, Equatable {
         llm: ProviderEndpoint = .deepSeekLLM,
         tts: ProviderEndpoint = .aliyunTTS,
         voice: String = "longanyang",
-        asrMode: ModelExecutionMode = .cloudAPI,
-        ttsMode: ModelExecutionMode = .cloudAPI,
+        asrMode: ModelExecutionMode = .localModel,
+        ttsMode: ModelExecutionMode = .localModel,
         localASRModelID: String = LocalModelCatalog.defaultASR.id,
         localTTSModelID: String = LocalModelCatalog.defaultTTS.id,
         localASRInstallPath: String? = nil,
@@ -312,8 +312,8 @@ struct ProviderSettings: Codable, Equatable {
         llm = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .llm) ?? .deepSeekLLM
         tts = try container.decodeIfPresent(ProviderEndpoint.self, forKey: .tts) ?? .aliyunTTS
         voice = try container.decodeIfPresent(String.self, forKey: .voice) ?? "longanyang"
-        asrMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .asrMode) ?? .cloudAPI
-        ttsMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .ttsMode) ?? .cloudAPI
+        asrMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .asrMode) ?? .localModel
+        ttsMode = try container.decodeIfPresent(ModelExecutionMode.self, forKey: .ttsMode) ?? .localModel
         localASRModelID = try container.decodeIfPresent(String.self, forKey: .localASRModelID) ?? LocalModelCatalog.defaultASR.id
         localTTSModelID = try container.decodeIfPresent(String.self, forKey: .localTTSModelID) ?? LocalModelCatalog.defaultTTS.id
         localASRInstallPath = try container.decodeIfPresent(String.self, forKey: .localASRInstallPath)
@@ -340,6 +340,7 @@ enum VoiceSource: String, CaseIterable, Codable, Identifiable {
 struct VoiceCloneSettings: Codable, Equatable {
     var source: VoiceSource = .preset
     var samplePath: String?
+    var sampleTranscript: String?
     var consentConfirmed: Bool = false
 }
 

@@ -25,7 +25,7 @@
 | 时长任务暂停/延长/结束 | Pass | 设置页和菜单栏提供暂停/恢复/延长/结束；GUI 验证 40 分钟任务会启用暂停、+10、结束按钮；单测覆盖 pause/resume/extend |
 | ASR 默认链路 | Pass | 本地 SenseVoice Small INT8 安装和识别通过；云端 `paraformer-realtime-v2` 仍保留为 fallback |
 | LLM 默认链路 | Partial | 默认配置已切到 DeepSeek `deepseek-v4-flash`；早前 `--smoke-llm` 已用旧本机密钥验证通过。Keychain 完全移除后，如果密钥只存在旧钥匙串里，需要在设置页重新保存一次 API Key 或写入 `.env.local` 后复测 |
-| TTS 默认链路 | Pass | 本地默认 TTS 使用 Qwen3-TTS CustomVoice 预置音色，默认 speaker 为 `Vivian`，不要求声音样本；`--smoke-local-tts` 已生成 24kHz WAV，`tts.log` 记录 `LOCAL_TTS_START` 和 `LOCAL_TTS_SUCCESS`；抓包/对喷播报链路已移除 macOS 系统朗读兜底；克隆声音另走 Base + 授权样本 |
+| TTS 默认链路 | Pass | 本地默认 TTS 使用 Qwen3-TTS CustomVoice 预置音色，默认 speaker 为 `Vivian`，不要求声音样本；`--smoke-local-tts` 已生成 24kHz WAV，`tts.log` 记录 `LOCAL_TTS_SUCCESS elapsed=...` 和 `AUDIO_PLAYER_PLAYING`；抓包/对喷播报链路已移除 macOS 系统朗读兜底；本地首次合成较慢时悬浮卡片会显示合成中状态；克隆声音另走 Base + 授权样本 |
 | TTS 本地缓存 | Pass | 按 model、voice、language、text 缓存音频，单测覆盖命中和隔离 |
 | Provider 可配置 | Pass | 设置页中 ASR/LLM/TTS/Search 四类能力可独立配置；云端模式只填 Provider、Base URL、Model、API Key；ASR/TTS 提供本地模型下载入口；本地 ASR adapter 已实测通过 |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |

@@ -4,7 +4,7 @@ import Foundation
 
 enum CommandLineRunner {
     static func runIfRequested() -> Bool {
-        let args = CommandLine.arguments.dropFirst()
+        let args = Array(CommandLine.arguments.dropFirst())
         guard let command = args.first else {
             return false
         }
@@ -110,8 +110,17 @@ enum CommandLineRunner {
                 exit(2)
             }
             let text = String(args.dropFirst().first!)
-            let sample = args.dropFirst(2).first.map { String($0) }
-            let outputPath = args.dropFirst(sample == nil ? 2 : 3).first.map { String($0) }
+            let extraArgs = Array(args.dropFirst(2))
+            let sample: String?
+            let explicitOutputPath: String?
+            if let firstExtra = extraArgs.first, FileManager.default.fileExists(atPath: firstExtra) {
+                sample = firstExtra
+                explicitOutputPath = extraArgs.dropFirst().first
+            } else {
+                sample = nil
+                explicitOutputPath = extraArgs.first
+            }
+            let outputPath = explicitOutputPath
                 ?? FileManager.default.temporaryDirectory.appendingPathComponent("hunter-local-tts-smoke.wav").path
             waitForAsync {
                 var settings = ProviderSettings()

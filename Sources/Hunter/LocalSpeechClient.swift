@@ -29,6 +29,7 @@ struct LocalSpeechClient {
 
     private let installer = LocalModelInstaller()
     private let runtime = LocalSpeechRuntime()
+    private let audioCache = AudioCache()
 
     func transcribeWAV(_ audioData: Data, settings: ProviderSettings, languageCode: String) async throws -> String {
         let descriptor = LocalModelCatalog.model(id: settings.localASRModelID, kind: .asr)
@@ -72,6 +73,18 @@ struct LocalSpeechClient {
         let usesClone = voiceClone.source == .cloned
         let descriptor = usesClone ? LocalModelCatalog.voiceCloneTTS : LocalModelCatalog.defaultTTS
         let overridePath = settings.localTTSModelID == descriptor.id ? settings.localTTSInstallPath : nil
+        let cacheKey = AudioCache.Key(
+            model: descriptor.id,
+            voice: cacheVoiceKey(settings: settings, voiceClone: voiceClone, usesClone: usesClone),
+            languageCode: languageCode,
+            text: text
+        )
+        if let cached = audioCache.data(for: cacheKey) {
+            TTSDiagnostics.record("LOCAL_TTS_CACHE_HIT mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) bytes=\(cached.count)")
+            return cached
+        }
+
+        let startedAt = Date()
         TTSDiagnostics.record("LOCAL_TTS_START mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) voice=\(settings.voice) language=\(languageCode) text_chars=\(text.count)")
         guard let modelDirectory = installer.resolvedInstalledPath(for: descriptor, overridePath: overridePath) else {
             TTSDiagnostics.record("LOCAL_TTS_MODEL_MISSING model=\(descriptor.id)")
@@ -132,12 +145,27 @@ struct LocalSpeechClient {
         do {
             _ = try await LocalProcess.run(executable: python, arguments: arguments, timeout: 240)
             let data = try Data(contentsOf: outputURL)
-            TTSDiagnostics.record("LOCAL_TTS_SUCCESS mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) bytes=\(data.count) output=\(outputURL.path)")
+            audioCache.store(data, for: cacheKey)
+            let elapsed = Date().timeIntervalSince(startedAt)
+            TTSDiagnostics.record("LOCAL_TTS_SUCCESS mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) bytes=\(data.count) elapsed=\(formatSeconds(elapsed)) output=\(outputURL.path)")
             return data
         } catch {
-            TTSDiagnostics.record("LOCAL_TTS_FAILED mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) error=\(error.localizedDescription)")
+            let elapsed = Date().timeIntervalSince(startedAt)
+            TTSDiagnostics.record("LOCAL_TTS_FAILED mode=\(usesClone ? "clone" : "custom") model=\(descriptor.id) elapsed=\(formatSeconds(elapsed)) error=\(error.localizedDescription)")
             throw error
         }
+    }
+
+    private func cacheVoiceKey(settings: ProviderSettings, voiceClone: VoiceCloneSettings, usesClone: Bool) -> String {
+        if usesClone {
+            return [
+                "clone",
+                voiceClone.samplePath ?? "",
+                voiceClone.sampleTranscript ?? "",
+                "qwen3-tts-base-v1"
+            ].joined(separator: ":")
+        }
+        return "custom:\(LocalTTSSpeaker.normalized(settings.voice)):conversational-v2"
     }
 
     private func localTTSInstruction(languageCode: String) -> String {
@@ -146,6 +174,11 @@ struct LocalSpeechClient {
         }
         return "像真人在旁边当面吐槽，不要播音腔，不要机器人腔。语速稍快，口语化，带一点不耐烦和压迫感，停顿自然。"
     }
+
+    private func formatSeconds(_ value: TimeInterval) -> String {
+        String(format: "%.2fs", value)
+    }
+
 
     private func decodeJSON<T: Decodable>(_ type: T.Type, from output: String) throws -> T {
         let lines = output

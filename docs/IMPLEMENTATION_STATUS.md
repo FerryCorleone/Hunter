@@ -31,8 +31,8 @@
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - 播报音量已调到产品可用级：本地/云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
 - 抓包/对喷播报链路不再静默降级到 macOS 系统朗读；LLM 失败后的兜底吐槽也会继续走当前配置的 TTS，TTS 合成或播放失败会在状态里明确报错。
-- TTS 路径诊断日志已接入：`~/Library/Application Support/Hunter/Logs/tts.log` 会记录 `LOCAL_TTS_START` / `LOCAL_TTS_SUCCESS` 和 `AUDIO_PLAYER_PLAYING`，用于确认真实抓包是否走本地模型并完成音频播放；当前构建不应再出现 `SYSTEM_SPEECH_START`，若出现代表仍在运行旧版。
-- TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟。
+- TTS 路径诊断日志已接入：`~/Library/Application Support/Hunter/Logs/tts.log` 会记录 `LOCAL_TTS_START` / `LOCAL_TTS_SUCCESS elapsed=...`、`LOCAL_TTS_CACHE_HIT` 和 `AUDIO_PLAYER_PLAYING`，用于确认真实抓包是否走本地模型并完成音频播放；当前构建不应再出现 `SYSTEM_SPEECH_START`，若出现代表仍在运行旧版。
+- TTS 音频本地缓存：按 model、voice、language、text 缓存 WAV，减少重复云端调用和延迟；本地 Qwen3-TTS 首次合成可能需要 20-40 秒，悬浮卡片会在合成阶段明确提示“正在生成语音”。
 - ASR / LLM / TTS / Search Provider 配置在设置页可编辑，四类能力互不联动；每类只展示 Provider、Base URL、Model 和 API Key。
 - ASR / TTS 增加“本地模型 / 云端 API”切换；默认新配置优先本地模式，本地 ASR 推荐 SenseVoice Small INT8，本地 TTS 推荐 Qwen3-TTS 0.6B CustomVoice，并提供下载到本机按钮。
 - 本地 SenseVoice ASR runtime：下载模型后创建 Hunter 私有 Python runtime，通过 `sherpa_onnx` 本地识别短 WAV，不上传用户录音。

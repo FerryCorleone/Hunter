@@ -3,6 +3,17 @@ import Foundation
 
 @MainActor
 final class SpeechPlayer {
+    enum PlaybackError: Error, LocalizedError {
+        case didNotStart
+
+        var errorDescription: String? {
+            switch self {
+            case .didNotStart:
+                "Audio playback did not start"
+            }
+        }
+    }
+
     private var player: AVAudioPlayer?
 
     @discardableResult
@@ -13,7 +24,11 @@ final class SpeechPlayer {
         next.volume = 1.0
         next.prepareToPlay()
         player = next
-        next.play()
+        let didStart = next.play()
+        guard didStart else {
+            TTSDiagnostics.record("AUDIO_PLAYER_FAILED reason=play_returned_false duration=\(next.duration)")
+            throw PlaybackError.didNotStart
+        }
         let duration = max(next.duration, 0.8)
         TTSDiagnostics.record("AUDIO_PLAYER_PLAYING duration=\(duration)")
         return duration

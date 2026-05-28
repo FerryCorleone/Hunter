@@ -13,7 +13,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Hunter",
-            path: "Sources/Hunter"
+            path: "Sources/Hunter",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "HunterTests",

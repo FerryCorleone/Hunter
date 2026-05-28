@@ -29,20 +29,15 @@ struct FloatingOverlayView: View {
 
     private var orb: some View {
         ZStack(alignment: .bottomTrailing) {
-            Text("H")
-                .font(.system(size: 25, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary.opacity(0.82))
-                .frame(width: 66, height: 66)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.82), lineWidth: 1))
-                .shadow(color: .black.opacity(0.17), radius: 18, y: 10)
+            FloatingMascotIcon(isMonitoring: state.isMonitoring)
 
             Circle()
                 .fill(state.isMonitoring ? Color.green : Color.yellow)
-                .frame(width: 15, height: 15)
+                .frame(width: 13, height: 13)
                 .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 3))
-                .offset(x: -7, y: -7)
+                .offset(x: -1, y: -1)
         }
+        .frame(width: 92, height: 64)
     }
 
     private func toastView(_ text: String) -> some View {
@@ -144,6 +139,47 @@ struct FloatingOverlayView: View {
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.7), lineWidth: 1))
         .shadow(color: .black.opacity(0.18), radius: 30, y: 18)
     }
+}
+
+private struct FloatingMascotIcon: View {
+    let isMonitoring: Bool
+
+    var body: some View {
+        Group {
+            if let image = FloatingIconAsset.image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "eyeglasses")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(.cyan)
+            }
+        }
+        .frame(width: 86, height: 58)
+        .shadow(color: .cyan.opacity(isMonitoring ? 0.32 : 0.18), radius: isMonitoring ? 18 : 10, y: 6)
+        .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
+        .contentShape(Rectangle())
+    }
+}
+
+private enum FloatingIconAsset {
+    static let image: NSImage? = {
+        let filename = "hunter-sunglasses-icon"
+        let bundledPath = "Hunter_Hunter.bundle/\(filename).png"
+        let candidateURLs: [URL?] = [
+            Bundle.main.resourceURL?.appendingPathComponent(bundledPath),
+            Bundle.main.bundleURL.appendingPathComponent(bundledPath),
+            Bundle.module.url(forResource: filename, withExtension: "png")
+        ]
+
+        for url in candidateURLs.compactMap({ $0 }) {
+            if let image = NSImage(contentsOf: url) {
+                return image
+            }
+        }
+        return nil
+    }()
 }
 
 struct WaveformView: View {

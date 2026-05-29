@@ -192,7 +192,13 @@ final class IncidentController {
 
     private func fallbackRoast(rule: BlacklistRule, context: FrontmostContext) -> String {
         if state.targetLanguageCode() == "en" {
+            if state.allowProfanity {
+                return "\(context.displayTarget) again? Get your ass back to work."
+            }
             return "Caught on \(context.displayTarget). Back to work."
+        }
+        if state.allowProfanity {
+            return "又他妈在 \(context.displayTarget)，活是会自己干吗？"
         }
         return "抓到你在 \(context.displayTarget)。还干不干活了？"
     }

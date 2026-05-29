@@ -3,13 +3,23 @@ import Foundation
 enum RoastPolicy {
     static func safetyBoundary(allowProfanity: Bool, bannedTerms: String) -> String {
         let profanity = allowProfanity
-            ? "Mild profanity is allowed if it is playful and not hateful."
+            ? "The user explicitly opted in to strong profanity for this self-supervision app. Normal swear words are allowed and encouraged when they make the line sharper; never use hateful slurs."
             : "Do not use profanity."
         let banned = parsedBannedTerms(from: bannedTerms)
         let bannedInstruction = banned.isEmpty
             ? ""
             : "Do not use these banned terms: \(banned.joined(separator: ", "))."
         return "\(profanity) No protected-class insults, real threats, self-harm content, or slurs. \(bannedInstruction)"
+    }
+
+    static func profanityStyleInstruction(allowProfanity: Bool, languageCode: String) -> String {
+        guard allowProfanity else {
+            return languageCode == "en" ? "Do not use profanity." : "不要使用脏话。"
+        }
+        if languageCode == "en" {
+            return "For this test build, include one natural swear word such as damn, shit, fuck, or ass. Keep it comedic and directed at the slacking behavior, not identity."
+        }
+        return "当前是测试阶段，用户已明确允许粗口；必须自然带一句常见中文脏话，例如“他妈的”“妈的”“操”“靠”，骂摸鱼行为，不骂身份。"
     }
 
     static func sanitize(_ text: String, bannedTerms: String, fallback: String = "赶紧干活。") -> String {

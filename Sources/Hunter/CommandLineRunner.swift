@@ -22,6 +22,30 @@ enum CommandLineRunner {
                 print("llm_text=\(roast.prefix(80))")
             }
             return true
+        case "--smoke-profane-roast":
+            waitForAsync {
+                let client = DashScopeClient()
+                let settings = ProviderSettings()
+                let context = FrontmostContext(
+                    appName: "Google Chrome",
+                    bundleID: "com.google.Chrome",
+                    url: "https://www.bilibili.com/video/BV1xx",
+                    pageTitle: "龙同学的视频"
+                )
+                let roast = try await client.generateRoast(
+                    context: context,
+                    settings: settings,
+                    intensity: .savage,
+                    persona: .officeBoss,
+                    allowProfanity: true,
+                    languageCode: "zh"
+                )
+                print("llm_ok=true")
+                print("llm_provider=\(settings.llm.providerName)")
+                print("llm_model=\(settings.llm.model)")
+                print("llm_text=\(roast.prefix(80))")
+            }
+            return true
         case "--smoke-llm-tts":
             waitForAsync {
                 let client = DashScopeClient()

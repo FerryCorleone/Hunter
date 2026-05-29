@@ -64,6 +64,16 @@ final class VoiceCommandController {
         }
     }
 
+    func beginManualReply() {
+        replyLoopTask?.cancel()
+        replyLoopTask = nil
+        beginRecording()
+    }
+
+    func finishManualReply() {
+        finishRecording()
+    }
+
     func beginRecording() {
         guard !isRecording else {
             state.toastMessage = state.interfaceLanguage == .english ? "Already listening..." : "正在听你说..."

@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
-    let onReply: () -> Void
+    let onReplyPressChanged: (Bool) -> Void
     let onPause: () -> Void
 
     var body: some View {
@@ -105,17 +105,11 @@ struct FloatingOverlayView: View {
                 .frame(height: 32)
 
             HStack(spacing: 12) {
-                Button(action: onReply) {
-                    Text(state.copy("按住 \(state.replyShortcut.displayText) 对话", "Hold \(state.replyShortcut.displayText) to talk"))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .frame(width: 184, height: 46)
-                        .background(Color(red: 0.32, green: 0.49, blue: 1.0), in: Capsule())
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
+                PressHoldReplyButton(
+                    title: state.copy("按住 \(state.replyShortcut.displayText) 对话", "Hold \(state.replyShortcut.displayText) to talk"),
+                    pressedTitle: state.copy("松开发送", "Release to send"),
+                    onPressChanged: onReplyPressChanged
+                )
 
                 Button(action: onPause) {
                     Label(state.copy("暂停 5 分钟", "Pause 5 min"), systemImage: "pause.fill")
@@ -132,6 +126,38 @@ struct FloatingOverlayView: View {
         .frame(width: 350)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black.opacity(0.07), lineWidth: 1))
+    }
+}
+
+private struct PressHoldReplyButton: View {
+    let title: String
+    let pressedTitle: String
+    let onPressChanged: (Bool) -> Void
+    @State private var isPressed = false
+
+    var body: some View {
+        Text(isPressed ? pressedTitle : title)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .frame(width: 184, height: 46)
+            .background(isPressed ? Color(red: 0.16, green: 0.34, blue: 0.94) : Color(red: 0.32, green: 0.49, blue: 1.0), in: Capsule())
+            .contentShape(Capsule())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !isPressed else { return }
+                        isPressed = true
+                        onPressChanged(true)
+                    }
+                    .onEnded { _ in
+                        guard isPressed else { return }
+                        isPressed = false
+                        onPressChanged(false)
+                    }
+            )
+            .accessibilityLabel(title)
     }
 }
 
@@ -164,7 +190,6 @@ private struct FloatingMascotIcon: View {
                 hasTimedSession: focusSession?.isActive(at: now) == true
             )
         }
-        .shadow(color: .black.opacity(isMonitoring ? 0.13 : 0.09), radius: isMonitoring ? 8 : 6, y: 4)
         .contentShape(Circle())
         .onReceive(timer) { date in
             now = date

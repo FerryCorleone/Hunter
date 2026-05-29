@@ -1,13 +1,16 @@
-import ApplicationServices
+import Carbon
+import Combine
 import Foundation
 
 @MainActor
 final class HotkeyController {
     private let state: AppState
     private let voiceCommands: VoiceCommandController
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
+    private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
+    private var cancellables: Set<AnyCancellable> = []
     private var isHoldingShortcut = false
+    private let signature = OSType(UInt32(ascii: "HUNT"))
 
     init(state: AppState, voiceCommands: VoiceCommandController) {
         self.state = state
@@ -15,92 +18,129 @@ final class HotkeyController {
     }
 
     func start() {
-        guard eventTap == nil else { return }
-        guard AXIsProcessTrusted() else {
-            state.permissionStatus = state.copy(
-                "需要辅助功能权限才能使用 \(state.replyShortcut.displayText)",
-                "Accessibility permission needed for \(state.replyShortcut.displayText) hotkey"
-            )
-            return
-        }
-
-        let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
-        let refcon = Unmanaged.passUnretained(self).toOpaque()
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: CGEventMask(mask),
-            callback: { _, type, event, refcon in
-                guard let refcon else { return Unmanaged.passUnretained(event) }
-                let controller = Unmanaged<HotkeyController>.fromOpaque(refcon).takeUnretainedValue()
-                Task { @MainActor in
-                    controller.handle(type: type, event: event)
-                }
-                return Unmanaged.passUnretained(event)
-            },
-            userInfo: refcon
-        ) else {
-            state.permissionStatus = state.copy(
-                "需要辅助功能权限才能使用 \(state.replyShortcut.displayText)",
-                "Accessibility permission needed for \(state.replyShortcut.displayText) hotkey"
-            )
-            return
-        }
-
-        eventTap = tap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        runLoopSource = source
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        state.permissionStatus = state.copy(
-            "\(state.replyShortcut.displayText) 快捷键已启用",
-            "\(state.replyShortcut.displayText) hotkey active"
-        )
+        installEventHandlerIfNeeded()
+        registerCurrentShortcut()
+        state.$replyShortcut
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.registerCurrentShortcut()
+            }
+            .store(in: &cancellables)
     }
 
     func stop() {
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        unregisterCurrentShortcut()
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
         }
-        if let eventTap {
-            CFMachPortInvalidate(eventTap)
-        }
-        runLoopSource = nil
-        eventTap = nil
+        eventHandlerRef = nil
+        cancellables.removeAll()
     }
 
-    private func handle(type: CGEventType, event: CGEvent) {
-        let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        let flags = event.flags
-        let isReplyShortcut = shortcutMatches(keyCode: keyCode, flags: flags)
+    private func installEventHandlerIfNeeded() {
+        guard eventHandlerRef == nil else { return }
+        var eventTypes = [
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased))
+        ]
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        let status = InstallEventHandler(
+            GetEventDispatcherTarget(),
+            { _, event, refcon in
+                guard let refcon else { return noErr }
+                let controller = Unmanaged<HotkeyController>.fromOpaque(refcon).takeUnretainedValue()
+                let kind = event.map { GetEventKind($0) } ?? 0
+                Task { @MainActor in
+                    controller.handle(eventKind: kind)
+                }
+                return noErr
+            },
+            eventTypes.count,
+            &eventTypes,
+            refcon,
+            &eventHandlerRef
+        )
+        if status != noErr {
+            ASRDiagnostics.record("HOTKEY_HANDLER_FAILED status=\(status)")
+            state.permissionStatus = state.copy("快捷键监听启动失败：\(status)", "Hotkey listener failed: \(status)")
+        } else {
+            ASRDiagnostics.record("HOTKEY_HANDLER_READY")
+        }
+    }
 
-        switch type {
-        case .keyDown where isReplyShortcut && !isHoldingShortcut:
+    private func registerCurrentShortcut() {
+        unregisterCurrentShortcut()
+        let hotKeyID = EventHotKeyID(signature: signature, id: 1)
+        let shortcut = state.replyShortcut
+        let status = RegisterEventHotKey(
+            UInt32(shortcut.keyCode),
+            shortcut.carbonModifierFlags,
+            hotKeyID,
+            GetEventDispatcherTarget(),
+            0,
+            &hotKeyRef
+        )
+        if status == noErr {
+            ASRDiagnostics.record("HOTKEY_REGISTERED shortcut=\(shortcut.displayText)")
+            state.permissionStatus = state.copy(
+                "\(shortcut.displayText) 快捷键已启用",
+                "\(shortcut.displayText) hotkey active"
+            )
+        } else {
+            ASRDiagnostics.record("HOTKEY_REGISTER_FAILED shortcut=\(shortcut.displayText) status=\(status)")
+            state.permissionStatus = state.copy(
+                "\(shortcut.displayText) 快捷键注册失败：\(status)",
+                "\(shortcut.displayText) hotkey failed: \(status)"
+            )
+        }
+    }
+
+    private func unregisterCurrentShortcut() {
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+        hotKeyRef = nil
+        isHoldingShortcut = false
+    }
+
+    private func handle(eventKind: UInt32) {
+        switch eventKind {
+        case UInt32(kEventHotKeyPressed) where !isHoldingShortcut:
+            ASRDiagnostics.record("HOTKEY_PRESSED")
             isHoldingShortcut = true
-            voiceCommands.beginRecording()
-        case .keyUp where keyCode == state.replyShortcut.keyCode && isHoldingShortcut:
+            voiceCommands.beginManualReply()
+        case UInt32(kEventHotKeyReleased) where isHoldingShortcut:
+            ASRDiagnostics.record("HOTKEY_RELEASED")
             isHoldingShortcut = false
-            voiceCommands.finishRecording()
+            voiceCommands.finishManualReply()
         default:
             break
         }
     }
+}
 
-    private func shortcutMatches(keyCode: Int64, flags: CGEventFlags) -> Bool {
-        let shortcut = state.replyShortcut
-        guard keyCode == shortcut.keyCode else { return false }
-        return shortcut.modifiers.allSatisfy { flags.contains($0.cgFlag) }
+private extension ReplyShortcut {
+    var carbonModifierFlags: UInt32 {
+        modifiers.reduce(UInt32(0)) { partial, modifier in
+            partial | modifier.carbonFlag
+        }
     }
 }
 
 private extension ReplyShortcutModifier {
-    var cgFlag: CGEventFlags {
+    var carbonFlag: UInt32 {
         switch self {
-        case .command: .maskCommand
-        case .control: .maskControl
-        case .option: .maskAlternate
-        case .shift: .maskShift
+        case .command: UInt32(cmdKey)
+        case .control: UInt32(controlKey)
+        case .option: UInt32(optionKey)
+        case .shift: UInt32(shiftKey)
         }
+    }
+}
+
+private extension UInt32 {
+    init(ascii text: String) {
+        self = text.utf8.reduce(UInt32(0)) { ($0 << 8) + UInt32($1) }
     }
 }

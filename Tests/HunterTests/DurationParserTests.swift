@@ -233,6 +233,16 @@ struct DurationParserTests {
         #expect(sanitized.contains("..."))
     }
 
+    @Test func roastPolicyProfanityOptInUsesStrongerTestInstruction() {
+        let instruction = RoastPolicy.profanityStyleInstruction(allowProfanity: true, languageCode: "zh")
+        #expect(instruction.contains("测试阶段"))
+        #expect(instruction.contains("他妈的"))
+
+        let boundary = RoastPolicy.safetyBoundary(allowProfanity: true, bannedTerms: "")
+        #expect(boundary.localizedCaseInsensitiveContains("strong profanity"))
+        #expect(boundary.localizedCaseInsensitiveContains("hateful slurs"))
+    }
+
     @Test func roastPolicyRemovesURLsBeforeSpeech() {
         let sanitized = RoastPolicy.sanitize(
             "又在看 https://www.bilibili.com/video/BV1ABCDEF12345?spm_id_from=333.999，干不干活了？",

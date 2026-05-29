@@ -90,6 +90,10 @@ struct DashScopeClient {
 
         let languageInstruction = languageCode == "en" ? "Write in English." : "用中文输出。"
         let boundary = RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms)
+        let profanityStyle = RoastPolicy.profanityStyleInstruction(allowProfanity: allowProfanity, languageCode: languageCode)
+        let fallback = allowProfanity
+            ? (languageCode == "en" ? "Nice try. Get your ass back to work." : "别他妈狡辩，干活。")
+            : (languageCode == "en" ? "Nice try. Back to work." : "别狡辩了，干活。")
         var body: [String: Any] = [
             "model": endpoint.model,
             "messages": [
@@ -100,7 +104,7 @@ struct DashScopeClient {
                     The user is talking back after being caught slacking. Reply with one very short spoken comeback that directly answers their excuse and pulls them back to work. \(languageInstruction)
                     One sentence only: target 10-22 Chinese characters, or 6-12 English words. Never exceed 32 Chinese characters or 16 English words.
                     Never quote, spell, read, or include URLs, domains, query strings, long IDs, timestamps, raw paths, or symbol-heavy strings. Use only human-readable names from the page title or target.
-                    Make it specific, punchy, and confrontational. Do not sound like a generic productivity app. \(boundary)
+                    Make it specific, punchy, and confrontational. Do not sound like a generic productivity app. \(profanityStyle) \(boundary)
                     """
                 ],
                 [
@@ -139,7 +143,7 @@ struct DashScopeClient {
         return RoastPolicy.sanitize(
             content,
             bannedTerms: bannedTerms,
-            fallback: languageCode == "en" ? "Nice try. Back to work." : "别狡辩了，干活。"
+            fallback: fallback
         )
     }
 
@@ -215,8 +219,9 @@ struct DashScopeClient {
             }
         }()
         let profanityInstruction = allowProfanity
-            ? "The user opted in to profanity: normal swear words are allowed when they make the line funnier, but do not use hateful slurs."
+            ? "The user opted in to profanity for testing: include one natural swear word. Chinese examples: 他妈的, 妈的, 操, 靠. English examples: damn, shit, fuck, ass. Do not use hateful slurs."
             : "No profanity, but still be biting and specific."
+        let profanityStyle = RoastPolicy.profanityStyleInstruction(allowProfanity: allowProfanity, languageCode: languageCode)
 
         return (
             system: """
@@ -227,10 +232,11 @@ struct DashScopeClient {
             This is a live desk-side jab, not a report. One sentence only.
             Target 12-26 Chinese characters, or 7-14 English words. Never exceed 36 Chinese characters or 18 English words.
             Identify what the user is actually looking at, then connect it to the fact they are avoiding work. Use page title, channel/person/video names, app names, or search snippets.
+            \(profanityStyle)
 
             Never quote, spell, read, or include URLs, domains, query strings, long IDs, timestamps, raw file paths, or symbol-heavy strings. Treat the URL only as hidden context to identify the site or content.
-            Good zh style: "又看龙同学？天天看，还干不干活了？"
-            Good en style: "YouTube again? Your deadline is getting secondhand embarrassment."
+            Good zh style: "又他妈看龙同学？活是会自己干吗？"
+            Good en style: "YouTube again? Get your ass back to work."
             Do not say "I searched". Do not invent details not present in context. Avoid generic lines like "又在摸鱼". \(RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms))
             """,
             user: """

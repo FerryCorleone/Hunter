@@ -234,11 +234,15 @@ private struct FloatingMascotIcon: View {
 
     var body: some View {
         ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.96))
+
             if let image = FloatingIconAsset.image(path: avatarPath) {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: avatarPath == nil ? .fit : .fill)
-                    .padding(avatarPath == nil ? 5 : 0)
+                    .frame(width: 56, height: 56)
+                    .clipShape(Circle())
             } else {
                 Image(systemName: "eyeglasses")
                     .font(.system(size: 34, weight: .bold))
@@ -246,7 +250,6 @@ private struct FloatingMascotIcon: View {
             }
         }
         .frame(width: 64, height: 64)
-        .clipShape(Circle())
         .overlay {
             CountdownBorder(
                 progress: countdownProgress(at: now),

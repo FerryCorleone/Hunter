@@ -3,16 +3,6 @@ import Foundation
 
 @MainActor
 final class VoiceCommandController {
-    enum VoiceCommandError: Error, LocalizedError {
-        case noSpeech
-
-        var errorDescription: String? {
-            switch self {
-            case .noSpeech: "No clear speech detected"
-            }
-        }
-    }
-
     private let state: AppState
     private let incidents: IncidentController
     private let parser = DurationParser()
@@ -22,7 +12,6 @@ final class VoiceCommandController {
     private var recordingURL: URL?
     private var isRecording = false
     private var finishAfterRecordingStarts = false
-    private var replyLoopTask: Task<Void, Never>?
     private var manualReplyTimeoutTask: Task<Void, Never>?
 
     init(state: AppState, incidents: IncidentController) {
@@ -49,27 +38,8 @@ final class VoiceCommandController {
         }
     }
 
-    func startReplyLoop() {
-        guard state.currentIncident != nil else {
-            state.voiceInteractionStatus = state.copy("说出监督时长，例如：监督我接下来的 40 分钟", "Say a focus duration, for example: keep me focused for 40 minutes")
-            recordShortCommand()
-            return
-        }
-        guard replyLoopTask == nil else {
-            state.toastMessage = state.copy("已经在听你回击了", "Already listening for your reply")
-            state.voiceInteractionStatus = state.toastMessage
-            return
-        }
-        state.voiceInteractionStatus = state.copy("正在启动语音回击...", "Starting voice reply...")
-        replyLoopTask = Task { [weak self] in
-            await self?.runReplyLoop()
-        }
-    }
-
     func beginManualReply() {
         ASRDiagnostics.record("MANUAL_REPLY_BEGIN")
-        replyLoopTask?.cancel()
-        replyLoopTask = nil
         manualReplyTimeoutTask?.cancel()
         finishAfterRecordingStarts = false
         state.voiceActivity = .listening
@@ -163,51 +133,6 @@ final class VoiceCommandController {
         }
     }
 
-    private func runReplyLoop() async {
-        defer {
-            replyLoopTask = nil
-        }
-
-        while !Task.isCancelled, state.currentIncident != nil {
-            do {
-                state.toastMessage = state.copy("继续说，我在听...", "Keep talking. Hunter is listening...")
-                state.voiceInteractionStatus = state.toastMessage
-                let audio = try await recordOnce(seconds: 4.8)
-                state.toastMessage = state.interfaceLanguage == .english ? "Transcribing your comeback..." : "正在识别你的回击..."
-                state.voiceInteractionStatus = state.toastMessage
-                state.voiceActivity = .transcribing
-                let transcript = try await transcribe(audio)
-                state.voiceInteractionStatus = state.copy("你说：\(transcript)", "You said: \(transcript)")
-                state.voiceActivity = .thinking
-                let didReply = await handleIncidentReply(transcript)
-                if !didReply {
-                    state.voiceActivity = .idle
-                    break
-                }
-            } catch VoiceCommandError.noSpeech {
-                state.toastMessage = state.copy("对喷结束", "Voice duel ended")
-                state.voiceInteractionStatus = state.toastMessage
-                state.voiceActivity = .idle
-                break
-            } catch ParaformerClient.ASRError.noTranscript {
-                state.toastMessage = state.copy("没听清，先结束这轮对喷", "Didn't catch that. Ending this duel.")
-                state.voiceInteractionStatus = state.toastMessage
-                state.voiceActivity = .idle
-                break
-            } catch LocalSpeechClient.LocalSpeechError.noTranscript {
-                state.toastMessage = state.copy("没听清，先结束这轮对喷", "Didn't catch that. Ending this duel.")
-                state.voiceInteractionStatus = state.toastMessage
-                state.voiceActivity = .idle
-                break
-            } catch {
-                state.toastMessage = state.copy("连续对喷失败：\(error.localizedDescription)", "Voice duel failed: \(error.localizedDescription)")
-                state.voiceInteractionStatus = state.toastMessage
-                state.voiceActivity = .idle
-                break
-            }
-        }
-    }
-
     private func beginRecordingAsync() async throws {
         state.toastMessage = state.interfaceLanguage == .english ? "Checking microphone..." : "正在检查麦克风..."
         state.voiceInteractionStatus = state.toastMessage
@@ -237,24 +162,6 @@ final class VoiceCommandController {
             return false
         @unknown default:
             return false
-        }
-    }
-
-    private func recordOnce(seconds: TimeInterval) async throws -> Data {
-        guard !isRecording else {
-            throw VoiceCommandError.noSpeech
-        }
-        do {
-            try await beginRecordingAsync()
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            let audio = try stopRecording()
-            if AudioLevelInspector.inspectWAV(audio).isLikelySilent {
-                throw VoiceCommandError.noSpeech
-            }
-            return audio
-        } catch {
-            stopRecordingSilently()
-            throw error
         }
     }
 
@@ -349,7 +256,11 @@ final class VoiceCommandController {
         if state.currentIncident != nil {
             let didReply = await handleIncidentReply(transcript)
             if continueConversation, didReply {
-                startReplyLoop()
+                state.voiceInteractionStatus = state.copy(
+                    "按住 \(state.replyShortcut.displayText) 继续对话",
+                    "Hold \(state.replyShortcut.displayText) to keep talking"
+                )
+                state.voiceActivity = .idle
             }
         } else {
             state.toastMessage = transcript

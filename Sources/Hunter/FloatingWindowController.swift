@@ -7,6 +7,7 @@ final class FloatingWindowController {
     private let state: AppState
     private let window: NSPanel
     private var cancellables: Set<AnyCancellable> = []
+    private var hasPositionedWindow = false
 
     init(state: AppState, onReplyPressChanged: @escaping (Bool) -> Void, onPause: @escaping () -> Void) {
         self.state = state
@@ -85,14 +86,23 @@ final class FloatingWindowController {
     }
 
     private func updateFrame(hasToast: Bool, hasIncident: Bool) {
-        guard let screen = NSScreen.main else { return }
+        guard let screen = window.screen ?? NSScreen.main else { return }
         let visible = screen.visibleFrame
         let size = contentSize(hasToast: hasToast, hasIncident: hasIncident)
-        let x = visible.minX + 132
-        let y = visible.minY + 118
-        let frame = NSRect(x: x, y: y, width: size.width, height: size.height)
+        let origin = hasPositionedWindow
+            ? clampedOrigin(window.frame.origin, size: size, visibleFrame: visible)
+            : NSPoint(x: visible.minX + 132, y: visible.minY + 118)
+        let frame = NSRect(origin: origin, size: size)
         window.setFrame(frame, display: true)
         window.contentView?.frame = NSRect(origin: .zero, size: size)
+        hasPositionedWindow = true
+    }
+
+    private func clampedOrigin(_ origin: NSPoint, size: NSSize, visibleFrame: NSRect) -> NSPoint {
+        NSPoint(
+            x: min(max(origin.x, visibleFrame.minX), visibleFrame.maxX - size.width),
+            y: min(max(origin.y, visibleFrame.minY), visibleFrame.maxY - size.height)
+        )
     }
 
     private func contentSize(hasToast: Bool, hasIncident: Bool) -> NSSize {

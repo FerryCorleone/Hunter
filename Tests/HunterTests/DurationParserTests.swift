@@ -150,6 +150,8 @@ struct DurationParserTests {
         let data = Data("{}".utf8)
         let snapshot = try JSONDecoder.hunter.decode(SettingsSnapshot.self, from: data)
         #expect(snapshot.floatingAvatarPath == nil)
+        #expect(snapshot.replyShortcut == .default)
+        #expect(snapshot.replyShortcut.displayText == "Option Space")
     }
 
     @Test func providerSettingsDecodeMigratesRetiredVoiceToCloudDefault() throws {
@@ -180,6 +182,16 @@ struct DurationParserTests {
         #expect(session.accumulatedPause == 5 * 60)
         #expect(session.duration == 50 * 60)
         #expect(session.endsAt == started.addingTimeInterval(55 * 60))
+    }
+
+    @Test func focusSessionProgressShrinksWithRemainingTime() {
+        let calendar = Calendar(identifier: .gregorian)
+        let started = DateComponents(calendar: calendar, year: 2026, month: 5, day: 27, hour: 10, minute: 0).date!
+        let session = FocusSession(startedAt: started, duration: 40 * 60)
+
+        #expect(session.progress(at: started) == 1)
+        #expect(abs(session.progress(at: started.addingTimeInterval(20 * 60)) - 0.5) < 0.001)
+        #expect(session.progress(at: started.addingTimeInterval(40 * 60)) == 0)
     }
 
     @Test func audioCacheStoresByVoiceModelLanguageAndText() throws {

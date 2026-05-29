@@ -21,21 +21,17 @@ struct FloatingOverlayView: View {
                     .transition(.scale(scale: 0.96).combined(with: .opacity))
             }
         }
-        .padding(8)
+        .padding(1)
         .animation(.spring(response: 0.22, dampingFraction: 0.88), value: state.currentIncident)
         .animation(.easeOut(duration: 0.18), value: state.toastMessage)
     }
 
     private var orb: some View {
-        ZStack(alignment: .bottomTrailing) {
-            FloatingMascotIcon(isMonitoring: state.isMonitoring, avatarPath: state.floatingAvatarPath)
-
-            Circle()
-                .fill(state.isMonitoring ? Color.green : Color.yellow)
-                .frame(width: 13, height: 13)
-                .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 3))
-                .offset(x: -1, y: -1)
-        }
+        FloatingMascotIcon(
+            isMonitoring: state.isMonitoring,
+            avatarPath: state.floatingAvatarPath,
+            focusSession: state.focusSession
+        )
         .frame(width: 64, height: 64)
     }
 
@@ -110,12 +106,12 @@ struct FloatingOverlayView: View {
 
             HStack(spacing: 12) {
                 Button(action: onReply) {
-                    Label(state.copy("语音回击\n连续对喷", "Voice reply\ncontinuous duel"), systemImage: "mic.fill")
-                        .labelStyle(.titleAndIcon)
+                    Text(state.copy("按住 \(state.replyShortcut.displayText) 对话", "Hold \(state.replyShortcut.displayText) to talk"))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .frame(width: 168, height: 50)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .frame(width: 184, height: 46)
                         .background(Color(red: 0.32, green: 0.49, blue: 1.0), in: Capsule())
                         .contentShape(Capsule())
                 }
@@ -124,8 +120,8 @@ struct FloatingOverlayView: View {
                 Button(action: onPause) {
                     Label(state.copy("暂停 5 分钟", "Pause 5 min"), systemImage: "pause.fill")
                         .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 124, height: 50)
-                        .background(.white.opacity(0.7), in: Capsule())
+                        .frame(width: 112, height: 46)
+                        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -134,15 +130,17 @@ struct FloatingOverlayView: View {
         }
         .padding(20)
         .frame(width: 350)
-        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black.opacity(0.08), lineWidth: 1))
-        .shadow(color: .black.opacity(0.16), radius: 26, y: 16)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black.opacity(0.07), lineWidth: 1))
     }
 }
 
 private struct FloatingMascotIcon: View {
     let isMonitoring: Bool
     let avatarPath: String?
+    let focusSession: FocusSession?
+    @State private var now = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
@@ -159,9 +157,51 @@ private struct FloatingMascotIcon: View {
         }
         .frame(width: 64, height: 64)
         .clipShape(Circle())
-        .overlay(Circle().stroke(.white.opacity(0.38), lineWidth: 1))
-        .shadow(color: .black.opacity(isMonitoring ? 0.20 : 0.14), radius: isMonitoring ? 12 : 8, y: 6)
+        .overlay {
+            CountdownBorder(
+                progress: countdownProgress(at: now),
+                isMonitoring: isMonitoring,
+                hasTimedSession: focusSession?.isActive(at: now) == true
+            )
+        }
+        .shadow(color: .black.opacity(isMonitoring ? 0.13 : 0.09), radius: isMonitoring ? 8 : 6, y: 4)
         .contentShape(Circle())
+        .onReceive(timer) { date in
+            now = date
+        }
+    }
+
+    private func countdownProgress(at date: Date) -> CGFloat {
+        guard let focusSession, focusSession.isActive(at: date) else {
+            return isMonitoring ? 1 : 0
+        }
+        return CGFloat(focusSession.progress(at: date))
+    }
+}
+
+private struct CountdownBorder: View {
+    let progress: CGFloat
+    let isMonitoring: Bool
+    let hasTimedSession: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.90), lineWidth: 4)
+
+            Circle()
+                .stroke(Color.black.opacity(0.10), lineWidth: 1)
+
+            if isMonitoring {
+                Circle()
+                    .trim(from: 0, to: max(0.02, min(1, progress)))
+                    .stroke(
+                        hasTimedSession ? Color(red: 0.22, green: 0.47, blue: 1.0) : Color.black.opacity(0.22),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+            }
+        }
     }
 }
 
@@ -178,8 +218,7 @@ private enum FloatingIconAsset {
         let bundledPath = "Hunter_Hunter.bundle/\(filename).png"
         let candidateURLs: [URL?] = [
             Bundle.main.resourceURL?.appendingPathComponent(bundledPath),
-            Bundle.main.bundleURL.appendingPathComponent(bundledPath),
-            Bundle.module.url(forResource: filename, withExtension: "png")
+            Bundle.main.bundleURL.appendingPathComponent(bundledPath)
         ]
 
         for url in candidateURLs.compactMap({ $0 }) {
@@ -314,6 +353,8 @@ struct GeneralPanel: View {
     @State private var selectedFocusMinutes = 40
     @State private var loginItemMessage = ""
     @State private var permissionMessage = ""
+    @State private var isCapturingShortcut = false
+    @State private var shortcutCaptureMonitor: Any?
 
     var body: some View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
@@ -454,27 +495,37 @@ struct GeneralPanel: View {
                 SettingCard(icon: "command", title: state.copy("回击快捷键", "Reply shortcut"), subtitle: state.copy("按住说话，松开发送给 Hunter。", "Hold to talk and reply to Hunter.")) {
                     VStack(alignment: .trailing, spacing: 10) {
                         HStack(spacing: 8) {
-                            Keycap("Option")
-                            Keycap("Space")
+                            ForEach(state.replyShortcut.parts, id: \.self) { part in
+                                Keycap(part)
+                            }
                         }
 
-                        Button {
-                            onRecordVoiceCommand()
-                        } label: {
-                            Label(state.copy("录制测试", "Record test"), systemImage: "mic")
-                                .frame(minWidth: 128, minHeight: 28)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.regular)
-                        .help(state.copy("录一段语音指令，例如：监督我接下来的 40 分钟", "Record a short voice command, for example: supervise me for the next 40 minutes"))
-                        .accessibilityLabel(state.copy("录制测试", "Record test"))
+                        HStack(spacing: 8) {
+                            Button(isCapturingShortcut ? state.copy("按下新快捷键", "Press shortcut") : state.copy("更改快捷键", "Change shortcut")) {
+                                beginShortcutCapture()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.regular)
 
-                        if let toast = state.toastMessage, !toast.isEmpty {
-                            Text(toast)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                                .frame(maxWidth: 280, alignment: .trailing)
+                            Button(state.copy("恢复默认", "Reset")) {
+                                resetReplyShortcut()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.regular)
+                            .disabled(state.replyShortcut == .default)
+                        }
+
+                        HStack(spacing: 8) {
+                            Button {
+                                onRecordVoiceCommand()
+                            } label: {
+                                Label(state.copy("测试语音指令", "Test voice command"), systemImage: "mic")
+                                    .frame(minWidth: 132, minHeight: 28)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.regular)
+                            .help(state.copy("录一段语音指令，例如：监督我接下来的 40 分钟", "Record a short voice command, for example: supervise me for the next 40 minutes"))
+                            .accessibilityLabel(state.copy("测试语音指令", "Test voice command"))
                         }
                     }
                 }
@@ -532,6 +583,9 @@ struct GeneralPanel: View {
                 }
             }
         }
+        .onDisappear {
+            stopShortcutCapture()
+        }
     }
 
     private var focusLabel: String {
@@ -582,6 +636,91 @@ struct GeneralPanel: View {
         }
     }
 
+    private func beginShortcutCapture() {
+        stopShortcutCapture()
+        isCapturingShortcut = true
+        permissionMessage = state.copy("按下新的对话快捷键，Esc 取消。", "Press the new talk shortcut. Esc cancels.")
+        shortcutCaptureMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.keyCode == 53 {
+                stopShortcutCapture()
+                permissionMessage = ""
+                return nil
+            }
+
+            guard let shortcut = replyShortcut(from: event) else {
+                permissionMessage = state.copy("请至少带一个修饰键，例如 Option Space。", "Use at least one modifier, such as Option Space.")
+                return nil
+            }
+
+            state.replyShortcut = shortcut
+            state.persist()
+            stopShortcutCapture()
+            permissionMessage = state.copy("已设置为 \(shortcut.displayText)", "Set to \(shortcut.displayText)")
+            return nil
+        }
+    }
+
+    private func stopShortcutCapture() {
+        if let shortcutCaptureMonitor {
+            NSEvent.removeMonitor(shortcutCaptureMonitor)
+        }
+        shortcutCaptureMonitor = nil
+        isCapturingShortcut = false
+    }
+
+    private func resetReplyShortcut() {
+        state.replyShortcut = .default
+        state.persist()
+        permissionMessage = state.copy("已恢复 Option Space", "Reset to Option Space")
+    }
+
+    private func replyShortcut(from event: NSEvent) -> ReplyShortcut? {
+        let modifiers = ReplyShortcutModifier.from(event.modifierFlags)
+        guard !modifiers.isEmpty else { return nil }
+        return ReplyShortcut(
+            keyCode: Int64(event.keyCode),
+            keyName: Self.keyName(for: event),
+            modifiers: modifiers
+        )
+    }
+
+    private static func keyName(for event: NSEvent) -> String {
+        switch event.keyCode {
+        case 36: return "Return"
+        case 48: return "Tab"
+        case 49: return "Space"
+        case 51: return "Delete"
+        case 53: return "Esc"
+        case 96: return "F5"
+        case 97: return "F6"
+        case 98: return "F7"
+        case 99: return "F3"
+        case 100: return "F8"
+        case 101: return "F9"
+        case 103: return "F11"
+        case 105: return "F13"
+        case 106: return "F16"
+        case 107: return "F14"
+        case 109: return "F10"
+        case 111: return "F12"
+        case 113: return "F15"
+        case 118: return "Home"
+        case 119: return "End"
+        case 120: return "F2"
+        case 121: return "Page Down"
+        case 122: return "F1"
+        case 123: return "Left"
+        case 124: return "Right"
+        case 125: return "Down"
+        case 126: return "Up"
+        default:
+            let text = event.charactersIgnoringModifiers?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+            return text?.isEmpty == false ? text! : "Key \(event.keyCode)"
+        }
+    }
+
     private var launchAtLoginBinding: Binding<Bool> {
         Binding(
             get: { state.launchAtLogin },
@@ -609,6 +748,25 @@ struct GeneralPanel: View {
                 ? state.copy("通知已允许", "Notifications allowed")
                 : state.copy("通知未允许", "Notifications not allowed")
         }
+    }
+}
+
+private extension ReplyShortcutModifier {
+    static func from(_ flags: NSEvent.ModifierFlags) -> [ReplyShortcutModifier] {
+        var modifiers: [ReplyShortcutModifier] = []
+        if flags.contains(.command) {
+            modifiers.append(.command)
+        }
+        if flags.contains(.control) {
+            modifiers.append(.control)
+        }
+        if flags.contains(.option) {
+            modifiers.append(.option)
+        }
+        if flags.contains(.shift) {
+            modifiers.append(.shift)
+        }
+        return ordered(modifiers)
     }
 }
 

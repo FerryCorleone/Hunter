@@ -14,6 +14,7 @@ final class AppState: ObservableObject {
     @Published var allowProfanity: Bool = false
     @Published var bannedTerms: String = ""
     @Published var floatingAvatarPath: String?
+    @Published var replyShortcut: ReplyShortcut = .default
     @Published var rules: [BlacklistRule] = BlacklistRule.defaultRules
     @Published var providers: ProviderSettings = ProviderSettings()
     @Published var focusSession: FocusSession?
@@ -46,6 +47,7 @@ final class AppState: ObservableObject {
         allowProfanity = snapshot.allowProfanity
         bannedTerms = snapshot.bannedTerms
         floatingAvatarPath = snapshot.floatingAvatarPath
+        replyShortcut = snapshot.replyShortcut
         rules = snapshot.rules
         providers = snapshot.providers
         focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
@@ -65,6 +67,7 @@ final class AppState: ObservableObject {
             allowProfanity: allowProfanity,
             bannedTerms: bannedTerms,
             floatingAvatarPath: floatingAvatarPath,
+            replyShortcut: replyShortcut,
             rules: rules,
             providers: providers,
             focusSession: focusSession,

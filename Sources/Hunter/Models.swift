@@ -353,6 +353,49 @@ struct ProviderSettings: Codable, Equatable {
     }
 }
 
+enum ReplyShortcutModifier: String, CaseIterable, Codable, Equatable, Hashable {
+    case command
+    case control
+    case option
+    case shift
+
+    var displayName: String {
+        switch self {
+        case .command: "Command"
+        case .control: "Control"
+        case .option: "Option"
+        case .shift: "Shift"
+        }
+    }
+
+    static func ordered(_ modifiers: [ReplyShortcutModifier]) -> [ReplyShortcutModifier] {
+        let selected = Set(modifiers)
+        return allCases.filter { selected.contains($0) }
+    }
+}
+
+struct ReplyShortcut: Codable, Equatable {
+    var keyCode: Int64
+    var keyName: String
+    var modifiers: [ReplyShortcutModifier]
+
+    static let `default` = ReplyShortcut(keyCode: 49, keyName: "Space", modifiers: [.option])
+
+    var parts: [String] {
+        modifiers.map(\.displayName) + [keyName]
+    }
+
+    var displayText: String {
+        parts.joined(separator: " ")
+    }
+
+    init(keyCode: Int64, keyName: String, modifiers: [ReplyShortcutModifier]) {
+        self.keyCode = keyCode
+        self.keyName = keyName
+        self.modifiers = ReplyShortcutModifier.ordered(modifiers)
+    }
+}
+
 struct WorkPeriod: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var startMinuteOfDay: Int = 9 * 60
@@ -461,21 +504,19 @@ struct FocusSession: Codable, Equatable {
     var pauseEndsAt: Date?
 
     var endsAt: Date {
-        startedAt.addingTimeInterval(duration + accumulatedPause + currentPauseDuration)
+        endsAt(at: Date())
     }
 
     var remaining: TimeInterval {
-        max(0, endsAt.timeIntervalSinceNow)
+        remaining(at: Date())
     }
 
     var isActive: Bool {
-        remaining > 0
+        isActive(at: Date())
     }
 
     var isPaused: Bool {
-        guard pausedAt != nil else { return false }
-        guard let pauseEndsAt else { return true }
-        return pauseEndsAt > Date()
+        isPaused(at: Date())
     }
 
     init(
@@ -515,10 +556,32 @@ struct FocusSession: Codable, Equatable {
         duration += max(0, extraDuration)
     }
 
-    private var currentPauseDuration: TimeInterval {
+    func endsAt(at date: Date) -> Date {
+        startedAt.addingTimeInterval(duration + accumulatedPause + currentPauseDuration(at: date))
+    }
+
+    func remaining(at date: Date) -> TimeInterval {
+        max(0, endsAt(at: date).timeIntervalSince(date))
+    }
+
+    func isActive(at date: Date) -> Bool {
+        remaining(at: date) > 0
+    }
+
+    func isPaused(at date: Date) -> Bool {
+        guard pausedAt != nil else { return false }
+        guard let pauseEndsAt else { return true }
+        return pauseEndsAt > date
+    }
+
+    func progress(at date: Date) -> Double {
+        guard duration > 0 else { return 0 }
+        return min(1, max(0, remaining(at: date) / duration))
+    }
+
+    private func currentPauseDuration(at date: Date) -> TimeInterval {
         guard let pausedAt else { return 0 }
-        let now = Date()
-        let effectiveNow = pauseEndsAt.map { min(now, $0) } ?? now
+        let effectiveNow = pauseEndsAt.map { min(date, $0) } ?? date
         return max(0, effectiveNow.timeIntervalSince(pausedAt))
     }
 

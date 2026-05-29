@@ -17,7 +17,10 @@ final class HotkeyController {
     func start() {
         guard eventTap == nil else { return }
         guard AXIsProcessTrusted() else {
-            state.permissionStatus = state.copy("需要辅助功能权限才能使用 Option Space", "Accessibility permission needed for Option Space hotkey")
+            state.permissionStatus = state.copy(
+                "需要辅助功能权限才能使用 \(state.replyShortcut.displayText)",
+                "Accessibility permission needed for \(state.replyShortcut.displayText) hotkey"
+            )
             return
         }
 
@@ -38,7 +41,10 @@ final class HotkeyController {
             },
             userInfo: refcon
         ) else {
-            state.permissionStatus = state.copy("需要辅助功能权限才能使用 Option Space", "Accessibility permission needed for Option Space hotkey")
+            state.permissionStatus = state.copy(
+                "需要辅助功能权限才能使用 \(state.replyShortcut.displayText)",
+                "Accessibility permission needed for \(state.replyShortcut.displayText) hotkey"
+            )
             return
         }
 
@@ -47,7 +53,10 @@ final class HotkeyController {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-        state.permissionStatus = state.copy("Option Space 快捷键已启用", "Option Space hotkey active")
+        state.permissionStatus = state.copy(
+            "\(state.replyShortcut.displayText) 快捷键已启用",
+            "\(state.replyShortcut.displayText) hotkey active"
+        )
     }
 
     func stop() {
@@ -64,17 +73,34 @@ final class HotkeyController {
     private func handle(type: CGEventType, event: CGEvent) {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-        let isOptionSpace = keyCode == 49 && flags.contains(.maskAlternate)
+        let isReplyShortcut = shortcutMatches(keyCode: keyCode, flags: flags)
 
         switch type {
-        case .keyDown where isOptionSpace && !isHoldingShortcut:
+        case .keyDown where isReplyShortcut && !isHoldingShortcut:
             isHoldingShortcut = true
             voiceCommands.beginRecording()
-        case .keyUp where keyCode == 49 && isHoldingShortcut:
+        case .keyUp where keyCode == state.replyShortcut.keyCode && isHoldingShortcut:
             isHoldingShortcut = false
             voiceCommands.finishRecording()
         default:
             break
+        }
+    }
+
+    private func shortcutMatches(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        let shortcut = state.replyShortcut
+        guard keyCode == shortcut.keyCode else { return false }
+        return shortcut.modifiers.allSatisfy { flags.contains($0.cgFlag) }
+    }
+}
+
+private extension ReplyShortcutModifier {
+    var cgFlag: CGEventFlags {
+        switch self {
+        case .command: .maskCommand
+        case .control: .maskControl
+        case .option: .maskAlternate
+        case .shift: .maskShift
         }
     }
 }

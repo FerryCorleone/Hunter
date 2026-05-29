@@ -12,6 +12,7 @@ struct SettingsSnapshot: Codable {
     var allowProfanity: Bool
     var bannedTerms: String
     var floatingAvatarPath: String?
+    var replyShortcut: ReplyShortcut
     var rules: [BlacklistRule]
     var providers: ProviderSettings
     var focusSession: FocusSession?
@@ -29,6 +30,7 @@ struct SettingsSnapshot: Codable {
         allowProfanity: false,
         bannedTerms: "",
         floatingAvatarPath: nil,
+        replyShortcut: .default,
         rules: BlacklistRule.defaultRules,
         providers: ProviderSettings(),
         focusSession: nil,
@@ -47,6 +49,7 @@ struct SettingsSnapshot: Codable {
         case allowProfanity
         case bannedTerms
         case floatingAvatarPath
+        case replyShortcut
         case rules
         case providers
         case focusSession
@@ -65,6 +68,7 @@ struct SettingsSnapshot: Codable {
         allowProfanity: Bool,
         bannedTerms: String,
         floatingAvatarPath: String?,
+        replyShortcut: ReplyShortcut,
         rules: [BlacklistRule],
         providers: ProviderSettings,
         focusSession: FocusSession?,
@@ -81,6 +85,7 @@ struct SettingsSnapshot: Codable {
         self.allowProfanity = allowProfanity
         self.bannedTerms = bannedTerms
         self.floatingAvatarPath = floatingAvatarPath
+        self.replyShortcut = replyShortcut
         self.rules = rules
         self.providers = providers
         self.focusSession = focusSession
@@ -100,6 +105,7 @@ struct SettingsSnapshot: Codable {
         allowProfanity = try container.decodeIfPresent(Bool.self, forKey: .allowProfanity) ?? false
         bannedTerms = try container.decodeIfPresent(String.self, forKey: .bannedTerms) ?? ""
         floatingAvatarPath = try container.decodeIfPresent(String.self, forKey: .floatingAvatarPath)
+        replyShortcut = try container.decodeIfPresent(ReplyShortcut.self, forKey: .replyShortcut) ?? .default
         rules = try container.decodeIfPresent([BlacklistRule].self, forKey: .rules) ?? BlacklistRule.defaultRules
         providers = try container.decodeIfPresent(ProviderSettings.self, forKey: .providers) ?? ProviderSettings()
         focusSession = try container.decodeIfPresent(FocusSession.self, forKey: .focusSession)

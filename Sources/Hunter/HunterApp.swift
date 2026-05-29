@@ -22,7 +22,6 @@ final class HunterApp: NSObject, NSApplicationDelegate {
         let delegate = HunterApp()
         retainedDelegate = delegate
         app.delegate = delegate
-        app.setActivationPolicy(.accessory)
         app.run()
     }
 
@@ -50,10 +49,13 @@ final class HunterApp: NSObject, NSApplicationDelegate {
 
         monitor.start()
         hotkeys.start()
-        if state.isWidgetVisible {
-            floatingWindow?.show()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if self.state.isWidgetVisible {
+                self.floatingWindow?.show()
+            }
+            self.settingsWindow?.show()
         }
-        settingsWindow?.show()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

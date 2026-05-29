@@ -25,6 +25,7 @@ struct PermissionSnapshot: Codable, Equatable {
     var accessibility: PermissionState = .unknown
     var microphone: PermissionState = .unknown
     var notifications: PermissionState = .unknown
+    var browserAutomation: PermissionState = .unknown
 }
 
 @MainActor
@@ -34,8 +35,17 @@ struct PermissionCenter {
         return PermissionSnapshot(
             accessibility: AXIsProcessTrusted() ? .allowed : .denied,
             microphone: microphoneState,
-            notifications: notificationState(from: notificationSettings.authorizationStatus)
+            notifications: notificationState(from: notificationSettings.authorizationStatus),
+            browserAutomation: browserAutomationState()
         )
+    }
+
+    func requestMicrophone() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                continuation.resume(returning: granted)
+            }
+        }
     }
 
     func requestNotifications() async -> Bool {
@@ -44,6 +54,12 @@ struct PermissionCenter {
         } catch {
             return false
         }
+    }
+
+    @discardableResult
+    func requestBrowserAutomationPermission() -> Bool {
+        let targetBundleID = preferredBrowserBundleID()
+        return BrowserURLReader().requestAutomationPermission(for: targetBundleID)
     }
 
     func openAccessibilitySettings() {
@@ -74,6 +90,28 @@ struct PermissionCenter {
         case .denied: .denied
         @unknown default: .unknown
         }
+    }
+
+    private func browserAutomationState() -> PermissionState {
+        guard let bundleID = preferredBrowserBundleID() else {
+            return .unknown
+        }
+        return BrowserURLReader.canReadAutomation(bundleID: bundleID, askUserIfNeeded: false)
+            ? .allowed
+            : .denied
+    }
+
+    private func preferredBrowserBundleID() -> String? {
+        let frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if BrowserURLReader.isSupportedBrowser(bundleID: frontmostBundleID) {
+            return frontmostBundleID
+        }
+        if let runningBrowser = NSWorkspace.shared.runningApplications
+            .compactMap(\.bundleIdentifier)
+            .first(where: { BrowserURLReader.isSupportedBrowser(bundleID: $0) }) {
+            return runningBrowser
+        }
+        return "com.google.Chrome"
     }
 
     private func openSettings(_ urlString: String) {

@@ -386,7 +386,7 @@ struct ReplyShortcut: Codable, Equatable {
     }
 
     var displayText: String {
-        parts.joined(separator: " ")
+        parts.joined(separator: " + ")
     }
 
     init(keyCode: Int64, keyName: String, modifiers: [ReplyShortcutModifier]) {

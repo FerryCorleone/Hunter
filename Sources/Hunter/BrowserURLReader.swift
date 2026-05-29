@@ -6,6 +6,10 @@ struct BrowserURLReader {
         browserKind(for: bundleID) != nil
     }
 
+    static func canReadAutomation(bundleID: String?, askUserIfNeeded: Bool) -> Bool {
+        canReadBrowserAutomation(bundleID: bundleID, askUserIfNeeded: askUserIfNeeded)
+    }
+
     func currentURL(for bundleID: String?) -> String? {
         currentTabInfo(for: bundleID)?.url
     }

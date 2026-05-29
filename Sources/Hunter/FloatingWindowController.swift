@@ -11,14 +11,19 @@ final class FloatingWindowController {
     private var lastHasToast = false
     private var lastHasIncident = false
     private var lastHasQuickMenu = false
+    private var dragStartOrigin: NSPoint?
 
     init(state: AppState, onReplyPressChanged: @escaping (Bool) -> Void, onPause: @escaping () -> Void) {
         self.state = state
         var layoutHandler: ((Bool, Bool, Bool) -> Void)?
+        var dragHandler: ((OrbDragPhase) -> Void)?
         let view = FloatingOverlayView(
             state: state,
             onReplyPressChanged: onReplyPressChanged,
             onPause: onPause,
+            onOrbDrag: { phase in
+                dragHandler?(phase)
+            },
             onLayoutChange: { hasToast, hasIncident, hasQuickMenu in
                 layoutHandler?(hasToast, hasIncident, hasQuickMenu)
             }
@@ -52,6 +57,9 @@ final class FloatingWindowController {
         window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
         layoutHandler = { [weak self] hasToast, hasIncident, hasQuickMenu in
             self?.updateFrame(hasToast: hasToast, hasIncident: hasIncident, hasQuickMenu: hasQuickMenu)
+        }
+        dragHandler = { [weak self] phase in
+            self?.handleOrbDrag(phase)
         }
 
         state.$isWidgetVisible
@@ -161,6 +169,21 @@ final class FloatingWindowController {
             return NSSize(width: 360, height: 352)
         case (true, true):
             return NSSize(width: 382, height: 436)
+        }
+    }
+
+    private func handleOrbDrag(_ phase: OrbDragPhase) {
+        guard let screen = screenForCurrentWindow(preferMouseLocation: true) ?? NSScreen.main else { return }
+        switch phase {
+        case .changed(let translation):
+            if dragStartOrigin == nil {
+                dragStartOrigin = window.frame.origin
+            }
+            guard let start = dragStartOrigin else { return }
+            let proposed = NSPoint(x: start.x + translation.width, y: start.y - translation.height)
+            window.setFrameOrigin(clampedOrigin(proposed, size: window.frame.size, visibleFrame: screen.visibleFrame))
+        case .ended:
+            dragStartOrigin = nil
         }
     }
 }

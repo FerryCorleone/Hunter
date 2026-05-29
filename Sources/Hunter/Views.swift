@@ -2,12 +2,19 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum OrbDragPhase {
+    case changed(CGSize)
+    case ended
+}
+
 struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
     let onReplyPressChanged: (Bool) -> Void
     let onPause: () -> Void
+    let onOrbDrag: (OrbDragPhase) -> Void
     let onLayoutChange: (Bool, Bool, Bool) -> Void
     @State private var isQuickMenuVisible = false
+    @State private var didDragOrb = false
     @State private var toastDismissTask: Task<Void, Never>?
     @State private var incidentDismissTask: Task<Void, Never>?
 
@@ -58,22 +65,37 @@ struct FloatingOverlayView: View {
     }
 
     private var orb: some View {
-        Button {
-            isQuickMenuVisible.toggle()
-            if isQuickMenuVisible {
-                state.toastMessage = nil
-            }
-        } label: {
-            FloatingMascotIcon(
-                isMonitoring: state.isMonitoring,
-                isListening: state.voiceActivity == .listening,
-                avatarPath: state.floatingAvatarPath,
-                focusSession: state.focusSession
-            )
-            .frame(width: 64, height: 64)
-        }
-        .buttonStyle(.plain)
-        .help(state.copy("打开快捷监督菜单", "Open quick supervision menu"))
+        FloatingMascotIcon(
+            isMonitoring: state.isMonitoring,
+            isListening: state.voiceActivity == .listening,
+            avatarPath: state.floatingAvatarPath,
+            focusSession: state.focusSession
+        )
+        .frame(width: 64, height: 64)
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let distance = hypot(value.translation.width, value.translation.height)
+                    guard distance > 3 else { return }
+                    didDragOrb = true
+                    onOrbDrag(.changed(value.translation))
+                }
+                .onEnded { value in
+                    let distance = hypot(value.translation.width, value.translation.height)
+                    if didDragOrb || distance > 3 {
+                        onOrbDrag(.ended)
+                    } else {
+                        isQuickMenuVisible.toggle()
+                        if isQuickMenuVisible {
+                            state.toastMessage = nil
+                        }
+                    }
+                    didDragOrb = false
+                }
+        )
+        .help(state.copy("打开快捷监督菜单，可拖动位置", "Open quick controls, drag to move"))
+        .accessibilityLabel(state.copy("Hunter 悬浮小组件", "Hunter floating widget"))
     }
 
     private var overlaySize: CGSize {
@@ -247,9 +269,8 @@ private struct QuickControlMenu: View {
                     .foregroundStyle(state.isMonitoring ? Color.accentColor : .secondary)
             }
 
-            ProgressView(value: progressValue)
-                .progressViewStyle(.linear)
-                .tint(progressTint)
+            RemainingProgressBar(value: progressValue, tint: progressTint)
+                .frame(height: 6)
 
             HStack(spacing: 8) {
                 quickAction(title: "15", unit: state.copy("分钟", "min")) {
@@ -263,7 +284,7 @@ private struct QuickControlMenu: View {
                 }
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button {
                     togglePause()
                 } label: {
@@ -272,16 +293,6 @@ private struct QuickControlMenu: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(!state.isMonitoring && activeSession == nil)
-
-                Button {
-                    state.stopMonitoring()
-                    dismiss()
-                } label: {
-                    Label(state.copy("停止", "Stop"), systemImage: "stop.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .disabled(!state.isMonitoring)
 
                 Button {
                     state.cancelSupervision()
@@ -399,6 +410,27 @@ private struct QuickControlMenu: View {
         } else {
             state.pauseFocusSession()
         }
+    }
+}
+
+private struct RemainingProgressBar: View {
+    var value: Double
+    var tint: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let clamped = min(1, max(0, value))
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.black.opacity(0.08))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(geometry.size.width * clamped, clamped > 0 ? 10 : 0))
+                    .animation(.easeInOut(duration: 0.2), value: clamped)
+            }
+        }
+        .accessibilityLabel("Remaining time")
+        .accessibilityValue("\(Int(min(1, max(0, value)) * 100))%")
     }
 }
 
@@ -714,6 +746,7 @@ struct GeneralPanel: View {
     @State private var selectedFocusMinutes = 40
     @State private var loginItemMessage = ""
     @State private var permissionMessage = ""
+    @State private var shortcutMessage = ""
     @State private var isCapturingShortcut = false
     @State private var shortcutCaptureMonitor: Any?
 
@@ -853,24 +886,25 @@ struct GeneralPanel: View {
                 SettingCard(icon: "command", title: state.copy("回击快捷键", "Reply shortcut"), subtitle: state.copy("按住说话，松开发送给 Hunter。", "Hold to talk and reply to Hunter.")) {
                     VStack(alignment: .trailing, spacing: 10) {
                         HStack(spacing: 8) {
-                            ForEach(state.replyShortcut.parts, id: \.self) { part in
-                                Keycap(part)
-                            }
-                        }
-
-                        HStack(spacing: 8) {
-                            Button(isCapturingShortcut ? state.copy("按下新快捷键", "Press shortcut") : state.copy("更改快捷键", "Change shortcut")) {
+                            ShortcutCaptureBox(
+                                shortcut: state.replyShortcut,
+                                isCapturing: isCapturingShortcut,
+                                language: state.interfaceLanguage
+                            ) {
                                 beginShortcutCapture()
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.regular)
 
-                            Button(state.copy("恢复默认", "Reset")) {
+                            Button {
                                 resetReplyShortcut()
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .frame(width: 34, height: 34)
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.regular)
                             .disabled(state.replyShortcut == .default)
+                            .help(state.copy("恢复默认 Option + Space", "Reset to Option + Space"))
                         }
 
                         HStack(spacing: 8) {
@@ -885,26 +919,32 @@ struct GeneralPanel: View {
                             .help(state.copy("录一段语音指令，例如：监督我接下来的 40 分钟", "Record a short voice command, for example: supervise me for the next 40 minutes"))
                             .accessibilityLabel(state.copy("测试语音指令", "Test voice command"))
                         }
+
+                        if !shortcutMessage.isEmpty {
+                            Text(shortcutMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
-                SettingCard(icon: "lock.shield", title: state.copy("权限", "Permissions"), subtitle: state.copy("辅助功能、麦克风和通知状态。", "Accessibility, microphone, and notification status.")) {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        PermissionRow(
-                            title: state.copy("辅助功能", "Accessibility"),
-                            state: state.permissions.accessibility,
-                            language: state.interfaceLanguage,
-                            actionTitle: state.copy("打开设置", "Open")
-                        ) {
-                            PermissionCenter().openAccessibilitySettings()
-                        }
+                SettingCard(icon: "lock.shield", title: state.copy("权限", "Permissions"), subtitle: state.copy("语音、浏览器页面读取和系统提醒所需权限。", "Permissions for voice, browser URL reading, and alerts.")) {
+                    VStack(alignment: .trailing, spacing: 10) {
                         PermissionRow(
                             title: state.copy("麦克风", "Microphone"),
                             state: state.permissions.microphone,
                             language: state.interfaceLanguage,
-                            actionTitle: state.copy("打开设置", "Open")
+                            actionTitle: state.permissions.microphone == .notDetermined ? state.copy("请求", "Request") : state.copy("打开设置", "Open")
                         ) {
-                            PermissionCenter().openMicrophoneSettings()
+                            requestMicrophone()
+                        }
+                        PermissionRow(
+                            title: state.copy("浏览器自动化", "Browser automation"),
+                            state: state.permissions.browserAutomation,
+                            language: state.interfaceLanguage,
+                            actionTitle: state.copy("授权当前浏览器", "Authorize browser")
+                        ) {
+                            requestBrowserAutomation()
                         }
                         PermissionRow(
                             title: state.copy("通知", "Notifications"),
@@ -914,10 +954,19 @@ struct GeneralPanel: View {
                         ) {
                             requestNotifications()
                         }
+                        PermissionRow(
+                            title: state.copy("辅助功能（可选）", "Accessibility (optional)"),
+                            state: state.permissions.accessibility,
+                            language: state.interfaceLanguage,
+                            actionTitle: state.copy("打开设置", "Open")
+                        ) {
+                            PermissionCenter().openAccessibilitySettings()
+                        }
                         if !permissionMessage.isEmpty {
                             Text(permissionMessage)
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
                         }
                     }
                     .task {
@@ -997,23 +1046,19 @@ struct GeneralPanel: View {
     private func beginShortcutCapture() {
         stopShortcutCapture()
         isCapturingShortcut = true
-        permissionMessage = state.copy("按下新的对话快捷键，Esc 取消。", "Press the new talk shortcut. Esc cancels.")
+        shortcutMessage = state.copy("按下新的对话快捷键，Esc 取消。", "Press the new talk shortcut. Esc cancels.")
         shortcutCaptureMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 53 {
                 stopShortcutCapture()
-                permissionMessage = ""
+                shortcutMessage = ""
                 return nil
             }
 
-            guard let shortcut = replyShortcut(from: event) else {
-                permissionMessage = state.copy("请至少带一个修饰键，例如 Option Space。", "Use at least one modifier, such as Option Space.")
-                return nil
-            }
-
+            let shortcut = replyShortcut(from: event)
             state.replyShortcut = shortcut
             state.persist()
             stopShortcutCapture()
-            permissionMessage = state.copy("已设置为 \(shortcut.displayText)", "Set to \(shortcut.displayText)")
+            shortcutMessage = state.copy("已设置为 \(shortcut.displayText)", "Set to \(shortcut.displayText)")
             return nil
         }
     }
@@ -1029,12 +1074,11 @@ struct GeneralPanel: View {
     private func resetReplyShortcut() {
         state.replyShortcut = .default
         state.persist()
-        permissionMessage = state.copy("已恢复 Option Space", "Reset to Option Space")
+        shortcutMessage = state.copy("已恢复 Option + Space", "Reset to Option + Space")
     }
 
-    private func replyShortcut(from event: NSEvent) -> ReplyShortcut? {
+    private func replyShortcut(from event: NSEvent) -> ReplyShortcut {
         let modifiers = ReplyShortcutModifier.from(event.modifierFlags)
-        guard !modifiers.isEmpty else { return nil }
         return ReplyShortcut(
             keyCode: Int64(event.keyCode),
             keyName: Self.keyName(for: event),
@@ -1106,6 +1150,28 @@ struct GeneralPanel: View {
                 ? state.copy("通知已允许", "Notifications allowed")
                 : state.copy("通知未允许", "Notifications not allowed")
         }
+    }
+
+    private func requestMicrophone() {
+        Task {
+            if state.permissions.microphone == .notDetermined {
+                let granted = await PermissionCenter().requestMicrophone()
+                state.refreshPermissions()
+                permissionMessage = granted
+                    ? state.copy("麦克风已允许", "Microphone allowed")
+                    : state.copy("麦克风未允许", "Microphone not allowed")
+            } else {
+                PermissionCenter().openMicrophoneSettings()
+            }
+        }
+    }
+
+    private func requestBrowserAutomation() {
+        let granted = PermissionCenter().requestBrowserAutomationPermission()
+        state.refreshPermissions()
+        permissionMessage = granted
+            ? state.copy("浏览器自动化已允许", "Browser automation allowed")
+            : state.copy("请在弹窗中允许 Hunter 读取当前浏览器标签页", "Allow Hunter to read the current browser tab in the system prompt")
     }
 
     private func compactSwitch(title: String, isOn: Binding<Bool>) -> some View {
@@ -1676,20 +1742,46 @@ struct PermissionRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(state == .allowed ? Color.green : Color.orange)
+                .fill(indicatorColor)
                 .frame(width: 8, height: 8)
+
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-                .frame(width: 86, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .frame(minWidth: 118, alignment: .leading)
+
+            Spacer(minLength: 8)
+
             Text(state.label(language: language))
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .frame(width: 88, alignment: .leading)
-            Button(actionTitle, action: action)
-                .buttonStyle(.bordered)
-                .disabled(state == .allowed)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(state == .allowed ? Color.green : .secondary)
+                .padding(.horizontal, 9)
+                .frame(height: 24)
+                .background(indicatorColor.opacity(state == .unknown ? 0.08 : 0.12), in: Capsule())
+
+            if state == .allowed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.green)
+                    .frame(width: 34)
+                    .accessibilityLabel(state.label(language: language))
+            } else {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(minWidth: 96)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .trailing)
+        .frame(maxWidth: 390, minHeight: 32, alignment: .trailing)
+    }
+
+    private var indicatorColor: Color {
+        switch state {
+        case .allowed: .green
+        case .unknown: .secondary
+        case .notDetermined, .denied: .orange
+        }
     }
 }
 
@@ -2070,6 +2162,52 @@ struct ProviderEditor: View {
     }
 }
 
+struct ShortcutCaptureBox: View {
+    var shortcut: ReplyShortcut
+    var isCapturing: Bool
+    var language: AppLanguage
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                if isCapturing {
+                    Image(systemName: "keyboard")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                    Text(copy("按下新快捷键", "Press keys"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                } else {
+                    ForEach(Array(shortcut.parts.enumerated()), id: \.offset) { index, part in
+                        if index > 0 {
+                            Text("+")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        Keycap(part)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .frame(width: 268, height: 50)
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.74), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(isCapturing ? Color.accentColor.opacity(0.7) : Color.black.opacity(0.09), lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .help(copy("点击后直接按新的对话快捷键", "Click, then press the new talk shortcut"))
+    }
+
+    private func copy(_ zhHans: String, _ english: String) -> String {
+        language == .english ? english : zhHans
+    }
+}
+
 struct Keycap: View {
     var text: String
 
@@ -2079,9 +2217,11 @@ struct Keycap: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 15, weight: .medium))
-            .padding(.horizontal, 16)
-            .frame(height: 38)
+            .font(.system(size: 13, weight: .semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.76)
+            .padding(.horizontal, 12)
+            .frame(minWidth: 34, minHeight: 30)
             .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).stroke(.black.opacity(0.1)))
     }

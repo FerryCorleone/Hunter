@@ -155,7 +155,14 @@ struct DurationParserTests {
         let snapshot = try JSONDecoder.hunter.decode(SettingsSnapshot.self, from: data)
         #expect(snapshot.floatingAvatarPath == nil)
         #expect(snapshot.replyShortcut == .default)
-        #expect(snapshot.replyShortcut.displayText == "Option Space")
+        #expect(snapshot.replyShortcut.displayText == "Option + Space")
+    }
+
+    @Test func replyShortcutDisplaySupportsCombosAndSingleKeys() {
+        #expect(ReplyShortcut.default.displayText == "Option + Space")
+        let singleKey = ReplyShortcut(keyCode: 36, keyName: "Return", modifiers: [])
+        #expect(singleKey.parts == ["Return"])
+        #expect(singleKey.displayText == "Return")
     }
 
     @Test func providerSettingsDecodeMigratesRetiredVoiceToCloudDefault() throws {

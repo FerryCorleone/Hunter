@@ -57,12 +57,18 @@ final class IncidentController {
                 )
                 await MainActor.run {
                     let searchLabel = searchContext == nil ? "" : state.copy("，已结合搜索上下文", ", with search context")
-                    state.providerStatus = state.copy("LLM 正常\(searchLabel)，等待 TTS", "LLM OK\(searchLabel), TTS pending")
+                    state.providerStatus = state.copy(
+                        "LLM 正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)\(searchLabel)，等待 TTS",
+                        "LLM OK: \(state.providers.llm.providerName) / \(state.providers.llm.model)\(searchLabel), TTS pending"
+                    )
                 }
                 await synthesizeAndPlay(text: roast, target: pendingIncident.targetName, statusPrefix: state.copy("LLM", "LLM"), revealIncident: readyIncident)
             } catch {
                 await MainActor.run {
-                    state.providerStatus = state.copy("LLM 降级：\(error.localizedDescription)", "LLM fallback: \(error.localizedDescription)")
+                    state.providerStatus = state.copy(
+                        "LLM 降级：\(state.providers.llm.providerName) / \(state.providers.llm.model)：\(error.localizedDescription)",
+                        "LLM fallback: \(state.providers.llm.providerName) / \(state.providers.llm.model): \(error.localizedDescription)"
+                    )
                 }
                 await synthesizeAndPlay(text: fallback, target: pendingIncident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"), revealIncident: pendingIncident)
             }
@@ -104,7 +110,10 @@ final class IncidentController {
                 pageTitle: incident.pageTitle,
                 roast: reply
             )
-            state.providerStatus = state.copy("ASR + LLM 回击正常，等待 TTS", "ASR + LLM reply OK, TTS pending")
+            state.providerStatus = state.copy(
+                "ASR + LLM 回击正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)，等待 TTS",
+                "ASR + LLM reply OK: \(state.providers.llm.providerName) / \(state.providers.llm.model), TTS pending"
+            )
             return await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"), revealIncident: responseIncident)
         } catch {
             state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")

@@ -10,6 +10,7 @@
 - 可打包 DMG：`./scripts/package_dmg.sh` -> `build/Hunter.dmg`。
 - 菜单栏状态入口。
 - SwiftUI 设置窗口：General、Watchlist、AI、Voice、History。
+- 设置窗口视觉整理：sidebar 改为整行导航和低饱和选中态；右侧内容限制最大宽度；设置卡片统一图标、说明和控件区；Watchlist 新增规则和 AI Provider 表单改为上标签字段；Provider 测试按钮改为自适应网格，减少字段挤压和布局跳动。
 - AppKit 浮动监督窗：悬浮球、抓包卡片、时长任务 toast。
 - 悬浮球图标固定为圆形裁切，默认使用 Hunter 墨镜图标；设置页支持上传自定义头像并复制到 Hunter Application Support 目录，也可恢复默认头像；右下角状态点已移除，时长任务改为头像边缘倒计时环；空闲态 NSPanel 使用 72×72 透明 HostingView，头像缩到 56×56 收在圆环内侧，并把圆环向内绘制，避免圆形图标背后出现方形半透明底板、头像超出圆环或四边裁切。
 - 悬浮窗位置现在尊重用户拖动后的窗口 origin；toast、抓包卡片和状态变化只调整窗口尺寸，不再把窗口强行拉回默认坐标。

@@ -396,23 +396,40 @@ struct SettingsView: View {
             Divider()
             content
         }
-        .frame(minWidth: 900, minHeight: 660)
-        .background(.regularMaterial)
+        .frame(minWidth: 940, minHeight: 680)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Hunter")
+                    .font(.system(size: 22, weight: .semibold))
+                Text(state.copy("AI 桌面监工", "AI desktop supervisor"))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 6)
+
             ForEach(Panel.allCases) { panel in
                 Button {
                     selectedPanel = panel
                 } label: {
-                    Label(panel.title(language: state.interfaceLanguage), systemImage: panel.icon)
-                        .font(.system(size: 16, weight: .medium))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .frame(height: 52)
-                        .background(selectedPanel == panel ? Color.black.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 9))
-                        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    HStack(spacing: 10) {
+                        Image(systemName: panel.icon)
+                            .font(.system(size: 15, weight: .medium))
+                            .frame(width: 18)
+                        Text(panel.title(language: state.interfaceLanguage))
+                            .font(.system(size: 14, weight: .medium))
+                        Spacer()
+                    }
+                    .foregroundStyle(selectedPanel == panel ? Color.accentColor : Color.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .frame(height: 38)
+                    .background(selectedPanel == panel ? Color.accentColor.opacity(0.13) : Color.clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .frame(maxWidth: .infinity)
                 .buttonStyle(.plain)
@@ -428,16 +445,19 @@ struct SettingsView: View {
             .tint(state.isMonitoring ? .orange : .green)
             .frame(maxWidth: .infinity)
 
-            Button(state.copy("演示抓包", "Demo catch")) {
+            Button {
                 onDemoCatch()
+            } label: {
+                Label(state.copy("演示抓包", "Demo catch"), systemImage: "play.rectangle")
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
         }
-        .padding(.top, 26)
-        .padding(.horizontal, 12)
+        .padding(.top, 22)
+        .padding(.horizontal, 14)
         .padding(.bottom, 18)
-        .frame(width: 216)
-        .background(Color.white.opacity(0.28))
+        .frame(width: 220)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.86))
     }
 
     @ViewBuilder
@@ -560,10 +580,7 @@ struct GeneralPanel: View {
                 SettingCard(icon: "calendar", title: state.copy("工作时段", "Work hours"), subtitle: state.copy("监督开启后，只在这些时间自动抓黑名单。", "When monitoring is on, auto-catch only during these hours.")) {
                     VStack(alignment: .trailing, spacing: 10) {
                         HStack(spacing: 12) {
-                            Toggle(state.copy("启用", "Enabled"), isOn: $state.workSchedule.isEnabled)
-                                .toggleStyle(.switch)
-                                .tint(.green)
-                                .environment(\.controlActiveState, .active)
+                            compactSwitch(title: state.copy("启用", "Enabled"), isOn: $state.workSchedule.isEnabled)
                             Toggle(state.copy("工作日", "Weekdays"), isOn: $state.workSchedule.weekdaysEnabled)
                                 .toggleStyle(.checkbox)
                             Toggle(state.copy("周末", "Weekends"), isOn: $state.workSchedule.weekendsEnabled)
@@ -864,6 +881,20 @@ struct GeneralPanel: View {
                 : state.copy("通知未允许", "Notifications not allowed")
         }
     }
+
+    private func compactSwitch(title: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 7) {
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(1)
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.green)
+                .environment(\.controlActiveState, .active)
+        }
+        .fixedSize()
+    }
 }
 
 private extension ReplyShortcutModifier {
@@ -894,28 +925,42 @@ struct WatchlistPanel: View {
     var body: some View {
         PanelContainer(title: state.copy("黑名单", "Watchlist"), subtitle: state.copy("命中这些网站或 App 时触发悬浮监督。", "Sites and apps that trigger the floating supervisor.")) {
             VStack(spacing: 12) {
-                HStack(spacing: 10) {
-                    Picker("", selection: $newKind) {
-                        ForEach(RuleKind.allCases) { kind in
-                            Text(kind.label(language: state.interfaceLanguage)).tag(kind)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(state.copy("添加规则", "Add rule"))
+                        .font(.system(size: 14, weight: .semibold))
+
+                    HStack(alignment: .bottom, spacing: 10) {
+                        Picker("", selection: $newKind) {
+                            ForEach(RuleKind.allCases) { kind in
+                                Text(kind.label(language: state.interfaceLanguage)).tag(kind)
+                            }
                         }
-                    }
-                    .labelsHidden()
-                    .frame(width: 110)
+                        .labelsHidden()
+                        .frame(width: 112)
 
-                    TextField(state.copy("名称", "Name"), text: $newName)
-                    TextField(state.copy("域名、URL 关键词、App 名称或 Bundle ID", "Domain, URL keyword, app name, or bundle id"), text: $newPattern)
+                        watchlistField(state.copy("名称", "Name")) {
+                            TextField(state.copy("可选", "Optional"), text: $newName)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        .frame(width: 150)
 
-                    Button {
-                        addRule()
-                    } label: {
-                        Image(systemName: "plus")
+                        watchlistField(state.copy("匹配内容", "Match")) {
+                            TextField(state.copy("域名、URL 关键词、App 名称或 Bundle ID", "Domain, URL keyword, app name, or bundle id"), text: $newPattern)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        Button {
+                            addRule()
+                        } label: {
+                            Label(state.copy("添加", "Add"), systemImage: "plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(newPattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(newPattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .padding()
-                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+                .padding(16)
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(state.copy("常见预设", "Common presets"))
@@ -935,8 +980,9 @@ struct WatchlistPanel: View {
                         }
                     }
                 }
-                .padding()
-                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+                .padding(16)
+                .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
 
                 ForEach($state.rules) { $rule in
                     HStack {
@@ -960,8 +1006,9 @@ struct WatchlistPanel: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
                     }
-                    .padding()
-                    .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(16)
+                    .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
                 }
             }
             .onChange(of: state.rules) {
@@ -999,6 +1046,16 @@ struct WatchlistPanel: View {
     private func ruleExists(_ preset: BlacklistRule) -> Bool {
         state.rules.contains {
             $0.kind == preset.kind && $0.pattern.caseInsensitiveCompare(preset.pattern) == .orderedSame
+        }
+    }
+
+    private func watchlistField<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            content()
+                .frame(maxWidth: .infinity)
         }
     }
 }
@@ -1043,36 +1100,46 @@ struct ProvidersPanel: View {
                         .opacity(state.providers.webSearchEnabled ? 1 : 0.58)
                 }
                 .padding(16)
-                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
 
-                HStack(spacing: 10) {
-                    Button(state.copy("测试 ASR", "Test ASR")) {
-                        testASR()
+                VStack(alignment: .leading, spacing: 12) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 116), spacing: 8)], alignment: .leading, spacing: 8) {
+                        Button(state.copy("测试 ASR", "Test ASR")) {
+                            testASR()
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        Button(state.copy("测试 LLM", "Test LLM")) {
+                            testLLM()
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        Button(state.copy("测试 TTS", "Test TTS")) {
+                            testTTS()
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        Button(state.copy("测试搜索", "Test search")) {
+                            testSearch()
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        Button(state.copy("端到端测试", "End-to-end")) {
+                            testEndToEnd()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    Button(state.copy("测试 LLM", "Test LLM")) {
-                        testLLM()
-                    }
-                    .buttonStyle(.bordered)
-                    Button(state.copy("测试 TTS", "Test TTS")) {
-                        testTTS()
-                    }
-                    .buttonStyle(.bordered)
-                    Button(state.copy("测试搜索", "Test search")) {
-                        testSearch()
-                    }
-                    .buttonStyle(.bordered)
-                    Button(state.copy("端到端测试", "End-to-end test")) {
-                        testEndToEnd()
-                    }
-                    .buttonStyle(.borderedProminent)
+
+                    Text(state.providerStatus.isEmpty ? state.copy("Provider 尚未测试", "Provider not tested") : state.providerStatus)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Text(state.providerStatus.isEmpty ? state.copy("Provider 尚未测试", "Provider not tested") : state.providerStatus)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
             }
             .onChange(of: state.providers) {
                 state.persist()
@@ -1244,8 +1311,8 @@ struct VoicePanel: View {
                     }
                 }
                 .padding(16)
-                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1277,12 +1344,12 @@ struct VoicePanel: View {
     private func labeledRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         LabeledContent {
             content()
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: 420, alignment: .leading)
         } label: {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 86, alignment: .leading)
+                .frame(width: 118, alignment: .leading)
         }
     }
 }
@@ -1324,7 +1391,8 @@ struct HistoryPanel: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .padding()
-                                .background(.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12))
+                                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
                             }
                         }
                     }
@@ -1367,8 +1435,8 @@ struct StatPill: View {
         .padding(.horizontal, 16)
         .frame(height: 64)
         .frame(minWidth: 132, alignment: .leading)
-        .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.08)))
+        .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
     }
 }
 
@@ -1380,19 +1448,22 @@ struct PermissionRow: View {
     var action: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Circle()
                 .fill(state == .allowed ? Color.green : Color.orange)
                 .frame(width: 8, height: 8)
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
+                .frame(width: 86, alignment: .leading)
             Text(state.label(language: language))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .frame(width: 88, alignment: .leading)
             Button(actionTitle, action: action)
                 .buttonStyle(.bordered)
                 .disabled(state == .allowed)
         }
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
@@ -1405,19 +1476,21 @@ struct PanelContainer<Content: View>: View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 30, weight: .semibold))
                 Text(subtitle)
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: 790, alignment: .leading)
 
             ScrollView {
                 content
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: 790, alignment: .topLeading)
                     .padding(.bottom, 26)
             }
         }
-        .padding(.top, 20)
-        .padding(.horizontal, 34)
+        .padding(.top, 26)
+        .padding(.horizontal, 38)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
@@ -1429,25 +1502,32 @@ struct SettingCard<Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 30, weight: .regular))
-                .foregroundStyle(.secondary)
-                .frame(width: 44)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 34, height: 34)
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.system(size: 15, weight: .bold))
-                Text(subtitle).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                Text(subtitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(width: 255, alignment: .leading)
 
             Spacer()
             trailing
+                .frame(maxWidth: 390, alignment: .trailing)
         }
-        .padding(.horizontal, 25)
-        .frame(minHeight: 108)
-        .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.1)))
-        .shadow(color: .black.opacity(0.04), radius: 12, y: 5)
+        .padding(18)
+        .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+        .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+        .shadow(color: .black.opacity(0.035), radius: 10, y: 4)
     }
 }
 
@@ -1540,10 +1620,10 @@ struct ProviderEditor: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Label(role.title(language: language), systemImage: role.icon)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                 Spacer()
                 if let mode {
                     Picker("", selection: mode) {
@@ -1562,33 +1642,33 @@ struct ProviderEditor: View {
                     localModelView(descriptor)
                 } else {
                     if role == .search {
-                        labeledRow("Provider") {
+                        providerField("Provider") {
                             TextField(copy("例如 Brave Search", "e.g. Brave Search"), text: providerNameBinding)
                                 .textFieldStyle(.roundedBorder)
                         }
-                        labeledRow("Model") {
+                        providerField("Model") {
                             TextField("brave-web-search / tavily-search", text: $provider.model)
                                 .textFieldStyle(.roundedBorder)
                         }
                     } else {
                         HStack(spacing: 12) {
-                            labeledRow("Provider") {
+                            providerField("Provider") {
                                 TextField(copy("例如 DeepSeek", "e.g. DeepSeek"), text: providerNameBinding)
                                     .textFieldStyle(.roundedBorder)
                             }
-                            labeledRow("Model") {
+                            providerField("Model") {
                                 TextField(copy("模型名", "Model name"), text: $provider.model)
                                     .textFieldStyle(.roundedBorder)
                             }
                         }
                     }
 
-                    labeledRow("Base URL") {
+                    providerField("Base URL") {
                         TextField("https://", text: $provider.baseURL)
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    labeledRow("API Key") {
+                    providerField("API Key") {
                         HStack(spacing: 10) {
                             SecureField(copy("保存到本机密钥存储", "Saved to local secret storage"), text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
@@ -1596,6 +1676,7 @@ struct ProviderEditor: View {
                                 saveAPIKey()
                             }
                             .buttonStyle(.borderedProminent)
+                            .controlSize(.regular)
                             .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
@@ -1609,8 +1690,8 @@ struct ProviderEditor: View {
             }
         }
         .padding(16)
-        .background(role == .search ? Color.clear : Color.white.opacity(0.46), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(role == .search ? Color.clear : Color.black.opacity(0.08)))
+        .background(role == .search ? Color.clear : Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(role == .search ? Color.clear : Color.black.opacity(0.07)))
     }
 
     private func saveAPIKey() {
@@ -1748,16 +1829,13 @@ struct ProviderEditor: View {
         )
     }
 
-    @ViewBuilder
-    private func labeledRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        LabeledContent {
-            content()
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } label: {
+    private func providerField<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 76, alignment: .leading)
+            content()
+                .frame(maxWidth: .infinity)
         }
     }
 

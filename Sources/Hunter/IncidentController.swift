@@ -80,10 +80,12 @@ final class IncidentController {
     func handleUserReply(_ transcript: String) async -> Bool {
         guard let incident = state.currentIncident else {
             state.toastMessage = transcript
+            state.voiceActivity = .idle
             return false
         }
 
         state.toastMessage = state.copy("你：\(transcript)", "You: \(transcript)")
+        state.voiceActivity = .thinking
         do {
             let reply = try await dashScope.generateReply(
                 userText: transcript,
@@ -106,6 +108,7 @@ final class IncidentController {
             return await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"), revealIncident: responseIncident)
         } catch {
             state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")
+            state.voiceActivity = .idle
             return false
         }
     }
@@ -135,14 +138,21 @@ final class IncidentController {
                 await notifications.notifyCatch(target: target, roast: text)
             }
             do {
+                state.voiceActivity = .speaking
                 let duration = try speechPlayer.play(audioData: audio)
                 await waitForPlayback(duration)
+                if state.voiceActivity == .speaking {
+                    state.voiceActivity = .idle
+                }
                 return true
             } catch {
                 state.providerStatus = state.copy(
                     "云端 TTS 播放失败：\(error.localizedDescription)。未使用系统朗读。",
                     "Cloud TTS audio playback failed: \(error.localizedDescription). System speech was not used."
                 )
+                if state.voiceActivity == .speaking || state.voiceActivity == .thinking {
+                    state.voiceActivity = .idle
+                }
                 return false
             }
         } catch {
@@ -150,6 +160,9 @@ final class IncidentController {
                 "云端 TTS 失败：\(error.localizedDescription)。未使用系统朗读。",
                 "Cloud TTS failed: \(error.localizedDescription). System speech was not used."
             )
+            if state.voiceActivity == .speaking || state.voiceActivity == .thinking {
+                state.voiceActivity = .idle
+            }
             TTSDiagnostics.record("CLOUD_TTS_FAILED error=\(error.localizedDescription) fallback=none")
             Task {
                 await notifications.notifyCatch(target: target, roast: text)

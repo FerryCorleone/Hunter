@@ -10,14 +10,24 @@ final class FloatingWindowController {
 
     init(state: AppState, onReplyPressChanged: @escaping (Bool) -> Void, onPause: @escaping () -> Void) {
         self.state = state
-        let view = FloatingOverlayView(state: state, onReplyPressChanged: onReplyPressChanged, onPause: onPause)
+        var layoutHandler: ((Bool, Bool) -> Void)?
+        let view = FloatingOverlayView(
+            state: state,
+            onReplyPressChanged: onReplyPressChanged,
+            onPause: onPause,
+            onLayoutChange: { hasToast, hasIncident in
+                layoutHandler?(hasToast, hasIncident)
+            }
+        )
         let hostingView = TransparentHostingView(rootView: view)
+        hostingView.translatesAutoresizingMaskIntoConstraints = true
+        hostingView.autoresizingMask = [.width, .height]
         hostingView.wantsLayer = true
         hostingView.layer?.isOpaque = false
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
 
         window = NSPanel(
-            contentRect: NSRect(x: 150, y: 130, width: 66, height: 66),
+            contentRect: NSRect(x: 150, y: 130, width: 72, height: 72),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -26,6 +36,9 @@ final class FloatingWindowController {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isReleasedWhenClosed = false
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isMovableByWindowBackground = true
@@ -33,6 +46,9 @@ final class FloatingWindowController {
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.isOpaque = false
         window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
+        layoutHandler = { [weak self] hasToast, hasIncident in
+            self?.updateFrame(hasToast: hasToast, hasIncident: hasIncident)
+        }
 
         state.$isWidgetVisible
             .receive(on: RunLoop.main)
@@ -45,15 +61,14 @@ final class FloatingWindowController {
             }
             .store(in: &cancellables)
 
-        Publishers.Merge(
-            state.$currentIncident.map { _ in () },
-            state.$toastMessage.map { _ in () }
-        )
-        .receive(on: RunLoop.main)
-        .sink { [weak self] in
-            self?.updateFrame()
-        }
-        .store(in: &cancellables)
+        state.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateFrame()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     func show() {
@@ -66,32 +81,42 @@ final class FloatingWindowController {
     }
 
     private func updateFrame() {
-        guard let screen = NSScreen.main else { return }
-        let visible = screen.visibleFrame
-        let size = contentSize()
-        let x = visible.minX + 132
-        let y = visible.minY + 118
-        window.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
+        updateFrame(hasToast: state.toastMessage != nil, hasIncident: state.currentIncident != nil)
     }
 
-    private func contentSize() -> NSSize {
-        let hasToast = state.toastMessage != nil
-        let hasIncident = state.currentIncident != nil
+    private func updateFrame(hasToast: Bool, hasIncident: Bool) {
+        guard let screen = NSScreen.main else { return }
+        let visible = screen.visibleFrame
+        let size = contentSize(hasToast: hasToast, hasIncident: hasIncident)
+        let x = visible.minX + 132
+        let y = visible.minY + 118
+        let frame = NSRect(x: x, y: y, width: size.width, height: size.height)
+        window.setFrame(frame, display: true)
+        window.contentView?.frame = NSRect(origin: .zero, size: size)
+    }
+
+    private func contentSize(hasToast: Bool, hasIncident: Bool) -> NSSize {
         switch (hasToast, hasIncident) {
         case (false, false):
-            return NSSize(width: 66, height: 66)
+            return NSSize(width: 72, height: 72)
         case (true, false):
-            return NSSize(width: 374, height: 80)
+            return NSSize(width: 382, height: 84)
         case (false, true):
-            return NSSize(width: 354, height: 348)
+            return NSSize(width: 360, height: 352)
         case (true, true):
-            return NSSize(width: 374, height: 428)
+            return NSSize(width: 382, height: 436)
         }
     }
 }
 
 private final class TransparentHostingView<Content: View>: NSHostingView<Content> {
     override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.clear.setFill()
+        dirtyRect.fill()
+        super.draw(dirtyRect)
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()

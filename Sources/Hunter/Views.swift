@@ -6,6 +6,9 @@ struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
     let onReplyPressChanged: (Bool) -> Void
     let onPause: () -> Void
+    let onLayoutChange: (Bool, Bool) -> Void
+    @State private var toastDismissTask: Task<Void, Never>?
+    @State private var incidentDismissTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -21,9 +24,28 @@ struct FloatingOverlayView: View {
                     .transition(.scale(scale: 0.96).combined(with: .opacity))
             }
         }
-        .padding(1)
+        .padding(4)
+        .background(Color.clear)
+        .frame(width: overlaySize.width, height: overlaySize.height, alignment: .topLeading)
         .animation(.spring(response: 0.22, dampingFraction: 0.88), value: state.currentIncident)
         .animation(.easeOut(duration: 0.18), value: state.toastMessage)
+        .onAppear {
+            scheduleToastDismiss(for: state.toastMessage)
+            scheduleIncidentDismiss(for: state.currentIncident)
+            onLayoutChange(state.toastMessage != nil, state.currentIncident != nil)
+        }
+        .onDisappear {
+            toastDismissTask?.cancel()
+            incidentDismissTask?.cancel()
+        }
+        .onChange(of: state.toastMessage) { _, message in
+            scheduleToastDismiss(for: message)
+            onLayoutChange(message != nil, state.currentIncident != nil)
+        }
+        .onChange(of: state.currentIncident) { _, incident in
+            scheduleIncidentDismiss(for: incident)
+            onLayoutChange(state.toastMessage != nil, incident != nil)
+        }
     }
 
     private var orb: some View {
@@ -33,6 +55,21 @@ struct FloatingOverlayView: View {
             focusSession: state.focusSession
         )
         .frame(width: 64, height: 64)
+    }
+
+    private var overlaySize: CGSize {
+        let hasToast = state.toastMessage != nil
+        let hasIncident = state.currentIncident != nil
+        switch (hasToast, hasIncident) {
+        case (false, false):
+            return CGSize(width: 72, height: 72)
+        case (true, false):
+            return CGSize(width: 382, height: 84)
+        case (false, true):
+            return CGSize(width: 360, height: 352)
+        case (true, true):
+            return CGSize(width: 382, height: 436)
+        }
     }
 
     private func toastView(_ text: String) -> some View {
@@ -61,9 +98,8 @@ struct FloatingOverlayView: View {
         }
         .padding(.horizontal, 16)
         .frame(width: 294, height: 76)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 21, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 21).stroke(.white.opacity(0.72), lineWidth: 1))
-        .shadow(color: .black.opacity(0.14), radius: 24, y: 12)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 21, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 21).stroke(.black.opacity(0.07), lineWidth: 1))
     }
 
     private func catchCard(_ incident: Incident) -> some View {
@@ -101,7 +137,7 @@ struct FloatingOverlayView: View {
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            WaveformView()
+            WaveformView(isActive: state.voiceActivity.animatesWaveform)
                 .frame(height: 32)
 
             HStack(spacing: 12) {
@@ -126,6 +162,34 @@ struct FloatingOverlayView: View {
         .frame(width: 350)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black.opacity(0.07), lineWidth: 1))
+    }
+
+    private func scheduleToastDismiss(for message: String?) {
+        toastDismissTask?.cancel()
+        guard let message else { return }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_800_000_000)
+            guard !Task.isCancelled, state.toastMessage == message else { return }
+            state.toastMessage = nil
+        }
+    }
+
+    private func scheduleIncidentDismiss(for incident: Incident?) {
+        incidentDismissTask?.cancel()
+        guard let incident else { return }
+        incidentDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            while !Task.isCancelled, state.currentIncident?.id == incident.id, state.voiceActivity.isBusy {
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled,
+                  state.currentIncident?.id == incident.id,
+                  !state.voiceActivity.isBusy
+            else { return }
+            state.currentIncident = nil
+            state.voiceInteractionStatus = nil
+        }
     }
 }
 
@@ -212,13 +276,16 @@ private struct CountdownBorder: View {
     var body: some View {
         ZStack {
             Circle()
+                .inset(by: 2.5)
                 .stroke(Color.white.opacity(0.90), lineWidth: 4)
 
             Circle()
+                .inset(by: 2.5)
                 .stroke(Color.black.opacity(0.10), lineWidth: 1)
 
             if isMonitoring {
                 Circle()
+                    .inset(by: 2.5)
                     .trim(from: 0, to: max(0.02, min(1, progress)))
                     .stroke(
                         hasTimedSession ? Color(red: 0.22, green: 0.47, blue: 1.0) : Color.black.opacity(0.22),
@@ -279,16 +346,36 @@ private struct FloatingAvatarPreview: View {
 }
 
 struct WaveformView: View {
+    let isActive: Bool
     private let heights: [CGFloat] = [10, 22, 31, 19, 16, 21, 14, 18, 27, 32, 15, 20, 13, 31, 24, 9, 10, 8]
+    @State private var phase: CGFloat = 0
+    private let timer = Timer.publish(every: 0.12, on: .main, in: .common).autoconnect()
 
     var body: some View {
         HStack(alignment: .center, spacing: 6) {
-            ForEach(Array(heights.enumerated()), id: \.offset) { _, height in
+            ForEach(Array(heights.enumerated()), id: \.offset) { index, height in
                 Capsule()
                     .fill(Color(red: 0.49, green: 0.61, blue: 1.0).opacity(0.9))
                     .frame(width: 4, height: height)
+                    .scaleEffect(y: scale(for: index), anchor: .center)
+                    .animation(.easeInOut(duration: 0.12), value: phase)
             }
         }
+        .onReceive(timer) { _ in
+            guard isActive else { return }
+            phase += 1
+        }
+        .onChange(of: isActive) { _, active in
+            if !active {
+                phase = 0
+            }
+        }
+    }
+
+    private func scale(for index: Int) -> CGFloat {
+        guard isActive else { return 1 }
+        let wave = sin((phase + CGFloat(index) * 0.72) * 0.82)
+        return 0.58 + CGFloat((wave + 1) * 0.34)
     }
 }
 

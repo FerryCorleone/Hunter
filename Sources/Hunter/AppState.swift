@@ -1,6 +1,22 @@
 import Combine
 import Foundation
 
+enum VoiceActivity: Equatable {
+    case idle
+    case listening
+    case transcribing
+    case thinking
+    case speaking
+
+    var animatesWaveform: Bool {
+        self == .listening || self == .speaking
+    }
+
+    var isBusy: Bool {
+        self != .idle
+    }
+}
+
 @MainActor
 final class AppState: ObservableObject {
     @Published var isMonitoring: Bool = false
@@ -21,6 +37,7 @@ final class AppState: ObservableObject {
     @Published var currentIncident: Incident?
     @Published var toastMessage: String?
     @Published var voiceInteractionStatus: String?
+    @Published var voiceActivity: VoiceActivity = .idle
     @Published var events: [Incident] = []
     @Published var providerStatus: String = ""
     @Published var permissionStatus: String = "Waiting for permissions"
@@ -86,6 +103,7 @@ final class AppState: ObservableObject {
         currentIncident = nil
         toastMessage = nil
         voiceInteractionStatus = nil
+        voiceActivity = .idle
         persist()
     }
 
@@ -102,6 +120,7 @@ final class AppState: ObservableObject {
         if focusSession?.isActive == false {
             focusSession = nil
             toastMessage = interfaceLanguage == .english ? "Focus session ended" : "监督时长已结束"
+            voiceActivity = .idle
             persist()
         } else if resumed {
             persist()
@@ -140,6 +159,7 @@ final class AppState: ObservableObject {
         currentIncident = nil
         toastMessage = copy("监督已结束", "Focus session ended")
         voiceInteractionStatus = nil
+        voiceActivity = .idle
         persist()
     }
 
@@ -158,6 +178,7 @@ final class AppState: ObservableObject {
         events = []
         currentIncident = nil
         voiceInteractionStatus = nil
+        voiceActivity = .idle
         persist()
     }
 

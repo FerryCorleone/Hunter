@@ -194,6 +194,22 @@ struct DurationParserTests {
         #expect(session.progress(at: started.addingTimeInterval(40 * 60)) == 0)
     }
 
+    @MainActor
+    @Test func focusSessionLifecycleSetsUserFacingToast() {
+        let suiteName = "hunter-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let state = AppState(store: SettingsStore(defaults: defaults))
+        state.startFocusSession(duration: 40 * 60, source: "test")
+        #expect(state.toastMessage == "40 分钟监督已开始")
+
+        state.endFocusSession()
+        #expect(state.toastMessage == "监督已结束")
+    }
+
     @Test func audioCacheStoresByVoiceModelLanguageAndText() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("hunter-audio-cache-test-\(UUID().uuidString)", isDirectory: true)
@@ -291,6 +307,15 @@ struct DurationParserTests {
         #expect(RoastPersona.officeBoss.label(language: .english) == "Office boss")
         #expect(RuleKind.website.label(language: .zhHans) == "网站")
         #expect(RuleKind.app.label(language: .english) == "App")
+    }
+
+    @Test func voiceActivityDrivesWaveformAndDismissalState() {
+        #expect(VoiceActivity.listening.animatesWaveform)
+        #expect(VoiceActivity.speaking.animatesWaveform)
+        #expect(!VoiceActivity.idle.animatesWaveform)
+        #expect(!VoiceActivity.transcribing.animatesWaveform)
+        #expect(VoiceActivity.thinking.isBusy)
+        #expect(!VoiceActivity.idle.isBusy)
     }
 
     @Test func audioLevelInspectorDetectsSilentAndAudibleWAV() {

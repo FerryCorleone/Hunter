@@ -4,14 +4,14 @@
 
 ## 验收结论
 
-当前版本已经具备可运行的 macOS MVP 主链路：可打包启动、可配置监督规则、可创建时长任务，默认 LLM 使用 DeepSeek，本地 ASR 使用 SenseVoice，并已通过“中文语音 -> 40 分钟监督任务”烟测。本轮将本地 TTS 方案否掉并从代码/UI/命令行入口移除，TTS 统一走云端 Provider；本机 Qwen TTS 模型、runtime、脚本和 TTS 缓存已清理。本机 GUI 基础验收、演示抓包、历史记录、麦克风权限、录制测试入口和 DMG 打包均通过。Option+Space 真人按住说话、真实浏览器黑名单命中、搜索增强真实 Key 和云端 TTS 真实播报仍需要继续做桌面验收。
+当前版本已经具备可运行的 macOS MVP 主链路：可打包启动、可配置监督规则、可创建时长任务，默认 LLM 使用 DeepSeek，本地 ASR 使用 SenseVoice，TTS 使用千问云 CosyVoice。已通过“中文语音 -> 40 分钟监督任务”烟测；DeepSeek LLM + 千问云 TTS 也已用真实本机密钥通过命令行端到端烟测。本机 Qwen TTS 模型、runtime、脚本和 TTS 缓存已清理。本机 GUI 基础验收、演示抓包、历史记录、麦克风权限、录制测试入口和 DMG 打包均通过。Option+Space 真人按住说话、真实浏览器黑名单命中、搜索增强真实 Key 和桌面抓包/对喷真实播报仍需要继续做桌面验收。
 
 ## Checklist
 
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，22 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地 ASR/云端 TTS 配置、Search 默认配置、旧本地音色迁移、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
+| 单元测试通过 | Pass | `swift test`，23 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地 ASR/云端 TTS 配置、Search 默认配置、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
@@ -24,8 +24,8 @@
 | 语音快速创建监督时长 | Pass | `--smoke-local-voice-focus`：`监督我接下来的四十分钟` WAV -> 本地 SenseVoice 文本 `监督我接下来的四十分钟` -> `focus_minutes=40` |
 | 时长任务暂停/延长/结束 | Pass | 设置页和菜单栏提供暂停/恢复/延长/结束；GUI 验证 40 分钟任务会启用暂停、+10、结束按钮；单测覆盖 pause/resume/extend |
 | ASR 默认链路 | Pass | 本地 SenseVoice Small INT8 安装和识别通过；5 次本地 ASR 耗时首轮约 1.05 秒、后续约 0.58-0.64 秒；云端 `paraformer-realtime-v2` 仍保留为 fallback |
-| LLM 默认链路 | Partial | 默认配置已切到 DeepSeek `deepseek-v4-flash`；早前 `--smoke-llm` 已用旧本机密钥验证通过。Keychain 完全移除后，如果密钥只存在旧钥匙串里，需要在设置页重新保存一次 API Key 或写入 `.env.local` 后复测 |
-| TTS 默认链路 | Partial | 本地 TTS 已移除，抓包/对喷播报统一走云端 TTS Provider，默认 `cosyvoice-v3-flash + longanyang`；抓包/对喷链路仍不使用 macOS 系统朗读兜底；需要重新用真实 TTS Key 做端到端播报验收 |
+| LLM 默认链路 | Pass | 默认配置已切到 DeepSeek `deepseek-v4-flash`；`DEEPSEEK_API_KEY` 已写入本机 App Support `.env.local`，`--smoke-llm` 返回 `llm_ok=true`、`llm_provider=DeepSeek` |
+| TTS 默认链路 | Pass | 本地 TTS 已移除，抓包/对喷播报统一走云端 TTS Provider，默认 `cosyvoice-v3-flash + longanyang`；`DASHSCOPE_API_KEY` 已写入本机 App Support `.env.local`，千问云鉴权 HTTP 200，`--smoke-llm-tts` 返回 `tts_ok=true` |
 | TTS 本地缓存 | Pass | 仅缓存云端 TTS 返回的音频，按 model、voice、language、text 隔离；本机旧 TTS 缓存目录已清理 |
 | Provider 可配置 | Pass | 设置页中 ASR/LLM/TTS/Search 四类能力可独立配置；云端模式只填 Provider、Base URL、Model、API Key；仅 ASR 提供本地模型下载入口；本地 ASR adapter 已实测通过 |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
@@ -45,8 +45,8 @@
 ```bash
 swift build
 swift test
-# 需要先在设置页重新保存 DEEPSEEK_API_KEY，或写入本机 .env.local
-# ./.build/debug/Hunter --smoke-llm
+./.build/debug/Hunter --smoke-llm
+./.build/debug/Hunter --smoke-llm-tts
 say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
 afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
 ./.build/debug/Hunter --install-local-asr

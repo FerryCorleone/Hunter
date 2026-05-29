@@ -29,6 +29,7 @@
 - OpenAI-compatible LLM 抓包吐槽和语音回击代码路径；当前本机默认 LLM 配置为 DeepSeek `deepseek-v4-flash`，请求体会对 DeepSeek V4 自动关闭 thinking 以保证短吐槽直接出现在 `content`。
 - 抓包 prompt 已升级：输入包含 App、URL、标签页标题和可选搜索摘要，要求模型先识别用户正在看的具体内容，再把它和逃避工作连接起来，最后输出短 punchline；允许粗口时可使用普通脏话，但仍过滤禁用词和受保护属性攻击。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
+- CosyVoice 返回 `http` 音频文件地址时，运行时会升级为 `https` 再下载，避免打包 App 被 macOS ATS 拦截后无声。
 - 播报音量已调到产品可用级：本地/云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
 - 抓包/对喷播报链路不再静默降级到 macOS 系统朗读；LLM 失败后的兜底吐槽也会继续走当前配置的 TTS，TTS 合成或播放失败会在状态里明确报错。
 - TTS 路径诊断日志已接入：`~/Library/Application Support/Hunter/Logs/tts.log` 会记录 `CLOUD_TTS_START` / `CLOUD_TTS_SUCCESS` 和 `AUDIO_PLAYER_PLAYING`；当前构建不应再出现 `SYSTEM_SPEECH_START` 或 `LOCAL_TTS_START`，若出现代表仍在运行旧版。
@@ -61,7 +62,7 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，22 个测试覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、支持浏览器识别、Provider headers、Provider 默认值、Search 默认配置与 key 分流、旧本地音色迁移、TTS 缓存、禁用词过滤、可见标签双语、事件去重和录音音量检测。
+- `swift test` 通过，23 个测试覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、支持浏览器识别、Provider headers、Provider 默认值、Search 默认配置与 key 分流、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、禁用词过滤、可见标签双语、事件去重和录音音量检测。
 - `swift build -c release` 通过。
 - `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
@@ -84,6 +85,8 @@
 - 阿里 LLM/TTS 烟测已验证角色 prompt 生效：老板口吻输出可用。
 - 吐槽边界改动后，阿里 LLM/TTS 烟测再次通过：`llm_ok=true`、`tts_ok=true`。
 - 默认 Provider 配置改为可编辑后，阿里默认链路再次通过 LLM/TTS/ASR 烟测；DeepSeek 默认 LLM 配置已落到代码路径并完成 LLM 单项烟测。
+- 2026-05-29 重新创建并保存千问云标准 API Key 后，千问云鉴权探测返回 HTTP 200；本机 App Support `.env.local` 同时保存 `DASHSCOPE_API_KEY` 和 `DEEPSEEK_API_KEY`。
+- 2026-05-29 当前测试链路确认：`--smoke-llm` 使用 DeepSeek `deepseek-v4-flash` 且 `llm_ok=true`；`--smoke-llm-tts` 使用 DeepSeek 生成吐槽，并用千问云 CosyVoice 合成，`tts_ok=true`、`tts_bytes=61484`。
 
 ## 未完成 / 下一步
 
@@ -94,7 +97,7 @@
 - 真人麦克风端到端验证：语音说“监督我接下来的 40 分钟” -> 生成 Focus Session。
 - 端到端验证：进入 YouTube/Bilibili 黑名单 -> LLM 生成吐槽 -> CosyVoice 播放。
 - Provider 配置当前是“内置适配器 + 可编辑端点”模式：LLM 按 OpenAI-compatible Chat Completions 形态调用，ASR/TTS 按阿里适配器形态调用；后续要支持完全不同协议的供应商时，需要新增 adapter。
-- 云端 TTS 仍需用真实 Provider Key 做抓包/对喷端到端体验验收，重点看首句等待时间、音量和真人感。
+- 云端 TTS 已用真实 Provider Key 通过命令行端到端烟测；仍需在桌面抓包/对喷真实场景里验收首句等待时间、音量和真人感。
 - 云端克隆/音色设计如果要回归，需接对应 TTS Provider adapter，只保存授权 voice id，不恢复本地 TTS 模型。
 
 ## 注意

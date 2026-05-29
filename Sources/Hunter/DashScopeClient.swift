@@ -174,7 +174,7 @@ struct DashScopeClient {
         guard let url = decoded.output.audio.url else {
             throw ProviderError.invalidResponse
         }
-        let (audio, audioResponse) = try await URLSession.shared.data(from: url)
+        let (audio, audioResponse) = try await URLSession.shared.data(from: downloadableAudioURL(from: url))
         guard let http = audioResponse as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw ProviderError.invalidResponse
         }
@@ -236,6 +236,14 @@ struct DashScopeClient {
     private func endpointURL(baseURL: String, path: String) -> URL {
         let trimmedBase = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         return URL(string: "\(trimmedBase)/\(path)")!
+    }
+
+    func downloadableAudioURL(from url: URL) -> URL {
+        guard url.scheme?.lowercased() == "http", var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url
+        }
+        components.scheme = "https"
+        return components.url ?? url
     }
 
     private func applyLLMBodyDefaults(_ body: inout [String: Any], endpoint: ProviderEndpoint) {

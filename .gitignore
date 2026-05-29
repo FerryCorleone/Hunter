@@ -21,6 +21,11 @@ build/
 *.log
 logs/
 
+# Local agent/tool state
+.agents/
+output/
+skills-lock.json
+
 # Generated archives
 *.zip
 *.tar.gz

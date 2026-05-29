@@ -194,6 +194,17 @@ struct DurationParserTests {
         #expect(cache.data(for: otherVoice) == nil)
     }
 
+    @Test func dashScopeAudioDownloadUpgradesHTTPToHTTPS() throws {
+        let client = DashScopeClient()
+        let insecure = try #require(URL(string: "http://dashscope-result.oss-cn-beijing.aliyuncs.com/audio.wav?token=abc"))
+        let secure = client.downloadableAudioURL(from: insecure)
+
+        #expect(secure.scheme == "https")
+        #expect(secure.host == insecure.host)
+        #expect(secure.path == insecure.path)
+        #expect(secure.query == insecure.query)
+    }
+
     @Test func roastPolicyParsesAndFiltersBannedTerms() {
         let terms = RoastPolicy.parsedBannedTerms(from: "笨蛋, idiot\n傻子；stupid")
         #expect(terms == ["笨蛋", "idiot", "傻子", "stupid"])

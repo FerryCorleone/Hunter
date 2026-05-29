@@ -146,6 +146,12 @@ struct DurationParserTests {
         #expect(settings.webSearch.apiKeyEnvironmentName == "BRAVE_SEARCH_API_KEY")
     }
 
+    @Test func settingsSnapshotDecodeKeepsFloatingAvatarOptional() throws {
+        let data = Data("{}".utf8)
+        let snapshot = try JSONDecoder.hunter.decode(SettingsSnapshot.self, from: data)
+        #expect(snapshot.floatingAvatarPath == nil)
+    }
+
     @Test func providerSettingsDecodeMigratesRetiredVoiceToCloudDefault() throws {
         let data = Data(#"{"voice":"Vivian"}"#.utf8)
         let settings = try JSONDecoder.hunter.decode(ProviderSettings.self, from: data)

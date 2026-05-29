@@ -13,6 +13,7 @@ final class AppState: ObservableObject {
     @Published var persona: RoastPersona = .officeBoss
     @Published var allowProfanity: Bool = false
     @Published var bannedTerms: String = ""
+    @Published var floatingAvatarPath: String?
     @Published var rules: [BlacklistRule] = BlacklistRule.defaultRules
     @Published var providers: ProviderSettings = ProviderSettings()
     @Published var focusSession: FocusSession?
@@ -44,6 +45,7 @@ final class AppState: ObservableObject {
         persona = snapshot.persona
         allowProfanity = snapshot.allowProfanity
         bannedTerms = snapshot.bannedTerms
+        floatingAvatarPath = snapshot.floatingAvatarPath
         rules = snapshot.rules
         providers = snapshot.providers
         focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
@@ -62,6 +64,7 @@ final class AppState: ObservableObject {
             persona: persona,
             allowProfanity: allowProfanity,
             bannedTerms: bannedTerms,
+            floatingAvatarPath: floatingAvatarPath,
             rules: rules,
             providers: providers,
             focusSession: focusSession,
@@ -155,6 +158,30 @@ final class AppState: ObservableObject {
         persist()
     }
 
+    func setFloatingAvatar(from sourceURL: URL) throws {
+        let directory = try applicationSupportDirectory()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileExtension = sourceURL.pathExtension.isEmpty ? "png" : sourceURL.pathExtension.lowercased()
+        let destination = directory.appendingPathComponent("floating-avatar.\(fileExtension)")
+
+        if let existing = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+            for url in existing where url.lastPathComponent.hasPrefix("floating-avatar.") {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+        try FileManager.default.copyItem(at: sourceURL, to: destination)
+        floatingAvatarPath = destination.path
+        persist()
+    }
+
+    func clearFloatingAvatar() {
+        if let floatingAvatarPath {
+            try? FileManager.default.removeItem(atPath: floatingAvatarPath)
+        }
+        floatingAvatarPath = nil
+        persist()
+    }
+
     func eventsForToday(calendar: Calendar = .current) -> [Incident] {
         events.filter { calendar.isDateInToday($0.date) }
     }
@@ -180,6 +207,16 @@ final class AppState: ObservableObject {
             return "\(minutes)-minute focus session started"
         }
         return "\(minutes) 分钟监督已开始"
+    }
+
+    private func applicationSupportDirectory() throws -> URL {
+        let base = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )
+        return base.appendingPathComponent("Hunter", isDirectory: true)
     }
 }
 

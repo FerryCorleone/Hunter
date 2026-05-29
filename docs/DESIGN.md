@@ -50,12 +50,13 @@ flowchart TD
 
 状态：
 
-- Focus：白色半透明球 + 绿色微光点。
-- Paused：白色半透明球 + 黄色微光点。
+- Focus：圆形头像 + 绿色微光点。
+- Paused：圆形头像 + 黄色微光点。
 - Caught：球体轻微放大并变为红色强调。
 - Listening：显示细线波形。
 - Speaking：显示播放波形。
 - Session Started：轻量 toast 确认“40-minute focus session started”。
+- 图标固定为圆形裁切，默认使用 Hunter 墨镜图标；用户可以在设置页上传头像并恢复默认。
 
 ### Voice Duration Task
 
@@ -76,7 +77,7 @@ Hunter：40 分钟监督已开始
 
 ### Expanded Catch Widget
 
-命中黑名单时，悬浮球展开成一个 320-360px 的桌面小组件，保持高级、克制，但文案要有冲突。
+命中黑名单时，Hunter 先在后台完成第一句 LLM + TTS 准备；音频可播放后，悬浮球展开成一个 320-360px 的桌面小组件并同步播报，避免用户先看到等待状态。
 
 ```text
 ┌────────────────────────────────────┐
@@ -85,7 +86,7 @@ Hunter：40 分钟监督已开始
 │ “Back to YouTube? Bold choice for  │
 │ someone losing to a deadline.”     │
 │                                    │
-│  语音播放波形                       │
+│  语音波形                           │
 │ [Hold Option Space to reply] [Pause]│
 └────────────────────────────────────┘
 ```
@@ -93,9 +94,11 @@ Hunter：40 分钟监督已开始
 原则：
 
 - 小组件不做大红大黑警报风，只用红色作为精准强调。
+- 小组件不展示 LLM、ASR、TTS、Provider、模型组合、合成中或播放中等内部状态。
 - 文案区域最多 3 行，避免遮挡桌面。
 - 支持中英文文案，英文长句需要自动换行。
 - 用户按快捷键反驳时，小组件切换为 listening 状态。
+- 背景使用干净的实体 macOS popover 质感，不再使用大面积浅色透明 material 色块。
 
 ## Main Window
 
@@ -125,6 +128,7 @@ Hunter：40 分钟监督已开始
 - Focus Session：当前临时时长监督任务、剩余时间、修改/结束。
 - 工作时间段。
 - 悬浮球显示位置和尺寸。
+- 悬浮球头像：固定圆形裁切，上传自定义头像，恢复默认头像。
 - 快捷键设置。
 - 开机启动。
 

@@ -22,14 +22,16 @@ final class IncidentController {
         lastIncidentByRule[rule.id] = now
 
         let fallback = fallbackRoast(rule: rule, context: context)
-        let incident = Incident(
+        state.currentIncident = nil
+        state.voiceInteractionStatus = nil
+
+        let pendingIncident = Incident(
             targetName: rule.name,
             appName: context.appName,
             url: context.url,
             pageTitle: context.pageTitle,
             roast: fallback
         )
-        state.recordIncident(incident)
 
         Task {
             do {
@@ -44,26 +46,25 @@ final class IncidentController {
                     languageCode: state.targetLanguageCode(),
                     pageContext: searchContext
                 )
+                let readyIncident = Incident(
+                    id: pendingIncident.id,
+                    date: pendingIncident.date,
+                    targetName: pendingIncident.targetName,
+                    appName: pendingIncident.appName,
+                    url: pendingIncident.url,
+                    pageTitle: pendingIncident.pageTitle,
+                    roast: roast
+                )
                 await MainActor.run {
-                    let upgraded = Incident(
-                        id: incident.id,
-                        date: incident.date,
-                        targetName: incident.targetName,
-                        appName: incident.appName,
-                        url: incident.url,
-                        pageTitle: incident.pageTitle,
-                        roast: roast
-                    )
-                    state.recordIncident(upgraded)
                     let searchLabel = searchContext == nil ? "" : state.copy("，已结合搜索上下文", ", with search context")
                     state.providerStatus = state.copy("LLM 正常\(searchLabel)，等待 TTS", "LLM OK\(searchLabel), TTS pending")
                 }
-                await synthesizeAndPlay(text: roast, target: incident.targetName, statusPrefix: state.copy("LLM", "LLM"))
+                await synthesizeAndPlay(text: roast, target: pendingIncident.targetName, statusPrefix: state.copy("LLM", "LLM"), revealIncident: readyIncident)
             } catch {
                 await MainActor.run {
                     state.providerStatus = state.copy("LLM 降级：\(error.localizedDescription)", "LLM fallback: \(error.localizedDescription)")
                 }
-                await synthesizeAndPlay(text: fallback, target: incident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"))
+                await synthesizeAndPlay(text: fallback, target: pendingIncident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"), revealIncident: pendingIncident)
             }
         }
     }
@@ -101,22 +102,20 @@ final class IncidentController {
                 pageTitle: incident.pageTitle,
                 roast: reply
             )
-            state.recordIncident(responseIncident)
             state.providerStatus = state.copy("ASR + LLM 回击正常，等待 TTS", "ASR + LLM reply OK, TTS pending")
-            await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"))
-            return true
+            return await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"), revealIncident: responseIncident)
         } catch {
             state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")
             return false
         }
     }
 
-    private func synthesizeAndPlay(text: String, target: String, statusPrefix: String) async {
+    @discardableResult
+    private func synthesizeAndPlay(text: String, target: String, statusPrefix: String, revealIncident: Incident? = nil) async -> Bool {
         TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=cloud target=\(target) provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
         do {
             TTSDiagnostics.record("CLOUD_TTS_START provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
             state.providerStatus = state.copy("\(statusPrefix) + 云端 TTS 合成中", "\(statusPrefix) + cloud TTS synthesizing")
-            state.voiceInteractionStatus = state.providerStatus
             let startedAt = Date()
             let audio = try await dashScope.synthesizeSpeech(
                 text: text,
@@ -128,20 +127,23 @@ final class IncidentController {
                 "\(statusPrefix) + 云端 TTS 完成 \(formatSeconds(elapsed))，正在播放",
                 "\(statusPrefix) + cloud TTS ready in \(formatSeconds(elapsed)), playing"
             )
-            state.voiceInteractionStatus = state.providerStatus
             TTSDiagnostics.record("CLOUD_TTS_SUCCESS bytes=\(audio.count)")
+            if let revealIncident {
+                state.recordIncident(revealIncident)
+            }
             Task {
                 await notifications.notifyCatch(target: target, roast: text)
             }
             do {
                 let duration = try speechPlayer.play(audioData: audio)
                 await waitForPlayback(duration)
+                return true
             } catch {
                 state.providerStatus = state.copy(
                     "云端 TTS 播放失败：\(error.localizedDescription)。未使用系统朗读。",
                     "Cloud TTS audio playback failed: \(error.localizedDescription). System speech was not used."
                 )
-                state.voiceInteractionStatus = state.providerStatus
+                return false
             }
         } catch {
             state.providerStatus = state.copy(
@@ -152,7 +154,7 @@ final class IncidentController {
             Task {
                 await notifications.notifyCatch(target: target, roast: text)
             }
-            state.voiceInteractionStatus = state.providerStatus
+            return false
         }
     }
 
@@ -190,8 +192,8 @@ final class IncidentController {
 
     private func fallbackRoast(rule: BlacklistRule, context: FrontmostContext) -> String {
         if state.targetLanguageCode() == "en" {
-            return "Caught on \(context.displayTarget). Bold move: training the algorithm while your deadline trains patience."
+            return "Caught on \(context.displayTarget). Back to work."
         }
-        return "抓到你在 \(context.displayTarget) 摸鱼。怎么，今天 KPI 是把推荐算法喂到撑死？"
+        return "抓到你在 \(context.displayTarget)。还干不干活了？"
     }
 }

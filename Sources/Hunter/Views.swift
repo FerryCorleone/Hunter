@@ -28,7 +28,7 @@ struct FloatingOverlayView: View {
 
     private var orb: some View {
         ZStack(alignment: .bottomTrailing) {
-            FloatingMascotIcon(isMonitoring: state.isMonitoring)
+            FloatingMascotIcon(isMonitoring: state.isMonitoring, avatarPath: state.floatingAvatarPath)
 
             Circle()
                 .fill(state.isMonitoring ? Color.green : Color.yellow)
@@ -36,7 +36,7 @@ struct FloatingOverlayView: View {
                 .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 3))
                 .offset(x: -1, y: -1)
         }
-        .frame(width: 92, height: 64)
+        .frame(width: 64, height: 64)
     }
 
     private func toastView(_ text: String) -> some View {
@@ -108,21 +108,6 @@ struct FloatingOverlayView: View {
             WaveformView()
                 .frame(height: 32)
 
-            if let status = state.voiceInteractionStatus, !status.isEmpty {
-                HStack(spacing: 8) {
-                    Image(systemName: "mic.badge.plus")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(status)
-                        .font(.system(size: 12, weight: .medium))
-                        .lineLimit(2)
-                }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            }
-
             HStack(spacing: 12) {
                 Button(action: onReply) {
                     Label(state.copy("语音回击\n连续对喷", "Voice reply\ncontinuous duel"), systemImage: "mic.fill")
@@ -149,36 +134,46 @@ struct FloatingOverlayView: View {
         }
         .padding(20)
         .frame(width: 350)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.7), lineWidth: 1))
-        .shadow(color: .black.opacity(0.18), radius: 30, y: 18)
+        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black.opacity(0.08), lineWidth: 1))
+        .shadow(color: .black.opacity(0.16), radius: 26, y: 16)
     }
 }
 
 private struct FloatingMascotIcon: View {
     let isMonitoring: Bool
+    let avatarPath: String?
 
     var body: some View {
-        Group {
-            if let image = FloatingIconAsset.image {
+        ZStack {
+            if let image = FloatingIconAsset.image(path: avatarPath) {
                 Image(nsImage: image)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: avatarPath == nil ? .fit : .fill)
+                    .padding(avatarPath == nil ? 5 : 0)
             } else {
                 Image(systemName: "eyeglasses")
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(.cyan)
             }
         }
-        .frame(width: 86, height: 58)
-        .shadow(color: .cyan.opacity(isMonitoring ? 0.32 : 0.18), radius: isMonitoring ? 18 : 10, y: 6)
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
-        .contentShape(Rectangle())
+        .frame(width: 64, height: 64)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(.white.opacity(0.38), lineWidth: 1))
+        .shadow(color: .black.opacity(isMonitoring ? 0.20 : 0.14), radius: isMonitoring ? 12 : 8, y: 6)
+        .contentShape(Circle())
     }
 }
 
 private enum FloatingIconAsset {
-    static let image: NSImage? = {
+    static func image(path: String?) -> NSImage? {
+        if let path, let custom = NSImage(contentsOfFile: path) {
+            return custom
+        }
+        return bundledImage
+    }
+
+    static let bundledImage: NSImage? = {
         let filename = "hunter-sunglasses-icon"
         let bundledPath = "Hunter_Hunter.bundle/\(filename).png"
         let candidateURLs: [URL?] = [
@@ -194,6 +189,29 @@ private enum FloatingIconAsset {
         }
         return nil
     }()
+}
+
+private struct FloatingAvatarPreview: View {
+    let avatarPath: String?
+
+    var body: some View {
+        ZStack {
+            if let image = FloatingIconAsset.image(path: avatarPath) {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: avatarPath == nil ? .fit : .fill)
+                    .padding(avatarPath == nil ? 4 : 0)
+            } else {
+                Image(systemName: "eyeglasses")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(.cyan)
+            }
+        }
+        .frame(width: 46, height: 46)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(.black.opacity(0.08), lineWidth: 1))
+        .shadow(color: .black.opacity(0.10), radius: 8, y: 4)
+    }
 }
 
 struct WaveformView: View {
@@ -355,13 +373,32 @@ struct GeneralPanel: View {
                 }
 
                 SettingCard(icon: "circle.circle", title: state.copy("悬浮小组件", "Floating widget"), subtitle: state.copy("显示桌面悬浮球；不等于开始监督。", "Show the desktop floating orb; separate from monitoring.")) {
-                    Toggle(state.isWidgetVisible ? state.copy("显示", "Visible") : state.copy("隐藏", "Hidden"), isOn: $state.isWidgetVisible)
-                        .toggleStyle(.switch)
-                        .tint(.green)
-                        .environment(\.controlActiveState, .active)
-                        .onChange(of: state.isWidgetVisible) {
-                            state.persist()
+                    HStack(spacing: 12) {
+                        FloatingAvatarPreview(avatarPath: state.floatingAvatarPath)
+
+                        VStack(alignment: .trailing, spacing: 10) {
+                            Toggle(state.isWidgetVisible ? state.copy("显示", "Visible") : state.copy("隐藏", "Hidden"), isOn: $state.isWidgetVisible)
+                                .toggleStyle(.switch)
+                                .tint(.green)
+                                .environment(\.controlActiveState, .active)
+                                .onChange(of: state.isWidgetVisible) {
+                                    state.persist()
+                                }
+
+                            HStack(spacing: 8) {
+                                Button(state.copy("上传头像", "Upload")) {
+                                    chooseFloatingAvatar()
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button(state.copy("恢复默认", "Reset")) {
+                                    state.clearFloatingAvatar()
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(state.floatingAvatarPath == nil)
+                            }
                         }
+                    }
                 }
 
                 SettingCard(icon: "calendar", title: state.copy("工作时段", "Work hours"), subtitle: state.copy("监督开启后，只在这些时间自动抓黑名单。", "When monitoring is on, auto-catch only during these hours.")) {
@@ -528,6 +565,21 @@ struct GeneralPanel: View {
         guard state.workSchedule.periods.count > 1, state.workSchedule.periods.indices.contains(index) else { return }
         state.workSchedule.periods.remove(at: index)
         state.persist()
+    }
+
+    private func chooseFloatingAvatar() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.image]
+        panel.prompt = state.copy("选择", "Choose")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            try state.setFloatingAvatar(from: url)
+        } catch {
+            permissionMessage = state.copy("头像保存失败：\(error.localizedDescription)", "Failed to save avatar: \(error.localizedDescription)")
+        }
     }
 
     private var launchAtLoginBinding: Binding<Bool> {

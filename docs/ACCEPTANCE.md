@@ -11,7 +11,7 @@
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，32 个测试覆盖时长解析、语音控制命令、时长任务控制、倒计时环进度、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地 ASR/云端 TTS 配置、Search 默认配置、头像和快捷键配置兼容迁移、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、吐槽 URL/长 ID 清洗、短播报压缩、粗口 opt-in prompt、空文本兜底、禁用词过滤、可见标签双语、语音活动状态、时长任务 toast、事件去重和录音音量检测 |
+| 单元测试通过 | Pass | `swift test`，33 个测试覆盖时长解析、语音控制命令、时长任务控制、倒计时环进度、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地 ASR/云端 TTS 配置、Search 默认配置、头像和快捷键配置兼容迁移、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、吐槽 URL/长 ID 清洗、短播报压缩、粗口 opt-in prompt、空文本兜底、禁用词过滤、可见标签双语、语音活动状态、时长任务 toast、事件去重和录音音量检测 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
@@ -21,8 +21,8 @@
 | 界面中英文切换 | Pass | 设置页、菜单栏、悬浮窗、Provider 表单、枚举标签和主要运行时状态已跟随语言切换 |
 | 工作时段配置 | Pass | 设置页支持多个时段、工作日/周末开关，单测覆盖日间、跨午夜、多时段和周末排除 |
 | 网站/App 黑名单配置 | Pass | 设置页支持新增、删除、启用/停用规则，并提供常见平台预设 |
-| 悬浮球/小组件 | Pass | 设置页可开启小组件；悬浮头像固定为圆形裁切，支持上传自定义头像并恢复默认；右下角状态点已移除，时长任务使用头像边缘倒计时环；空闲态悬浮窗为 72×72 透明面板，头像缩到 56×56 收在圆环内侧并内缩绘制圆环，避免方形半透明底板、头像超出圆环和边缘裁切；用户拖动后的窗口位置会被保留，状态变化只调整尺寸不重置坐标；抓包卡片和时长任务 toast 不再展示内部模型/Provider/播放状态，并改为实体白色 popover 背景；音频合成完成后才弹出并同步播放；toast 自动消失，抓包卡片播报结束且用户无操作后自动收起 |
-| 语音快速创建监督时长 | Pass | `--smoke-local-voice-focus`：`监督我接下来的四十分钟` WAV -> 本地 SenseVoice 文本 `监督我接下来的四十分钟` -> `focus_minutes=40` |
+| 悬浮球/小组件 | Pass | 设置页可开启小组件；悬浮头像固定为圆形裁切，支持上传自定义头像并恢复默认；右下角状态点已移除，时长任务使用头像边缘倒计时环；空闲态悬浮窗为 72×72 透明面板，头像缩到 56×56 收在圆环内侧并内缩绘制圆环，避免方形半透明底板、头像超出圆环和边缘裁切；点击悬浮球可展开快捷控制菜单，展示倒计时并支持 15/25/40 分钟监督、暂停/恢复、停止和取消；按住语音键时头像外侧出现绿色呼吸圆环；用户拖动后的窗口位置会被保留，状态变化只调整尺寸不重置坐标；抓包卡片和时长任务 toast 不再展示内部模型/Provider/播放状态，并改为实体白色 popover 背景；音频合成完成后才弹出并同步播放；toast 自动消失，抓包卡片播报结束且用户无操作后自动收起 |
+| 语音快速创建监督时长 | Pass | `--smoke-local-voice-focus`：`监督我接下来的四十分钟` WAV -> 本地 SenseVoice 文本 `监督我接下来的四十分钟` -> `focus_minutes=40`；单测覆盖“帮我开始一个15分钟的监督任务” |
 | 时长任务暂停/延长/结束 | Pass | 设置页和菜单栏提供暂停/恢复/延长/结束；GUI 验证 40 分钟任务会启用暂停、+10、结束按钮；单测覆盖 pause/resume/extend |
 | ASR 默认链路 | Pass | 本地 SenseVoice Small INT8 安装和识别通过；5 次本地 ASR 耗时首轮约 1.05 秒、后续约 0.58-0.64 秒；云端 `paraformer-realtime-v2` 仍保留为 fallback |
 | LLM 默认链路 | Pass | 默认配置已切到 DeepSeek `deepseek-v4-flash`；`DEEPSEEK_API_KEY` 已写入本机 App Support `.env.local`，`--smoke-llm` 返回 `llm_ok=true`、`llm_provider=DeepSeek` |

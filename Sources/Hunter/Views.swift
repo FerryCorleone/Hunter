@@ -6,15 +6,21 @@ struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
     let onReplyPressChanged: (Bool) -> Void
     let onPause: () -> Void
-    let onLayoutChange: (Bool, Bool) -> Void
+    let onLayoutChange: (Bool, Bool, Bool) -> Void
+    @State private var isQuickMenuVisible = false
     @State private var toastDismissTask: Task<Void, Never>?
     @State private var incidentDismissTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .bottom, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 orb
-                if let toast = state.toastMessage {
+                if isQuickMenuVisible {
+                    QuickControlMenu(state: state) {
+                        isQuickMenuVisible = false
+                    }
+                    .transition(.scale(scale: 0.96, anchor: .topLeading).combined(with: .opacity))
+                } else if let toast = state.toastMessage {
                     toastView(toast)
                 }
             }
@@ -32,7 +38,7 @@ struct FloatingOverlayView: View {
         .onAppear {
             scheduleToastDismiss(for: state.toastMessage)
             scheduleIncidentDismiss(for: state.currentIncident)
-            onLayoutChange(state.toastMessage != nil, state.currentIncident != nil)
+            notifyLayoutChange()
         }
         .onDisappear {
             toastDismissTask?.cancel()
@@ -40,26 +46,44 @@ struct FloatingOverlayView: View {
         }
         .onChange(of: state.toastMessage) { _, message in
             scheduleToastDismiss(for: message)
-            onLayoutChange(message != nil, state.currentIncident != nil)
+            notifyLayoutChange()
         }
         .onChange(of: state.currentIncident) { _, incident in
             scheduleIncidentDismiss(for: incident)
-            onLayoutChange(state.toastMessage != nil, incident != nil)
+            notifyLayoutChange()
+        }
+        .onChange(of: isQuickMenuVisible) {
+            notifyLayoutChange()
         }
     }
 
     private var orb: some View {
-        FloatingMascotIcon(
-            isMonitoring: state.isMonitoring,
-            avatarPath: state.floatingAvatarPath,
-            focusSession: state.focusSession
-        )
-        .frame(width: 64, height: 64)
+        Button {
+            isQuickMenuVisible.toggle()
+            if isQuickMenuVisible {
+                state.toastMessage = nil
+            }
+        } label: {
+            FloatingMascotIcon(
+                isMonitoring: state.isMonitoring,
+                isListening: state.voiceActivity == .listening,
+                avatarPath: state.floatingAvatarPath,
+                focusSession: state.focusSession
+            )
+            .frame(width: 64, height: 64)
+        }
+        .buttonStyle(.plain)
+        .help(state.copy("打开快捷监督菜单", "Open quick supervision menu"))
     }
 
     private var overlaySize: CGSize {
-        let hasToast = state.toastMessage != nil
+        let hasToast = state.toastMessage != nil && !isQuickMenuVisible
         let hasIncident = state.currentIncident != nil
+        if isQuickMenuVisible {
+            return hasIncident
+                ? CGSize(width: 382, height: 574)
+                : CGSize(width: 382, height: 214)
+        }
         switch (hasToast, hasIncident) {
         case (false, false):
             return CGSize(width: 72, height: 72)
@@ -70,6 +94,10 @@ struct FloatingOverlayView: View {
         case (true, true):
             return CGSize(width: 382, height: 436)
         }
+    }
+
+    private func notifyLayoutChange() {
+        onLayoutChange(state.toastMessage != nil && !isQuickMenuVisible, state.currentIncident != nil, isQuickMenuVisible)
     }
 
     private func toastView(_ text: String) -> some View {
@@ -193,6 +221,187 @@ struct FloatingOverlayView: View {
     }
 }
 
+private struct QuickControlMenu: View {
+    @ObservedObject var state: AppState
+    let dismiss: () -> Void
+    @State private var now = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(state.copy("快捷监督", "Quick controls"))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text(statusText)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text(countdownText)
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(state.isMonitoring ? Color.accentColor : .secondary)
+            }
+
+            ProgressView(value: progressValue)
+                .progressViewStyle(.linear)
+                .tint(progressTint)
+
+            HStack(spacing: 8) {
+                quickAction(title: "15", unit: state.copy("分钟", "min")) {
+                    start(minutes: 15)
+                }
+                quickAction(title: "25", unit: state.copy("分钟", "min")) {
+                    start(minutes: 25)
+                }
+                quickAction(title: "40", unit: state.copy("分钟", "min")) {
+                    start(minutes: 40)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    togglePause()
+                } label: {
+                    Label(pauseTitle, systemImage: pauseIcon)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!state.isMonitoring && activeSession == nil)
+
+                Button {
+                    state.stopMonitoring()
+                    dismiss()
+                } label: {
+                    Label(state.copy("停止", "Stop"), systemImage: "stop.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!state.isMonitoring)
+
+                Button {
+                    state.cancelSupervision()
+                    dismiss()
+                } label: {
+                    Label(state.copy("取消", "Cancel"), systemImage: "xmark")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!state.isMonitoring && activeSession == nil)
+            }
+            .controlSize(.small)
+
+            Text(state.copy("按住 \(state.replyShortcut.displayText) 对话或说出监督时长", "Hold \(state.replyShortcut.displayText) to talk or set a timer by voice"))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(width: 294)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.black.opacity(0.07), lineWidth: 1))
+        .shadow(color: .black.opacity(0.08), radius: 18, y: 10)
+        .onReceive(timer) { date in
+            now = date
+            state.clearExpiredFocusSessionIfNeeded()
+        }
+    }
+
+    private var activeSession: FocusSession? {
+        guard let session = state.focusSession, session.isActive(at: now) else {
+            return nil
+        }
+        return session
+    }
+
+    private var statusText: String {
+        if let activeSession {
+            if activeSession.isPaused(at: now) {
+                return state.copy("时长任务已暂停", "Timed session paused")
+            }
+            return state.copy("时长任务进行中", "Timed session running")
+        }
+        return state.isMonitoring
+            ? state.copy("持续监督中", "Monitoring")
+            : state.copy("当前未监督", "Not monitoring")
+    }
+
+    private var countdownText: String {
+        guard let activeSession else {
+            return state.isMonitoring ? state.copy("开启", "On") : state.copy("关闭", "Off")
+        }
+        let totalSeconds = Int(ceil(activeSession.remaining(at: now)))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private var progressValue: Double {
+        guard let activeSession else {
+            return state.isMonitoring ? 1 : 0
+        }
+        return activeSession.progress(at: now)
+    }
+
+    private var progressTint: Color {
+        if activeSession?.isPaused(at: now) == true {
+            return .orange
+        }
+        return state.isMonitoring ? Color.accentColor : .secondary
+    }
+
+    private var pauseTitle: String {
+        if activeSession?.isPaused(at: now) == true {
+            return state.copy("恢复", "Resume")
+        }
+        return state.copy("暂停", "Pause")
+    }
+
+    private var pauseIcon: String {
+        activeSession?.isPaused(at: now) == true ? "play.fill" : "pause.fill"
+    }
+
+    private func quickAction(title: String, unit: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 0) {
+                Text(title)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                Text(unit)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 42)
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private func start(minutes: Int) {
+        state.startFocusSession(duration: TimeInterval(minutes * 60), source: "floating")
+    }
+
+    private func togglePause() {
+        guard let activeSession else {
+            state.isMonitoring = false
+            state.toastMessage = state.copy("监督已暂停", "Monitoring paused")
+            state.persist()
+            dismiss()
+            return
+        }
+
+        if activeSession.isPaused(at: now) {
+            state.resumeFocusSession()
+        } else {
+            state.pauseFocusSession()
+        }
+    }
+}
+
 private struct PressHoldReplyButton: View {
     let title: String
     let pressedTitle: String
@@ -227,9 +436,11 @@ private struct PressHoldReplyButton: View {
 
 private struct FloatingMascotIcon: View {
     let isMonitoring: Bool
+    let isListening: Bool
     let avatarPath: String?
     let focusSession: FocusSession?
     @State private var now = Date()
+    @State private var listeningPulse = false
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -257,9 +468,24 @@ private struct FloatingMascotIcon: View {
                 hasTimedSession: focusSession?.isActive(at: now) == true
             )
         }
+        .overlay {
+            if isListening {
+                Circle()
+                    .stroke(Color.green.opacity(listeningPulse ? 0.34 : 0.92), lineWidth: listeningPulse ? 7 : 4)
+                    .scaleEffect(listeningPulse ? 1.08 : 0.98)
+                    .shadow(color: .green.opacity(0.36), radius: listeningPulse ? 14 : 8)
+                    .animation(.easeInOut(duration: 0.92).repeatForever(autoreverses: true), value: listeningPulse)
+            }
+        }
         .contentShape(Circle())
         .onReceive(timer) { date in
             now = date
+        }
+        .onAppear {
+            listeningPulse = isListening
+        }
+        .onChange(of: isListening) { _, listening in
+            listeningPulse = listening
         }
     }
 

@@ -13,6 +13,10 @@ struct DurationParserTests {
         #expect(parser.parse("盯我25分钟") == TimeInterval(25 * 60))
     }
 
+    @Test func parsesVoiceStartedFocusTask() {
+        #expect(parser.parse("帮我开始一个15分钟的监督任务") == TimeInterval(15 * 60))
+    }
+
     @Test func parsesEnglishHourCommand() {
         #expect(parser.parse("Keep me focused for one hour") == TimeInterval(60 * 60))
     }

@@ -8,16 +8,19 @@ final class FloatingWindowController {
     private let window: NSPanel
     private var cancellables: Set<AnyCancellable> = []
     private var hasPositionedWindow = false
+    private var lastHasToast = false
+    private var lastHasIncident = false
+    private var lastHasQuickMenu = false
 
     init(state: AppState, onReplyPressChanged: @escaping (Bool) -> Void, onPause: @escaping () -> Void) {
         self.state = state
-        var layoutHandler: ((Bool, Bool) -> Void)?
+        var layoutHandler: ((Bool, Bool, Bool) -> Void)?
         let view = FloatingOverlayView(
             state: state,
             onReplyPressChanged: onReplyPressChanged,
             onPause: onPause,
-            onLayoutChange: { hasToast, hasIncident in
-                layoutHandler?(hasToast, hasIncident)
+            onLayoutChange: { hasToast, hasIncident, hasQuickMenu in
+                layoutHandler?(hasToast, hasIncident, hasQuickMenu)
             }
         )
         let hostingView = TransparentHostingView(rootView: view)
@@ -47,8 +50,8 @@ final class FloatingWindowController {
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.isOpaque = false
         window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
-        layoutHandler = { [weak self] hasToast, hasIncident in
-            self?.updateFrame(hasToast: hasToast, hasIncident: hasIncident)
+        layoutHandler = { [weak self] hasToast, hasIncident, hasQuickMenu in
+            self?.updateFrame(hasToast: hasToast, hasIncident: hasIncident, hasQuickMenu: hasQuickMenu)
         }
 
         state.$isWidgetVisible
@@ -82,20 +85,51 @@ final class FloatingWindowController {
     }
 
     private func updateFrame() {
-        updateFrame(hasToast: state.toastMessage != nil, hasIncident: state.currentIncident != nil)
+        updateFrame(
+            hasToast: lastHasToast || state.toastMessage != nil,
+            hasIncident: lastHasIncident || state.currentIncident != nil,
+            hasQuickMenu: lastHasQuickMenu
+        )
     }
 
-    private func updateFrame(hasToast: Bool, hasIncident: Bool) {
-        guard let screen = window.screen ?? NSScreen.main else { return }
+    private func updateFrame(hasToast: Bool, hasIncident: Bool, hasQuickMenu: Bool) {
+        lastHasToast = hasToast
+        lastHasIncident = hasIncident
+        lastHasQuickMenu = hasQuickMenu
+
+        guard let screen = screenForCurrentWindow(preferMouseLocation: hasQuickMenu) ?? NSScreen.main else { return }
         let visible = screen.visibleFrame
-        let size = contentSize(hasToast: hasToast, hasIncident: hasIncident)
+        let size = contentSize(hasToast: hasToast, hasIncident: hasIncident, hasQuickMenu: hasQuickMenu)
+        let previousFrame = window.frame
         let origin = hasPositionedWindow
             ? clampedOrigin(window.frame.origin, size: size, visibleFrame: visible)
             : NSPoint(x: visible.minX + 132, y: visible.minY + 118)
         let frame = NSRect(origin: origin, size: size)
         window.setFrame(frame, display: true)
+        if hasQuickMenu {
+            let topLeft = clampedTopLeft(previousFrame: previousFrame, size: size, visibleFrame: visible)
+            window.setFrameTopLeftPoint(topLeft)
+        }
         window.contentView?.frame = NSRect(origin: .zero, size: size)
         hasPositionedWindow = true
+    }
+
+    private func screenForCurrentWindow(preferMouseLocation: Bool) -> NSScreen? {
+        if preferMouseLocation {
+            let mouseLocation = NSEvent.mouseLocation
+            if let mouseScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) {
+                return mouseScreen
+            }
+        }
+
+        let center = NSPoint(x: window.frame.midX, y: window.frame.midY)
+        if let visibleMatch = NSScreen.screens.first(where: { $0.visibleFrame.contains(center) }) {
+            return visibleMatch
+        }
+        if let frameMatch = NSScreen.screens.first(where: { $0.frame.contains(center) }) {
+            return frameMatch
+        }
+        return window.screen
     }
 
     private func clampedOrigin(_ origin: NSPoint, size: NSSize, visibleFrame: NSRect) -> NSPoint {
@@ -105,7 +139,19 @@ final class FloatingWindowController {
         )
     }
 
-    private func contentSize(hasToast: Bool, hasIncident: Bool) -> NSSize {
+    private func clampedTopLeft(previousFrame: NSRect, size: NSSize, visibleFrame: NSRect) -> NSPoint {
+        let x = min(max(previousFrame.minX, visibleFrame.minX), visibleFrame.maxX - size.width)
+        let y = min(max(previousFrame.maxY, visibleFrame.minY + size.height), visibleFrame.maxY)
+        return NSPoint(x: x, y: y)
+    }
+
+    private func contentSize(hasToast: Bool, hasIncident: Bool, hasQuickMenu: Bool) -> NSSize {
+        if hasQuickMenu {
+            return hasIncident
+                ? NSSize(width: 382, height: 574)
+                : NSSize(width: 382, height: 214)
+        }
+
         switch (hasToast, hasIncident) {
         case (false, false):
             return NSSize(width: 72, height: 72)

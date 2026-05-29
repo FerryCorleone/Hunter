@@ -107,6 +107,16 @@ final class AppState: ObservableObject {
         persist()
     }
 
+    func cancelSupervision() {
+        isMonitoring = false
+        focusSession = nil
+        currentIncident = nil
+        voiceInteractionStatus = nil
+        voiceActivity = .idle
+        toastMessage = copy("监督已取消", "Supervision cancelled")
+        persist()
+    }
+
     func startFocusSession(duration: TimeInterval, source: String) {
         focusSession = FocusSession(startedAt: Date(), duration: duration)
         isMonitoring = true

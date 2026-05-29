@@ -27,7 +27,8 @@
 - 本地通知：如果用户授权通知，抓包/回击成功时会发送无声本地通知作为可见降级反馈。
 - 阿里 Paraformer WebSocket ASR 代码路径。
 - OpenAI-compatible LLM 抓包吐槽和语音回击代码路径；当前本机默认 LLM 配置为 DeepSeek `deepseek-v4-flash`，请求体会对 DeepSeek V4 自动关闭 thinking 以保证短吐槽直接出现在 `content`。
-- 抓包 prompt 已升级：输入包含 App、URL、标签页标题和可选搜索摘要，要求模型先识别用户正在看的具体内容，再把它和逃避工作连接起来，最后输出短 punchline；允许粗口时可使用普通脏话，但仍过滤禁用词和受保护属性攻击。
+- 抓包 prompt 已升级：输入包含 App、URL、标签页标题和可选搜索摘要，要求模型识别用户正在看的具体内容，并输出适合 TTS 的现场短句；中文目标 12-26 字、英文目标 7-14 词，明确禁止输出 URL、域名、query、长 ID、时间戳和符号串；允许粗口时可使用普通脏话，但仍过滤禁用词和受保护属性攻击。
+- TTS 前文本清洗已接入：LLM 输出进入播报前会本地移除 URL、域名、长 ID 和符号串，并把过长中文吐槽压到短播报长度；如果清洗后只剩空文本，会回退到一句短提醒，避免把网页链接、BV 号或 query 参数逐字念出来。
 - 阿里 CosyVoice HTTP TTS 代码路径，默认 `cosyvoice-v3-flash + longanyang`。
 - CosyVoice 返回 `http` 音频文件地址时，运行时会升级为 `https` 再下载，避免打包 App 被 macOS ATS 拦截后无声。
 - 播报音量已调到产品可用级：本地/云端音频播放器均使用满音量；云端 TTS 请求音量参数提高到 `100`。
@@ -62,7 +63,7 @@
 ## 已验证
 
 - `swift build` 通过。
-- `swift test` 通过，23 个测试覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、支持浏览器识别、Provider headers、Provider 默认值、Search 默认配置与 key 分流、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、禁用词过滤、可见标签双语、事件去重和录音音量检测。
+- `swift test` 通过，27 个测试覆盖时长任务解析、语音控制命令、时长任务暂停/恢复/延长、多时段工作时段、工作日/周末开关、黑名单匹配、支持浏览器识别、Provider headers、Provider 默认值、Search 默认配置与 key 分流、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、吐槽 URL/长 ID 清洗、短播报压缩、空文本兜底、禁用词过滤、可见标签双语、事件去重和录音音量检测。
 - `swift build -c release` 通过。
 - `codesign --verify --deep --strict build/Hunter.app` 通过。
 - `./scripts/package_app.sh` 可产出 `build/Hunter.app`。
@@ -87,6 +88,7 @@
 - 默认 Provider 配置改为可编辑后，阿里默认链路再次通过 LLM/TTS/ASR 烟测；DeepSeek 默认 LLM 配置已落到代码路径并完成 LLM 单项烟测。
 - 2026-05-29 重新创建并保存千问云标准 API Key 后，千问云鉴权探测返回 HTTP 200；本机 App Support `.env.local` 同时保存 `DASHSCOPE_API_KEY` 和 `DEEPSEEK_API_KEY`。
 - 2026-05-29 当前测试链路确认：`--smoke-llm` 使用 DeepSeek `deepseek-v4-flash` 且 `llm_ok=true`；`--smoke-llm-tts` 使用 DeepSeek 生成吐槽，并用千问云 CosyVoice 合成，`tts_ok=true`、`tts_bytes=61484`。
+- 2026-05-29 短吐槽改动后，`--smoke-llm` 使用 DeepSeek 输出单句短吐槽，且未包含 URL 或长 ID。
 
 ## 未完成 / 下一步
 

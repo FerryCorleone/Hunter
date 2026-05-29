@@ -215,6 +215,49 @@ struct DurationParserTests {
         #expect(sanitized.contains("..."))
     }
 
+    @Test func roastPolicyRemovesURLsBeforeSpeech() {
+        let sanitized = RoastPolicy.sanitize(
+            "又在看 https://www.bilibili.com/video/BV1ABCDEF12345?spm_id_from=333.999，干不干活了？",
+            bannedTerms: ""
+        )
+
+        #expect(!sanitized.localizedCaseInsensitiveContains("http"))
+        #expect(!sanitized.localizedCaseInsensitiveContains("bilibili"))
+        #expect(!sanitized.localizedCaseInsensitiveContains("BV1"))
+        #expect(sanitized.contains("干不干活了"))
+    }
+
+    @Test func roastPolicyRemovesLongIDsButKeepsReadableNames() {
+        let sanitized = RoastPolicy.sanitize(
+            "又看龙同学BV1ABCDEF12345？天天看，还干不干活了？",
+            bannedTerms: ""
+        )
+
+        #expect(sanitized.contains("龙同学"))
+        #expect(!sanitized.contains("BV1"))
+        #expect(sanitized.contains("还干不干活了"))
+    }
+
+    @Test func roastPolicyKeepsChineseRoastsCompact() {
+        let sanitized = RoastPolicy.sanitize(
+            "又看龙同学？天天看，还干不干活了？后面这些解释别念出来，越解释越像报告。",
+            bannedTerms: ""
+        )
+
+        #expect(sanitized.count <= 46)
+        #expect(sanitized.contains("龙同学"))
+    }
+
+    @Test func roastPolicyFallsBackWhenOnlyArtifactsRemain() {
+        let sanitized = RoastPolicy.sanitize(
+            "https://www.bilibili.com/video/BV1ABCDEF12345?spm_id_from=333.999",
+            bannedTerms: "",
+            fallback: "Back to work."
+        )
+
+        #expect(sanitized == "Back to work.")
+    }
+
     @Test func visibleLabelsFollowInterfaceLanguage() {
         #expect(RoastIntensity.boss.label(language: .english) == "Boss mode")
         #expect(RoastPersona.officeBoss.label(language: .english) == "Office boss")

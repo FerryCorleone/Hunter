@@ -47,7 +47,7 @@ struct DashScopeClient {
                 ["role": "user", "content": prompt.user]
             ],
             "temperature": 1.0,
-            "max_tokens": 150
+            "max_tokens": 70
         ]
         applyLLMBodyDefaults(&body, endpoint: endpoint)
 
@@ -66,7 +66,11 @@ struct DashScopeClient {
         guard let content = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty else {
             throw ProviderError.invalidResponse
         }
-        return RoastPolicy.sanitize(content, bannedTerms: bannedTerms)
+        return RoastPolicy.sanitize(
+            content,
+            bannedTerms: bannedTerms,
+            fallback: languageCode == "en" ? "Back to work." : "赶紧干活。"
+        )
     }
 
     func generateReply(
@@ -92,7 +96,11 @@ struct DashScopeClient {
                 [
                     "role": "system",
                     "content": """
-                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction) The user is talking back after being caught slacking. Reply with one sharp spoken comeback that directly answers their excuse and pulls them back to work. \(languageInstruction) Keep it under 32 words or 58 Chinese characters. Make it specific, punchy, and a little confrontational. Do not sound like a generic productivity app. \(boundary)
+                    You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction)
+                    The user is talking back after being caught slacking. Reply with one very short spoken comeback that directly answers their excuse and pulls them back to work. \(languageInstruction)
+                    One sentence only: target 10-22 Chinese characters, or 6-12 English words. Never exceed 32 Chinese characters or 16 English words.
+                    Never quote, spell, read, or include URLs, domains, query strings, long IDs, timestamps, raw paths, or symbol-heavy strings. Use only human-readable names from the page title or target.
+                    Make it specific, punchy, and confrontational. Do not sound like a generic productivity app. \(boundary)
                     """
                 ],
                 [
@@ -109,7 +117,7 @@ struct DashScopeClient {
                 ]
             ],
             "temperature": 0.92,
-            "max_tokens": 100
+            "max_tokens": 60
         ]
         applyLLMBodyDefaults(&body, endpoint: endpoint)
 
@@ -128,7 +136,11 @@ struct DashScopeClient {
         guard let content = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty else {
             throw ProviderError.invalidResponse
         }
-        return RoastPolicy.sanitize(content, bannedTerms: bannedTerms)
+        return RoastPolicy.sanitize(
+            content,
+            bannedTerms: bannedTerms,
+            fallback: languageCode == "en" ? "Nice try. Back to work." : "别狡辩了，干活。"
+        )
     }
 
     func synthesizeSpeech(text: String, settings: ProviderSettings, languageCode: String) async throws -> Data {
@@ -209,15 +221,17 @@ struct DashScopeClient {
         return (
             system: """
             You are Hunter, a personal macOS focus supervisor. \(persona.promptInstruction)
-            Generate one short spoken roast when the user opens a blacklisted site or app. \(languageInstruction)
+            Generate one very short spoken roast when the user opens a blacklisted site or app. \(languageInstruction)
             \(intensityInstruction) \(profanityInstruction)
 
-            The line must have logic:
-            1. Identify what the user is actually looking at from the title, URL, or search snippets.
-            2. Connect that content to the fact they are avoiding work.
-            3. End with a compact punchline.
+            This is a live desk-side jab, not a report. One sentence only.
+            Target 12-26 Chinese characters, or 7-14 English words. Never exceed 36 Chinese characters or 18 English words.
+            Identify what the user is actually looking at, then connect it to the fact they are avoiding work. Use page title, channel/person/video names, app names, or search snippets.
 
-            Use one concrete detail if search snippets are provided. Do not say "I searched". Do not invent details not present in context. Avoid generic lines like "又在摸鱼". Keep it under 35 words or 70 Chinese characters. \(RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms))
+            Never quote, spell, read, or include URLs, domains, query strings, long IDs, timestamps, raw file paths, or symbol-heavy strings. Treat the URL only as hidden context to identify the site or content.
+            Good zh style: "又看龙同学？天天看，还干不干活了？"
+            Good en style: "YouTube again? Your deadline is getting secondhand embarrassment."
+            Do not say "I searched". Do not invent details not present in context. Avoid generic lines like "又在摸鱼". \(RoastPolicy.safetyBoundary(allowProfanity: allowProfanity, bannedTerms: bannedTerms))
             """,
             user: """
             Target: \(context.displayTarget)

@@ -11,7 +11,7 @@
 | 验收项 | 状态 | 证据 / 说明 |
 | --- | --- | --- |
 | 原生 macOS App 可构建 | Pass | `swift build` 通过 |
-| 单元测试通过 | Pass | `swift test`，23 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地 ASR/云端 TTS 配置、Search 默认配置、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
+| 单元测试通过 | Pass | `swift test`，27 个测试覆盖时长解析、语音控制命令、时长任务控制、工作时段、黑名单匹配、支持浏览器识别、Provider headers、默认 DeepSeek/本地 ASR/云端 TTS 配置、Search 默认配置、旧本地音色迁移、TTS 缓存、TTS 下载 URL HTTPS 升级、吐槽 URL/长 ID 清洗、短播报压缩、空文本兜底、禁用词过滤、可见标签双语、事件去重和录音音量检测 |
 | `.app` 可打包 | Pass | `./scripts/package_app.sh` 产出 `build/Hunter.app` |
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
@@ -30,7 +30,8 @@
 | Provider 可配置 | Pass | 设置页中 ASR/LLM/TTS/Search 四类能力可独立配置；云端模式只填 Provider、Base URL、Model、API Key；仅 ASR 提供本地模型下载入口；本地 ASR adapter 已实测通过 |
 | AI 监工角色 | Pass | 支持自律教练、办公室老板、冷面助理、脱口秀损友，prompt 已带 persona |
 | 搜索增强吐槽 | Partial | 设置页新增 Brave Search / Tavily Search 配置与测试入口；抓包 prompt 会合并页面标题和可选搜索摘要；未填搜索 Key 时自动跳过增强，仍需真实 Search API Key 验收 |
-| 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；prompt 已升级为“识别当前内容 -> 连接逃避工作 -> 输出 punchline”，禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
+| 吐槽边界配置 | Pass | 支持允许/禁止轻度粗口和禁用词；prompt 已升级为“识别当前内容 -> 输出现场短句”，中文目标 12-26 字、英文目标 7-14 词；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
+| 吐槽播报文本清洗 | Pass | LLM 输出进入 TTS 前会本地移除 URL、域名、长 ID 和符号串，并压缩过长中文吐槽；清洗后为空会回退为短提醒，避免把 B 站 BV 号、网页链接或 query 参数逐字念出来 |
 | 语音对喷链路 | Partial | 代码已从单次回击升级为连续对喷：用户说完 -> Hunter 生成并播报 -> 播报结束后自动继续监听，静音/无识别结果时结束；悬浮抓包卡片会显示正在听/识别/回击状态；ASR/LLM/TTS 子链路已测，仍需真人靠近麦克风复测 Option+Space |
 | 前台 App 检测 | Partial | 代码使用 `NSWorkspace.didActivateApplicationNotification` 事件驱动；真实黑名单命中需桌面交互验收 |
 | Chrome/Safari/Brave/Edge/Arc URL 检测 | Partial | 仅浏览器前台时启动后台 AppleScript URL/标签标题 watcher；监控循环只做静默自动化权限检查，未授权时跳过读取不弹窗；需浏览器自动化授权后验收 |

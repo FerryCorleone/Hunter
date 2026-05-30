@@ -207,7 +207,7 @@ Acceptance Criteria:
 ### Navigation Contract
 
 - Settings Window 左侧 sidebar 固定 196px 宽，入口顺序固定为：General、Watchlist、AI、Voice、History。每个导航项整行可点，选中态使用低饱和蓝色背景、蓝色 SF Symbol 和半粗体文字。
-- Settings Window 右侧内容区使用单列设置列表，最大内容宽度 760px，顶部为页面标题和一句说明；不使用顶部横向菜单。
+- Settings Window 右侧内容区使用单列 section 列表，内容应充分利用右侧可用宽度，不再固定窄列造成大面积空白；不使用顶部横向菜单，也不在内容区重复展示当前 sidebar 已选中的页面大标题。
 - Settings Window 底部 sidebar 固定两个主操作：`Start/Pause` 监督按钮、`Demo Catch` 演示抓包按钮。
 - Floating Orb 点击只打开 Quick Control Popover，不打开 Settings Window。Settings Window 只能通过 menu bar、sidebar 或系统窗口操作打开。
 - Quick Control Popover 和 Catch Popover 均为桌面浮层，6 秒无操作自动收起；用户再次点击 orb 手动收起时，orb 位置不得跳动。
@@ -217,9 +217,9 @@ Acceptance Criteria:
 
 | Component | Required Structure | States |
 | --- | --- | --- |
-| SettingsRow | 左侧 28px 图标容器、标题、说明；右侧单个控件组；整行白色/系统 surface，12-14px 圆角，1px 低透明描边 | default, disabled, error, saved/unsaved |
-| SectionGroup | 可选 section 标题 + 多个 SettingsRow；不嵌套卡片 | default, empty |
-| KeyCaptureBox | Keycap tokens，例如 `Option + Space` 或 `Right Option`；点击后显示 `Press keys`，捕获后显示成功短提示 | default, capturing, saved, error |
+| SettingsSection | 标题、说明在卡片外上方；下方是一张白色/系统 surface 卡片，卡片内承载该设置的控件、列表或表单；不得把标题说明和控件做成左右分栏 | default, disabled, error, saved/unsaved |
+| SettingsCard | 白色/系统 surface，12-14px 圆角，1px 低透明描边；内部内容可按控件需要做横向或纵向布局，但 section 层级必须保持上下分布 | default, empty |
+| KeyCaptureBox | 单个可点击输入框，只显示当前快捷键，例如 `Option + Space` 或 `Right Option`；点击后同一个框进入 capturing 状态并显示 `Press new shortcut`，不得同时并排展示“当前值”和“录制中”两个框 | default, capturing, saved, error |
 | ProviderCard | Header：Provider role + mode/status；Body：Provider、Base URL、Model、API Key 四字段；Footer：测试按钮与状态 | collapsed, expanded, saved, testing, error, missing key |
 | PermissionRow | 权限名称、一个状态 pill、未允许时的单个操作按钮；不得同时出现绿点、对勾和状态标签 | allowed, notDetermined, denied, optional, unknown |
 | InstalledAppRow | App 图标、App 名称、Bundle ID 或路径、Add/Added 按钮 | default, added, loading icon |
@@ -228,37 +228,39 @@ Acceptance Criteria:
 
 ### Settings / General Structure
 
-1. **Monitoring Row**
-   - Visible elements：状态标题、说明、`Start/Pause` toggle。
+1. **Monitoring Section**
+   - Visible elements：section 标题“监督开关”、说明、卡片内 `Start/Pause` toggle 和当前状态 pill。
    - Dynamic fields：`isMonitoring`、`workSchedule.enabled`。
    - States：off、on、disabled by missing setup、transitioning。
 
-2. **Focus Session Row**
-   - Visible elements：当前会话状态、剩余时间、15/25/40/60/90 分钟 segmented control、`Start Focus` 或 `Pause/Resume + Cancel`。
-   - Dynamic fields：`focusSession.duration`、`focusSession.remaining`、`focusSession.isPaused`、`focusSession.catchCount`。
+2. **Focus Session Section**
+   - Visible elements：section 标题“时长任务”、说明、卡片内当前会话状态、剩余时间、15/25/40/60/90 分钟 preset chips、自定义时长输入框（数字 + 单位分钟）、`Start Focus` 或 `Pause/Resume + Cancel`。
+   - Dynamic fields：`focusSession.duration`、`focusSession.customDurationMinutes`、`focusSession.remaining`、`focusSession.isPaused`、`focusSession.catchCount`。
+   - Validation：自定义时长支持 1-240 分钟，非法值禁用开始按钮并展示轻量错误提示。
    - Empty state：无时长任务时展示“临时监督一段时间；到点自动结束”。
 
-3. **Floating Widget Row**
+3. **Floating Widget Section**
    - Visible elements：圆形头像预览、`Show Widget` toggle、`Upload Avatar`、`Reset`。
    - Dynamic fields：`showFloatingWidget`、`floatingAvatarPath`。
    - Validation：头像必须圆形裁切，预览不得超出倒计时环。
 
-4. **Work Schedule Row**
-   - Visible elements：`Enable schedule` toggle、工作日/周末 checkbox、时间段列表、`Add Period`。
-   - Dynamic fields：`workSchedule.periods`、`enabledWeekdays`、`enabledWeekend`。
+4. **Work Schedule Section**
+   - Visible elements：section 标题“工作时段”、说明、卡片内 `Enable schedule` toggle、工作日/周末 checkbox、时间段列表、每个时间段的开始时间输入、结束时间输入、启用开关、删除按钮、`Add Period`。
+   - Dynamic fields：`workSchedule.periods`、`workSchedule.periods[].start`、`workSchedule.periods[].end`、`workSchedule.periods[].enabled`、`enabledWeekdays`、`enabledWeekend`。
+   - Validation：开始时间必须早于结束时间；时间段冲突时展示轻量错误提示。
    - States：disabled 时所有时间控件禁用但仍可读。
 
-5. **Talk Shortcut Row**
-   - Visible elements：说明、KeyCaptureBox、Reset、`Test Voice Command`。
+5. **Talk Shortcut Section**
+   - Visible elements：section 标题“对话快捷键”、说明、卡片内一个 KeyCaptureBox、Reset、`Test Voice Command`、一句交互提示“点击输入框后按下新的快捷键；松开后保存”。
    - Dynamic fields：`replyShortcut`、`isCapturingShortcut`、`permission.microphone`。
    - Required behavior：点击框后按任意组合键或单键保存；支持 `Right Option` 等 modifier-only key。
 
-6. **Permissions Row**
-   - Visible elements：说明、`Re-check`、四条 PermissionRow：Microphone、Browser Automation、Notifications、Accessibility (Optional)。
+6. **Permissions Section**
+   - Visible elements：section 标题“权限”、说明、卡片内四条 PermissionRow：Microphone、Browser Automation、Notifications、Accessibility (Optional)，以及 `Re-check`。
    - Dynamic fields：`permissions.microphone`、`permissions.browserAutomation`、`permissions.notifications`、`permissions.accessibility`。
    - UI rule：每条权限只保留一个状态 pill；未允许才显示操作按钮。
 
-7. **Launch Row**
+7. **Launch Section**
    - Visible elements：`Launch at Login` toggle。
    - Dynamic fields：`launchAtLogin`。
 

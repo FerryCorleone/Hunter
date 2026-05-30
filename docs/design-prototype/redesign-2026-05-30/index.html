@@ -237,8 +237,8 @@
       .sidebar {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 16px 12px;
+        gap: 5px;
+        padding: 18px 12px;
         border-right: 1px solid var(--line-soft);
         background: linear-gradient(180deg, #fbfbfc, #f5f5f7);
       }
@@ -247,7 +247,7 @@
         display: flex;
         gap: 10px;
         align-items: center;
-        margin: 4px 6px 14px;
+        margin: 4px 7px 18px;
       }
 
       .mini-avatar,
@@ -289,7 +289,8 @@
       }
 
       .brand-title {
-        font-size: 14px;
+        font-size: 13px;
+        line-height: 17px;
         font-weight: 750;
       }
 
@@ -297,16 +298,17 @@
         margin-top: 1px;
         color: var(--muted);
         font-size: 11px;
+        line-height: 14px;
       }
 
       .nav-item {
         display: grid;
-        grid-template-columns: 24px 1fr;
-        gap: 9px;
+        grid-template-columns: 22px 1fr;
+        gap: 10px;
         align-items: center;
         width: 100%;
-        min-height: 38px;
-        padding: 0 10px;
+        min-height: 40px;
+        padding: 0 11px;
         border: 0;
         border-radius: 9px;
         background: transparent;
@@ -323,11 +325,34 @@
       .nav-icon {
         display: inline-grid;
         place-items: center;
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
         border-radius: 7px;
         color: currentColor;
-        font-size: 14px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .nav-label {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+      }
+
+      .nav-label strong {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 650;
+      }
+
+      .nav-label small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .nav-item.active .nav-label small {
+        color: color-mix(in srgb, var(--blue), #1d1d1f 22%);
       }
 
       .side-actions {
@@ -380,13 +405,13 @@
       }
 
       .content {
-        padding: 28px 36px 38px;
+        padding: 24px 28px 36px;
         background: var(--bg);
       }
 
       .panel {
         display: none;
-        width: min(760px, 100%);
+        width: 100%;
       }
 
       .panel.active {
@@ -415,7 +440,109 @@
 
       .settings-list {
         display: grid;
+        gap: 18px;
+      }
+
+      .panel-intro {
+        margin-bottom: 16px;
+        max-width: 760px;
+      }
+
+      .settings-section {
+        display: grid;
+        gap: 8px;
+      }
+
+      .section-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      .section-copy h3 {
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 700;
+      }
+
+      .section-copy p {
+        font-size: 12px;
+        line-height: 17px;
+      }
+
+      .settings-card {
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .card-line {
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .card-line.start {
+        justify-content: flex-start;
+      }
+
+      .card-line h4 {
+        margin: 0;
+        font-size: 13px;
+        line-height: 18px;
+      }
+
+      .card-line p {
+        margin-top: 2px;
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .control-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .custom-duration {
+        display: grid;
+        grid-template-columns: 96px 72px auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .schedule-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .schedule-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) 104px 104px auto auto;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: var(--surface-soft);
+      }
+
+      .shortcut-layout {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .shortcut-hint {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 17px;
       }
 
       .settings-row {
@@ -1150,7 +1277,7 @@
         <div class="section-head">
           <div>
             <h2>设置主窗口 <span class="review-tag">Review area A</span></h2>
-            <p>固定 196px 左侧栏、760px 内容区、Apple Settings 风格白色设置行。点击左侧入口可切换五个页面。</p>
+            <p>固定 196px 左侧栏、自适应内容区、Apple Settings 风格白色设置卡片。点击左侧入口可切换五个页面。</p>
           </div>
         </div>
 
@@ -1172,11 +1299,11 @@
                 </div>
               </div>
 
-              <button class="nav-item active" data-panel="general"><span class="nav-icon">1</span><span>通用 General</span></button>
-              <button class="nav-item" data-panel="watchlist"><span class="nav-icon">2</span><span>黑名单 Watchlist</span></button>
-              <button class="nav-item" data-panel="ai"><span class="nav-icon">3</span><span>AI Provider</span></button>
-              <button class="nav-item" data-panel="voice"><span class="nav-icon">4</span><span>声音 Voice</span></button>
-              <button class="nav-item" data-panel="history"><span class="nav-icon">5</span><span>历史 History</span></button>
+              <button class="nav-item active" data-panel="general"><span class="nav-icon">1</span><span class="nav-label"><strong>通用</strong><small>General</small></span></button>
+              <button class="nav-item" data-panel="watchlist"><span class="nav-icon">2</span><span class="nav-label"><strong>黑名单</strong><small>Watchlist</small></span></button>
+              <button class="nav-item" data-panel="ai"><span class="nav-icon">3</span><span class="nav-label"><strong>AI 配置</strong><small>Providers</small></span></button>
+              <button class="nav-item" data-panel="voice"><span class="nav-icon">4</span><span class="nav-label"><strong>声音</strong><small>Voice</small></span></button>
+              <button class="nav-item" data-panel="history"><span class="nav-icon">5</span><span class="nav-label"><strong>历史</strong><small>History</small></span></button>
 
               <div class="side-actions">
                 <button class="primary-btn">开始监督</button>
@@ -1186,68 +1313,129 @@
 
             <div class="content">
               <section class="panel active" data-panel-view="general">
-                <div class="panel-head">
-                  <h2>通用</h2>
-                  <p>管理监督状态、时长任务、悬浮组件、快捷键和权限。</p>
-                </div>
+                <p class="panel-intro">管理监督状态、时长任务、悬浮组件、快捷键和权限。当前页面标题由左侧导航承担，右侧只展示可操作设置。</p>
 
                 <div class="settings-list">
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">M</span><div><h3>监督开关</h3><p>工作时间内检测前台 App 和浏览器 URL。</p></div></div>
-                    <div class="row-control"><span class="pill green">运行中</span><span class="switch on" aria-label="Monitoring on"></span></div>
-                  </article>
-
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">T</span><div><h3>时长任务</h3><p>临时监督一段时间，到点自动结束并语音总结。</p></div></div>
-                    <div class="row-control">
-                      <span class="pill blue">剩余 24:37</span>
-                      <div class="segmented" aria-label="Focus durations"><button>15</button><button class="active">25</button><button>40</button><button>60</button><button>90</button></div>
-                      <button class="secondary-btn">暂停</button>
-                      <button class="danger-btn">取消</button>
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>监督开关</h3>
+                      <p>工作时间内检测前台 App 和浏览器 URL。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="card-line">
+                        <div><h4>当前状态</h4><p>开启后会根据工作时段和时长任务触发监督。</p></div>
+                        <div class="control-strip"><span class="pill green">运行中</span><span class="switch on" aria-label="Monitoring on"></span></div>
+                      </div>
                     </div>
                   </article>
 
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">O</span><div><h3>悬浮组件</h3><p>圆形头像、完整倒计时环、无方形底板。</p></div></div>
-                    <div class="row-control">
-                      <div class="avatar-preview"><div class="avatar-face"></div></div>
-                      <span class="switch on"></span>
-                      <button class="secondary-btn">上传头像</button>
-                      <button class="field-btn">恢复默认</button>
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>时长任务</h3>
+                      <p>临时监督一段时间，到点自动结束并语音总结。支持常用预设和自定义分钟数。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="card-line">
+                        <div><h4>当前任务</h4><p>剩余 24:37，本轮已抓包 0 次。</p></div>
+                        <span class="pill blue">Focus active</span>
+                      </div>
+                      <div class="card-line start">
+                        <div class="segmented" aria-label="Focus durations"><button>15</button><button class="active">25</button><button>40</button><button>60</button><button>90</button></div>
+                        <div class="custom-duration">
+                          <input class="field" value="35" aria-label="Custom duration minutes" />
+                          <span class="pill">分钟</span>
+                          <button class="secondary-btn">设为自定义</button>
+                        </div>
+                      </div>
+                      <div class="control-strip">
+                        <button class="secondary-btn">暂停</button>
+                        <button class="danger-btn">取消</button>
+                      </div>
                     </div>
                   </article>
 
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">S</span><div><h3>工作时段</h3><p>可启用工作日/周末和多个时间段。</p></div></div>
-                    <div class="row-control stack">
-                      <div class="inline-row"><div><h4>周一到周五</h4><p>09:00 - 18:00</p></div><span class="pill green">启用</span></div>
-                      <div class="inline-row"><div><h4>周末</h4><p>关闭，手动时长任务仍可使用</p></div><span class="pill">关闭</span></div>
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>悬浮组件</h3>
+                      <p>圆形头像、完整倒计时环、无方形底板。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="card-line">
+                        <div class="control-strip"><div class="avatar-preview"><div class="avatar-face"></div></div><span class="switch on"></span></div>
+                        <div class="control-strip"><button class="secondary-btn">上传头像</button><button class="field-btn">恢复默认</button></div>
+                      </div>
                     </div>
                   </article>
 
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">K</span><div><h3>对话快捷键</h3><p>点击框后按新的组合键或单键；支持右侧 Option。</p></div></div>
-                    <div class="row-control">
-                      <span class="keybox">Option <span>+</span> Space</span>
-                      <span class="keybox capturing">Press keys</span>
-                      <button class="field-btn">重置</button>
-                      <button class="secondary-btn">测试语音命令</button>
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>工作时段</h3>
+                      <p>可启用工作日/周末和多个时间段；每段都能直接编辑开始和结束时间。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="card-line">
+                        <div><h4>启用日程监督</h4><p>手动时长任务不受此开关影响。</p></div>
+                        <span class="switch on"></span>
+                      </div>
+                      <div class="schedule-list">
+                        <div class="schedule-row">
+                          <input class="field" value="周一到周五" aria-label="Schedule label" />
+                          <input class="field" value="09:00" aria-label="Start time" />
+                          <input class="field" value="18:00" aria-label="End time" />
+                          <span class="pill green">启用</span>
+                          <button class="field-btn">删除</button>
+                        </div>
+                        <div class="schedule-row">
+                          <input class="field" value="周六" aria-label="Schedule label" />
+                          <input class="field" value="10:00" aria-label="Start time" />
+                          <input class="field" value="12:00" aria-label="End time" />
+                          <span class="pill">关闭</span>
+                          <button class="field-btn">删除</button>
+                        </div>
+                      </div>
+                      <button class="secondary-btn">添加时间段</button>
                     </div>
                   </article>
 
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">P</span><div><h3>权限</h3><p>每条权限只保留一个状态标签，未授权时才显示操作按钮。</p></div></div>
-                    <div class="permission-grid">
-                      <div class="permission-row"><div><h4>麦克风</h4><p>语音命令和对喷输入</p></div><span class="pill green">已允许</span></div>
-                      <div class="permission-row"><div><h4>浏览器自动化</h4><p>读取 Chrome/Safari 当前 URL</p></div><span class="pill green">已允许</span></div>
-                      <div class="permission-row"><div><h4>通知</h4><p>会话开始、结束和错误提醒</p></div><span class="pill green">已允许</span></div>
-                      <div class="permission-row"><div><h4>辅助功能</h4><p>可选，用于更稳定的快捷键捕获</p></div><button class="secondary-btn">去开启</button></div>
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>对话快捷键</h3>
+                      <p>点击快捷键框后，直接按下新的组合键或单键；松开后保存。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="shortcut-layout">
+                        <button class="keybox" aria-label="Current talk shortcut">Option <span>+</span> Space</button>
+                        <button class="field-btn">重置</button>
+                        <button class="secondary-btn">测试语音命令</button>
+                      </div>
+                      <p class="shortcut-hint">录制态：同一个框会显示“Press new shortcut”，不会和当前快捷键并排出现。</p>
                     </div>
                   </article>
 
-                  <article class="settings-row">
-                    <div class="row-info"><span class="row-icon">L</span><div><h3>开机启动</h3><p>登录后自动打开 Hunter。</p></div></div>
-                    <div class="row-control"><span class="switch"></span></div>
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>权限</h3>
+                      <p>卡片里分别展示四个权限请求；每条权限只保留一个状态标签，未授权时才显示操作按钮。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="permission-grid">
+                        <div class="permission-row"><div><h4>麦克风</h4><p>语音命令和对喷输入</p></div><span class="pill green">已允许</span></div>
+                        <div class="permission-row"><div><h4>浏览器自动化</h4><p>读取 Chrome/Safari 当前 URL</p></div><span class="pill green">已允许</span></div>
+                        <div class="permission-row"><div><h4>通知</h4><p>会话开始、结束和错误提醒</p></div><span class="pill green">已允许</span></div>
+                        <div class="permission-row"><div><h4>辅助功能</h4><p>可选，用于更稳定的快捷键捕获</p></div><button class="secondary-btn">去开启</button></div>
+                      </div>
+                      <button class="secondary-btn">重新检查权限</button>
+                    </div>
+                  </article>
+
+                  <article class="settings-section">
+                    <div class="section-copy">
+                      <h3>开机启动</h3>
+                      <p>登录后自动打开 Hunter。</p>
+                    </div>
+                    <div class="settings-card">
+                      <div class="card-line"><div><h4>Launch at Login</h4><p>下次登录 macOS 时自动启动。</p></div><span class="switch"></span></div>
+                    </div>
                   </article>
                 </div>
               </section>

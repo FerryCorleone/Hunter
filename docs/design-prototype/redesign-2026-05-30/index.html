@@ -3,19 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hunter Redesign Reference</title>
+    <title>Hunter Product Design Prototype</title>
     <style>
       :root {
         color-scheme: light;
         --bg: #f5f5f7;
+        --bg-elevated: #fbfbfd;
         --surface: #ffffff;
+        --surface-soft: #f9f9fb;
         --text: #1d1d1f;
         --muted: #6e6e73;
+        --muted-2: #8e8e93;
         --line: #d2d2d7;
-        --accent: #007aff;
-        --danger: #ff3b30;
-        --success: #34c759;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+        --line-soft: rgba(210, 210, 215, 0.56);
+        --blue: #007aff;
+        --blue-soft: #e6f0ff;
+        --green: #34c759;
+        --red: #ff3b30;
+        --orange: #ff9500;
+        --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 20px 60px rgba(0, 0, 0, 0.10);
+        --radius-lg: 22px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
       }
 
       * {
@@ -24,84 +35,1006 @@
 
       body {
         margin: 0;
-        background: var(--bg);
+        background:
+          radial-gradient(circle at 16% 0%, rgba(0, 122, 255, 0.06), transparent 26%),
+          linear-gradient(180deg, #fbfbfd 0%, var(--bg) 45%, #f0f0f2 100%);
         color: var(--text);
         letter-spacing: 0;
       }
 
-      main {
-        width: min(1180px, calc(100vw - 48px));
-        margin: 0 auto;
-        padding: 34px 0 52px;
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
       }
 
-      header {
-        display: flex;
-        align-items: end;
-        justify-content: space-between;
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        width: min(1380px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 34px 0 64px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 24px;
+        align-items: end;
         margin-bottom: 24px;
       }
 
+      .eyebrow {
+        margin-bottom: 10px;
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
       h1 {
-        margin: 0 0 6px;
-        font-size: 34px;
-        line-height: 1.15;
+        font-size: 36px;
+        line-height: 1.12;
+      }
+
+      h2 {
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      h3 {
+        font-size: 15px;
+        line-height: 1.25;
       }
 
       p {
-        margin: 0;
         color: var(--muted);
         font-size: 14px;
-        line-height: 1.55;
+        line-height: 1.5;
       }
 
-      .pill {
+      .hero-copy {
+        max-width: 820px;
+      }
+
+      .hero-copy p {
+        margin-top: 10px;
+      }
+
+      .hero-meta,
+      .toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .chip,
+      .pill,
+      .keycap {
         display: inline-flex;
         align-items: center;
-        height: 28px;
-        padding: 0 12px;
+        justify-content: center;
+        min-height: 28px;
+        padding: 0 11px;
+        border: 1px solid var(--line-soft);
         border-radius: 999px;
-        background: color-mix(in srgb, var(--accent), transparent 88%);
-        color: var(--accent);
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--muted);
         font-size: 12px;
         font-weight: 650;
         white-space: nowrap;
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 22px;
+      .chip.active,
+      .pill.blue {
+        border-color: rgba(0, 122, 255, 0.26);
+        background: var(--blue-soft);
+        color: var(--blue);
       }
 
-      .frame {
+      .pill.green {
+        border-color: rgba(52, 199, 89, 0.24);
+        background: #e9f8ee;
+        color: #138a35;
+      }
+
+      .pill.red {
+        border-color: rgba(255, 59, 48, 0.22);
+        background: #fff0ef;
+        color: var(--red);
+      }
+
+      .pill.orange {
+        border-color: rgba(255, 149, 0, 0.26);
+        background: #fff6e8;
+        color: #b35c00;
+      }
+
+      .toc {
+        justify-content: flex-start;
+        margin: 18px 0 28px;
+      }
+
+      .section {
+        margin-top: 26px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 14px;
+      }
+
+      .section-head p {
+        max-width: 680px;
+      }
+
+      .prototype-note {
+        padding: 13px 15px;
+        border: 1px solid rgba(0, 122, 255, 0.18);
+        border-radius: var(--radius-md);
+        background: rgba(230, 240, 255, 0.70);
+        color: #1d4f91;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .mac-window {
         overflow: hidden;
-        border: 1px solid color-mix(in srgb, var(--line), transparent 20%);
+        border: 1px solid rgba(210, 210, 215, 0.88);
         border-radius: 18px;
         background: var(--surface);
-        box-shadow: 0 18px 50px rgb(0 0 0 / 0.08);
+        box-shadow: var(--shadow-md);
       }
 
-      .frame h2 {
+      .traffic {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 52px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      .traffic-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      .traffic-dot.red { background: #ff5f57; }
+      .traffic-dot.yellow { background: #ffbd2e; }
+      .traffic-dot.green { background: #28c840; }
+
+      .window-title {
+        flex: 1;
+        margin-right: 78px;
+        text-align: center;
+        color: #2b2b2f;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .settings-shell {
+        display: grid;
+        grid-template-columns: 196px minmax(0, 1fr);
+        min-height: 820px;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px 12px;
+        border-right: 1px solid var(--line-soft);
+        background: linear-gradient(180deg, #fbfbfc, #f5f5f7);
+      }
+
+      .brand-block {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 4px 6px 14px;
+      }
+
+      .mini-avatar,
+      .avatar-face {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 35%, #ffffff 0%, #f4f6fb 52%, #e9edf5 100%);
+      }
+
+      .mini-avatar {
+        width: 34px;
+        height: 34px;
+        border: 2px solid var(--blue);
+      }
+
+      .avatar-face::before,
+      .avatar-face::after,
+      .mini-avatar::before,
+      .mini-avatar::after {
+        content: "";
+        position: absolute;
+        top: 13px;
+        width: 9px;
+        height: 7px;
+        border-radius: 3px 3px 6px 6px;
+        background: #17191f;
+      }
+
+      .avatar-face::before,
+      .mini-avatar::before {
+        left: 9px;
+      }
+
+      .avatar-face::after,
+      .mini-avatar::after {
+        right: 9px;
+      }
+
+      .brand-title {
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      .brand-subtitle {
+        margin-top: 1px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .nav-item {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 9px;
+        align-items: center;
+        width: 100%;
+        min-height: 38px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: #343438;
+        text-align: left;
+      }
+
+      .nav-item.active {
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-weight: 700;
+      }
+
+      .nav-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        color: currentColor;
+        font-size: 14px;
+      }
+
+      .side-actions {
+        display: grid;
+        gap: 8px;
+        margin-top: auto;
+        padding-top: 18px;
+      }
+
+      .primary-btn,
+      .secondary-btn,
+      .ghost-btn,
+      .danger-btn,
+      .field-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 34px;
+        padding: 0 13px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .primary-btn {
+        background: var(--blue);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(0, 122, 255, 0.20);
+      }
+
+      .secondary-btn,
+      .field-btn {
+        border-color: var(--line-soft);
+        background: #fff;
+        color: var(--text);
+      }
+
+      .ghost-btn {
+        background: transparent;
+        color: var(--blue);
+      }
+
+      .danger-btn {
+        border-color: rgba(255, 59, 48, 0.20);
+        background: #fff0ef;
+        color: var(--red);
+      }
+
+      .content {
+        padding: 28px 36px 38px;
+        background: var(--bg);
+      }
+
+      .panel {
+        display: none;
+        width: min(760px, 100%);
+      }
+
+      .panel.active {
+        display: block;
+      }
+
+      .panel-head {
+        margin-bottom: 18px;
+      }
+
+      .panel-head h2 {
+        font-size: 28px;
+      }
+
+      .panel-head p {
+        margin-top: 7px;
+      }
+
+      .section-title {
+        margin: 20px 0 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+        text-transform: uppercase;
+      }
+
+      .settings-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .settings-row {
+        display: grid;
+        grid-template-columns: 286px minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+        min-height: 74px;
+        padding: 14px 16px;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .row-info {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 11px;
+        align-items: center;
+      }
+
+      .row-icon {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 15px;
+      }
+
+      .row-info p {
+        margin-top: 3px;
+        font-size: 12px;
+      }
+
+      .row-control {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .row-control.stack {
+        display: grid;
+        justify-items: stretch;
+      }
+
+      .switch {
+        width: 44px;
+        height: 26px;
+        border-radius: 999px;
+        background: #d9d9de;
+        padding: 2px;
+      }
+
+      .switch::before {
+        content: "";
+        display: block;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+      }
+
+      .switch.on {
+        background: var(--green);
+      }
+
+      .switch.on::before {
+        transform: translateX(18px);
+      }
+
+      .segmented {
+        display: inline-flex;
+        padding: 3px;
+        border: 1px solid var(--line-soft);
+        border-radius: 10px;
+        background: #f1f1f4;
+      }
+
+      .segmented button {
+        min-width: 46px;
+        height: 28px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .segmented button.active {
+        background: #fff;
+        color: var(--blue);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      .field,
+      select {
+        min-height: 34px;
+        width: 100%;
+        border: 1px solid var(--line-soft);
+        border-radius: 9px;
+        background: #fff;
+        color: var(--text);
+        padding: 0 10px;
+        font-size: 13px;
+      }
+
+      .field::placeholder {
+        color: #a0a0a6;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .field-group {
+        display: grid;
+        gap: 5px;
+      }
+
+      .field-group label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .inline-list {
+        display: grid;
+        gap: 7px;
+        width: 100%;
+      }
+
+      .inline-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 42px;
+        padding: 8px 10px;
+        border: 1px solid var(--line-soft);
+        border-radius: 10px;
+        background: var(--surface-soft);
+      }
+
+      .inline-row h4 {
         margin: 0;
-        padding: 18px 20px 12px;
-        font-size: 18px;
+        font-size: 13px;
       }
 
-      .frame img {
+      .inline-row p {
+        margin-top: 2px;
+        font-size: 11px;
+      }
+
+      .avatar-preview {
+        position: relative;
+        width: 54px;
+        height: 54px;
+        padding: 4px;
+        border-radius: 50%;
+        background: conic-gradient(var(--blue) 0 78%, #d9e7ff 78% 100%);
+      }
+
+      .avatar-face {
+        width: 46px;
+        height: 46px;
+      }
+
+      .keybox {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        min-width: 180px;
+        padding: 0 11px;
+        border: 1px solid rgba(0, 122, 255, 0.32);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 720;
+      }
+
+      .keybox.capturing {
+        border-color: rgba(52, 199, 89, 0.36);
+        box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.11);
+        color: #138a35;
+      }
+
+      .permission-grid {
+        display: grid;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .permission-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 44px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: var(--surface-soft);
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .provider-card {
+        display: grid;
+        gap: 12px;
+        padding: 15px;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .provider-head,
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .provider-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .provider-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .asset-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .app-row {
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+      }
+
+      .app-glyph {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f2f2f7, #fff);
+        border: 1px solid var(--line-soft);
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .rule-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 48px;
+        padding: 9px 10px;
+        border: 1px solid var(--line-soft);
+        border-radius: 10px;
+        background: var(--surface-soft);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        width: 100%;
+      }
+
+      .stat {
+        padding: 13px;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: var(--surface-soft);
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 22px;
+      }
+
+      .incident-table {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: var(--surface-soft);
+      }
+
+      .incident-row {
+        display: grid;
+        grid-template-columns: 80px 110px 112px minmax(0, 1fr);
+        gap: 10px;
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--line-soft);
+        font-size: 12px;
+      }
+
+      .incident-row:last-child {
+        border-bottom: 0;
+      }
+
+      .incident-row.header {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .empty-state {
+        display: grid;
+        place-items: center;
+        gap: 7px;
+        min-height: 150px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .empty-mark {
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        border: 1px dashed #b8b8bf;
+        border-radius: 50%;
+        color: var(--muted-2);
+        font-size: 24px;
+      }
+
+      .widget-stage {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
+      }
+
+      .widget-canvas,
+      .component-canvas,
+      .visual-canvas {
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .widget-canvas {
+        display: grid;
+        gap: 20px;
+        padding: 26px;
+      }
+
+      .orb-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .orb-card {
+        display: grid;
+        place-items: center;
+        gap: 9px;
+        min-height: 138px;
+      }
+
+      .orb {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        background: conic-gradient(var(--blue) 0 var(--progress, 80%), #dbe8ff var(--progress, 80%) 100%);
+        box-shadow: 0 10px 28px rgba(0, 122, 255, 0.18);
+      }
+
+      .orb.listening {
+        box-shadow: 0 0 0 8px rgba(52, 199, 89, 0.16), 0 0 30px rgba(52, 199, 89, 0.35);
+        animation: breathe 1.45s ease-in-out infinite;
+      }
+
+      .orb.caught {
+        background: conic-gradient(var(--red) 0 100%, var(--red) 0 100%);
+        box-shadow: 0 0 0 8px rgba(255, 59, 48, 0.10), 0 10px 28px rgba(255, 59, 48, 0.18);
+      }
+
+      .orb-inner {
+        display: grid;
+        place-items: center;
+        width: 66px;
+        height: 66px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 32%, #fff 0%, #f3f6fb 62%, #e8edf5 100%);
+      }
+
+      .orb .avatar-face {
+        width: 54px;
+        height: 54px;
+      }
+
+      .orb-time {
+        position: absolute;
+        bottom: 11px;
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .popover-stack {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .popover {
+        position: relative;
+        padding: 18px;
+        border: 1px solid var(--line-soft);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: var(--shadow-md);
+      }
+
+      .popover::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 44px;
+        width: 16px;
+        height: 16px;
+        border-left: 1px solid var(--line-soft);
+        border-top: 1px solid var(--line-soft);
+        background: #fff;
+        transform: rotate(45deg);
+      }
+
+      .progress-bar {
+        overflow: hidden;
+        height: 8px;
+        border-radius: 999px;
+        background: #e5e5ea;
+      }
+
+      .progress-bar span {
+        display: block;
+        width: var(--value, 64%);
+        height: 100%;
+        border-radius: inherit;
+        background: var(--blue);
+      }
+
+      .wave {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        height: 44px;
+      }
+
+      .wave span {
+        width: 4px;
+        height: var(--h, 14px);
+        border-radius: 99px;
+        background: var(--blue);
+        opacity: 0.8;
+      }
+
+      .wave.live span {
+        animation: wave 0.72s ease-in-out infinite alternate;
+      }
+
+      .wave.live span:nth-child(2) { animation-delay: 0.08s; }
+      .wave.live span:nth-child(3) { animation-delay: 0.16s; }
+      .wave.live span:nth-child(4) { animation-delay: 0.24s; }
+      .wave.live span:nth-child(5) { animation-delay: 0.12s; }
+      .wave.live span:nth-child(6) { animation-delay: 0.20s; }
+      .wave.live span:nth-child(7) { animation-delay: 0.28s; }
+
+      .toast-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .widget-canvas .toast-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toast {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 68px;
+        padding: 13px;
+        border: 1px solid var(--line-soft);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .toast-icon {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-weight: 800;
+      }
+
+      .toast.success .toast-icon {
+        background: #e9f8ee;
+        color: #138a35;
+      }
+
+      .toast.error .toast-icon {
+        background: #fff0ef;
+        color: var(--red);
+      }
+
+      .component-canvas {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        padding: 20px;
+      }
+
+      .component-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--line-soft);
+        border-radius: 16px;
+        background: #fff;
+      }
+
+      .token-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .swatch {
+        display: grid;
+        gap: 7px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .swatch::before {
+        content: "";
+        height: 34px;
+        border: 1px solid var(--line-soft);
+        border-radius: 10px;
+        background: var(--swatch);
+      }
+
+      .visual-canvas {
+        padding: 16px;
+      }
+
+      .ref-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .ref-card {
+        overflow: hidden;
+        border: 1px solid var(--line-soft);
+        border-radius: 14px;
+        background: #fff;
+      }
+
+      .ref-card img {
         display: block;
         width: 100%;
         height: auto;
-        border-top: 1px solid color-mix(in srgb, var(--line), transparent 45%);
+      }
+
+      .ref-card h3 {
+        padding: 12px 12px 0;
+      }
+
+      .ref-card p {
+        padding: 4px 12px 12px;
+        font-size: 12px;
       }
 
       .matrix {
-        margin-top: 24px;
         overflow: hidden;
-        border: 1px solid color-mix(in srgb, var(--line), transparent 20%);
-        border-radius: 16px;
-        background: var(--surface);
+        border: 1px solid var(--line-soft);
+        border-radius: 18px;
+        background: #fff;
       }
 
       table {
@@ -113,14 +1046,14 @@
       th,
       td {
         padding: 13px 14px;
-        border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 45%);
+        border-bottom: 1px solid var(--line-soft);
         text-align: left;
         vertical-align: top;
       }
 
       th {
         color: var(--muted);
-        font-weight: 650;
+        font-weight: 750;
       }
 
       tr:last-child td {
@@ -128,77 +1061,573 @@
       }
 
       code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--blue);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
-        color: var(--accent);
+      }
+
+      .review-tag {
+        display: inline-flex;
+        margin-left: 7px;
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      @keyframes breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.035); }
+      }
+
+      @keyframes wave {
+        from { height: 10px; opacity: 0.50; }
+        to { height: 34px; opacity: 1; }
+      }
+
+      @media (max-width: 1100px) {
+        .hero,
+        .widget-stage,
+        .settings-shell,
+        .component-canvas {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(120px, 1fr));
+          overflow-x: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line-soft);
+        }
+
+        .brand-block,
+        .side-actions {
+          display: none;
+        }
+
+        .settings-row {
+          grid-template-columns: 1fr;
+        }
+
+        .row-control {
+          justify-content: flex-start;
+        }
+
+        .popover-stack,
+        .toast-grid,
+        .ref-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <header>
-        <div>
-          <h1>Hunter Redesign Reference</h1>
-          <p>Generated visual references for the macOS-native settings window, floating widget states, and shared component system. PRD section 2A remains the source of truth.</p>
+    <main class="page">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">Hunter v0.9 Product Design Prototype</div>
+          <h1>真实 DOM 版 HTML 设计稿</h1>
+          <p>本稿按照 PRD 2A 页面结构重建，不再把生成图当作整页背景。生成图只作为视觉参考；设置页、悬浮组件、组件状态和覆盖矩阵都用真实 HTML/CSS 元素表达，方便逐项批阅。</p>
         </div>
-        <span class="pill">2026-05-30</span>
+        <div class="hero-meta">
+          <span class="pill blue">Imagegen to HTML</span>
+          <span class="pill">macOS native style</span>
+          <span class="pill">2026-05-30</span>
+        </div>
       </header>
 
-      <section class="grid" aria-label="Generated references">
-        <article class="frame">
-          <h2>Settings Window</h2>
-          <img src="settings-window-reference.png" alt="Hunter macOS settings window reference" />
-        </article>
+      <nav class="toc" aria-label="Design review anchors">
+        <a class="chip active" href="#settings">设置主窗口</a>
+        <a class="chip" href="#floating">悬浮组件</a>
+        <a class="chip" href="#components">组件状态板</a>
+        <a class="chip" href="#coverage">覆盖矩阵</a>
+        <a class="chip" href="#references">生成图参考</a>
+      </nav>
 
-        <article class="frame">
-          <h2>Floating Widget States</h2>
-          <img src="floating-widget-reference.png" alt="Hunter floating widget states reference" />
-        </article>
+      <p class="prototype-note">批阅建议：优先看“设置主窗口”和“悬浮组件”两块。左侧导航、Provider 配置、权限、快捷键、声音、历史记录等都已按 PRD 拆成可指出问题的独立模块。</p>
 
-        <article class="frame">
-          <h2>Component Board</h2>
-          <img src="component-board-reference.png" alt="Hunter component board reference" />
-        </article>
+      <section class="section" id="settings">
+        <div class="section-head">
+          <div>
+            <h2>设置主窗口 <span class="review-tag">Review area A</span></h2>
+            <p>固定 196px 左侧栏、760px 内容区、Apple Settings 风格白色设置行。点击左侧入口可切换五个页面。</p>
+          </div>
+        </div>
+
+        <div class="mac-window" aria-label="Hunter settings window prototype">
+          <div class="traffic">
+            <span class="traffic-dot red"></span>
+            <span class="traffic-dot yellow"></span>
+            <span class="traffic-dot green"></span>
+            <span class="window-title">Hunter Settings</span>
+          </div>
+
+          <div class="settings-shell">
+            <aside class="sidebar" aria-label="Settings navigation">
+              <div class="brand-block">
+                <span class="mini-avatar" aria-hidden="true"></span>
+                <div>
+                  <div class="brand-title">Hunter</div>
+                  <div class="brand-subtitle">AI 桌面监工</div>
+                </div>
+              </div>
+
+              <button class="nav-item active" data-panel="general"><span class="nav-icon">1</span><span>通用 General</span></button>
+              <button class="nav-item" data-panel="watchlist"><span class="nav-icon">2</span><span>黑名单 Watchlist</span></button>
+              <button class="nav-item" data-panel="ai"><span class="nav-icon">3</span><span>AI Provider</span></button>
+              <button class="nav-item" data-panel="voice"><span class="nav-icon">4</span><span>声音 Voice</span></button>
+              <button class="nav-item" data-panel="history"><span class="nav-icon">5</span><span>历史 History</span></button>
+
+              <div class="side-actions">
+                <button class="primary-btn">开始监督</button>
+                <button class="secondary-btn">演示抓包</button>
+              </div>
+            </aside>
+
+            <div class="content">
+              <section class="panel active" data-panel-view="general">
+                <div class="panel-head">
+                  <h2>通用</h2>
+                  <p>管理监督状态、时长任务、悬浮组件、快捷键和权限。</p>
+                </div>
+
+                <div class="settings-list">
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">M</span><div><h3>监督开关</h3><p>工作时间内检测前台 App 和浏览器 URL。</p></div></div>
+                    <div class="row-control"><span class="pill green">运行中</span><span class="switch on" aria-label="Monitoring on"></span></div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">T</span><div><h3>时长任务</h3><p>临时监督一段时间，到点自动结束并语音总结。</p></div></div>
+                    <div class="row-control">
+                      <span class="pill blue">剩余 24:37</span>
+                      <div class="segmented" aria-label="Focus durations"><button>15</button><button class="active">25</button><button>40</button><button>60</button><button>90</button></div>
+                      <button class="secondary-btn">暂停</button>
+                      <button class="danger-btn">取消</button>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">O</span><div><h3>悬浮组件</h3><p>圆形头像、完整倒计时环、无方形底板。</p></div></div>
+                    <div class="row-control">
+                      <div class="avatar-preview"><div class="avatar-face"></div></div>
+                      <span class="switch on"></span>
+                      <button class="secondary-btn">上传头像</button>
+                      <button class="field-btn">恢复默认</button>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">S</span><div><h3>工作时段</h3><p>可启用工作日/周末和多个时间段。</p></div></div>
+                    <div class="row-control stack">
+                      <div class="inline-row"><div><h4>周一到周五</h4><p>09:00 - 18:00</p></div><span class="pill green">启用</span></div>
+                      <div class="inline-row"><div><h4>周末</h4><p>关闭，手动时长任务仍可使用</p></div><span class="pill">关闭</span></div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">K</span><div><h3>对话快捷键</h3><p>点击框后按新的组合键或单键；支持右侧 Option。</p></div></div>
+                    <div class="row-control">
+                      <span class="keybox">Option <span>+</span> Space</span>
+                      <span class="keybox capturing">Press keys</span>
+                      <button class="field-btn">重置</button>
+                      <button class="secondary-btn">测试语音命令</button>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">P</span><div><h3>权限</h3><p>每条权限只保留一个状态标签，未授权时才显示操作按钮。</p></div></div>
+                    <div class="permission-grid">
+                      <div class="permission-row"><div><h4>麦克风</h4><p>语音命令和对喷输入</p></div><span class="pill green">已允许</span></div>
+                      <div class="permission-row"><div><h4>浏览器自动化</h4><p>读取 Chrome/Safari 当前 URL</p></div><span class="pill green">已允许</span></div>
+                      <div class="permission-row"><div><h4>通知</h4><p>会话开始、结束和错误提醒</p></div><span class="pill green">已允许</span></div>
+                      <div class="permission-row"><div><h4>辅助功能</h4><p>可选，用于更稳定的快捷键捕获</p></div><button class="secondary-btn">去开启</button></div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">L</span><div><h3>开机启动</h3><p>登录后自动打开 Hunter。</p></div></div>
+                    <div class="row-control"><span class="switch"></span></div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel" data-panel-view="watchlist">
+                <div class="panel-head">
+                  <h2>黑名单</h2>
+                  <p>网站、URL 关键词和本机 App 规则统一管理。</p>
+                </div>
+
+                <div class="settings-list">
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">+</span><div><h3>添加规则</h3><p>Pattern 为空时禁用添加，Name 为空时使用 Pattern。</p></div></div>
+                    <div class="row-control stack">
+                      <div class="field-grid">
+                        <select><option>Website</option><option>App</option></select>
+                        <input class="field" value="Bilibili" />
+                        <input class="field" value="bilibili.com" />
+                        <button class="primary-btn">添加</button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">C</span><div><h3>常用预设</h3><p>一键添加常见摸鱼平台。</p></div></div>
+                    <div class="row-control asset-chip-row">
+                      <span class="chip active">YouTube</span><span class="chip">Bilibili</span><span class="chip">Douyin</span><span class="chip">X / Twitter</span><span class="chip">Reddit</span><span class="chip">Steam</span><span class="chip">Discord</span>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">A</span><div><h3>已安装应用</h3><p>从 /Applications、~/Applications 和系统应用拉取。</p></div></div>
+                    <div class="row-control stack">
+                      <div class="field-grid"><input class="field" placeholder="搜索 App 或 Bundle ID" /><button class="secondary-btn">刷新列表</button></div>
+                      <div class="inline-list">
+                        <div class="inline-row app-row"><span class="app-glyph">C</span><div><h4>Google Chrome</h4><p>com.google.Chrome</p></div><button class="secondary-btn">已添加</button></div>
+                        <div class="inline-row app-row"><span class="app-glyph">B</span><div><h4>Bilibili</h4><p>tv.danmaku.bili</p></div><button class="primary-btn">添加</button></div>
+                        <div class="inline-row app-row"><span class="app-glyph">S</span><div><h4>Steam</h4><p>com.valvesoftware.steam</p></div><button class="primary-btn">添加</button></div>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">R</span><div><h3>规则列表</h3><p>每条规则可启用、停用或删除。</p></div></div>
+                    <div class="row-control stack">
+                      <div class="rule-row"><div><h4>Bilibili</h4><p>bilibili.com</p></div><span class="pill blue">Website</span><span class="switch on"></span></div>
+                      <div class="rule-row"><div><h4>Douyin</h4><p>douyin.com</p></div><span class="pill blue">Website</span><span class="switch on"></span></div>
+                      <div class="rule-row"><div><h4>Steam</h4><p>com.valvesoftware.steam</p></div><span class="pill">App</span><span class="switch"></span></div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel" data-panel-view="ai">
+                <div class="panel-head">
+                  <h2>AI Provider</h2>
+                  <p>ASR、LLM、TTS、Search 完全独立配置，不做基础配置联动。</p>
+                </div>
+
+                <div class="settings-list">
+                  <article class="provider-card">
+                    <div class="provider-head"><div><h3>ASR Provider</h3><p>本地 SenseVoice 或云端 API。</p></div><span class="pill green">Local ready</span></div>
+                    <div class="segmented"><button class="active">Local model</button><button>Cloud API</button></div>
+                    <div class="provider-fields">
+                      <div class="field-group"><label>Provider</label><input class="field" value="SenseVoice" /></div>
+                      <div class="field-group"><label>Base URL</label><input class="field" value="http://127.0.0.1:8808" /></div>
+                      <div class="field-group"><label>Model</label><input class="field" value="sensevoice-small-int8" /></div>
+                      <div class="field-group"><label>API Key</label><input class="field" value="local model, no key" /></div>
+                    </div>
+                    <div class="provider-actions"><span>SenseVoice Small INT8 downloaded to local model cache.</span><button class="secondary-btn">测试 ASR</button></div>
+                  </article>
+
+                  <article class="provider-card">
+                    <div class="provider-head"><div><h3>LLM Provider</h3><p>默认模板：DeepSeek / deepseek-v4-flash。</p></div><span class="pill green">Saved</span></div>
+                    <div class="provider-fields">
+                      <div class="field-group"><label>Provider</label><input class="field" value="DeepSeek" /></div>
+                      <div class="field-group"><label>Base URL</label><input class="field" value="https://api.deepseek.com" /></div>
+                      <div class="field-group"><label>Model</label><input class="field" value="deepseek-v4-flash" /></div>
+                      <div class="field-group"><label>API Key</label><input class="field" value="sk-************************" /></div>
+                    </div>
+                    <div class="provider-actions"><span>API key is masked after saving.</span><button class="secondary-btn">测试 LLM</button></div>
+                  </article>
+
+                  <div class="two-column">
+                    <article class="provider-card">
+                      <div class="provider-head"><div><h3>TTS Provider</h3><p>仅云端 Provider，无本地 TTS。</p></div><span class="pill green">Saved</span></div>
+                      <div class="provider-fields">
+                        <div class="field-group"><label>Provider</label><input class="field" value="QianWen / CosyVoice" /></div>
+                        <div class="field-group"><label>Base URL</label><input class="field" value="https://api.qianwenai.com" /></div>
+                        <div class="field-group"><label>Model</label><input class="field" value="cosyvoice-v3-flash" /></div>
+                        <div class="field-group"><label>API Key</label><input class="field" value="qw-************************" /></div>
+                      </div>
+                      <div class="provider-actions"><span>Voice id handled in Voice page.</span><button class="secondary-btn">测试 TTS</button></div>
+                    </article>
+
+                    <article class="provider-card">
+                      <div class="provider-head"><div><h3>Search Provider</h3><p>可选联网搜索增强。</p></div><span class="pill orange">Optional</span></div>
+                      <div class="provider-fields">
+                        <div class="field-group"><label>Provider</label><input class="field" value="Brave Search" /></div>
+                        <div class="field-group"><label>Base URL</label><input class="field" value="https://api.search.brave.com" /></div>
+                        <div class="field-group"><label>Model</label><input class="field" value="web-search" /></div>
+                        <div class="field-group"><label>API Key</label><input class="field" placeholder="Not configured" /></div>
+                      </div>
+                      <div class="provider-actions"><span>Only hit target context is sent.</span><button class="secondary-btn">测试搜索</button></div>
+                    </article>
+                  </div>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">E</span><div><h3>端到端测试</h3><p>ASR -> LLM -> TTS 完整链路检查。</p></div></div>
+                    <div class="row-control"><span class="pill green">Last success 17:12</span><button class="primary-btn">Run E2E Test</button></div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel" data-panel-view="voice">
+                <div class="panel-head">
+                  <h2>声音与语言</h2>
+                  <p>界面语言和监督语言独立；音色克隆为云端能力占位，不做本地上传入口。</p>
+                </div>
+
+                <div class="settings-list">
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">L</span><div><h3>语言</h3><p>Roast Language 控制 LLM 输出语言和 TTS 语言提示。</p></div></div>
+                    <div class="row-control field-grid">
+                      <select><option>界面语言：简体中文</option><option>English</option></select>
+                      <select><option>监督语言：跟随界面</option><option>中文</option><option>English</option></select>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">P</span><div><h3>角色与强度</h3><p>粗口必须由用户主动开启，禁止攻击受保护属性。</p></div></div>
+                    <div class="row-control stack">
+                      <div class="field-grid">
+                        <select><option>老板附体</option><option>阴阳怪气</option><option>温柔提醒</option><option>破防模式</option></select>
+                        <select><option>强度：高</option><option>中</option><option>低</option></select>
+                        <input class="field" value="允许粗口：开启" />
+                        <input class="field" placeholder="禁用词，逗号分隔" />
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">V</span><div><h3>TTS 音色</h3><p>云端 Provider 的 voice id，默认 longanyang。</p></div></div>
+                    <div class="row-control"><input class="field" value="longanyang" /><button class="secondary-btn">测试音色</button></div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">C</span><div><h3>音色克隆</h3><p>MVP 不上传样本；后续只接入云端授权 voice id。</p></div></div>
+                    <div class="row-control"><span class="pill orange">Cloud clone pending</span><button class="secondary-btn" disabled>上传样本</button><button class="secondary-btn" disabled>录制样本</button></div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel" data-panel-view="history">
+                <div class="panel-head">
+                  <h2>历史记录</h2>
+                  <p>只展示今天的抓包摘要和事件列表，不提供复制语录按钮。</p>
+                </div>
+
+                <div class="settings-list">
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">D</span><div><h3>今日摘要</h3><p>抓包次数、Top 对象、最近一次抓包时间。</p></div></div>
+                    <div class="stats">
+                      <div class="stat"><p>抓包次数</p><strong>7</strong></div>
+                      <div class="stat"><p>Top 对象</p><strong>Bilibili</strong></div>
+                      <div class="stat"><p>最近一次</p><strong>17:08</strong></div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">I</span><div><h3>事件列表</h3><p>每条事件只保留必要上下文。</p></div></div>
+                    <div class="incident-table">
+                      <div class="incident-row header"><span>Time</span><span>Target</span><span>Rule</span><span>Roast</span></div>
+                      <div class="incident-row"><span>17:08</span><span>Bilibili</span><span>bilibili.com</span><span>又他妈看龙同学，天天看，还干不干活了？</span></div>
+                      <div class="incident-row"><span>16:42</span><span>Steam</span><span>App</span><span>手都伸到游戏库了，今天的活是自己写完吗？</span></div>
+                      <div class="incident-row"><span>15:19</span><span>YouTube</span><span>youtube.com</span><span>One more video and your deadline files a missing person report.</span></div>
+                    </div>
+                  </article>
+
+                  <article class="settings-row">
+                    <div class="row-info"><span class="row-icon">0</span><div><h3>空状态与清除</h3><p>清除历史需要二次确认。</p></div></div>
+                    <div class="row-control stack">
+                      <div class="empty-state"><span class="empty-mark">0</span><h3>今天还没抓到你</h3><p>开始监督后，抓包记录会出现在这里。</p></div>
+                      <div class="row-control"><button class="danger-btn">清除历史</button><button class="danger-btn">确认清除</button></div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section class="matrix" aria-label="Coverage matrix">
-        <table>
-          <thead>
-            <tr>
-              <th>PRD Surface</th>
-              <th>Design Reference</th>
-              <th>SwiftUI Implementation</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Floating Orb / Quick Control / Catch Popover / Focus Toast</td>
-              <td><code>floating-widget-reference.png</code></td>
-              <td><code>FloatingOverlayView</code>, <code>QuickControlMenu</code>, <code>FloatingMascotIcon</code></td>
-            </tr>
-            <tr>
-              <td>Settings / General</td>
-              <td><code>settings-window-reference.png</code>, <code>component-board-reference.png</code></td>
-              <td><code>SettingsView</code>, <code>GeneralPanel</code>, <code>SettingCard</code>, <code>PermissionRow</code></td>
-            </tr>
-            <tr>
-              <td>Settings / Watchlist</td>
-              <td><code>component-board-reference.png</code></td>
-              <td><code>WatchlistPanel</code>, <code>InstalledAppPickerRow</code></td>
-            </tr>
-            <tr>
-              <td>Settings / AI Providers</td>
-              <td><code>component-board-reference.png</code></td>
-              <td><code>ProvidersPanel</code>, <code>ProviderEditor</code></td>
-            </tr>
-            <tr>
-              <td>Settings / Voice and History</td>
-              <td><code>settings-window-reference.png</code>, shared component tokens</td>
-              <td><code>VoicePanel</code>, <code>HistoryPanel</code>, <code>StatPill</code></td>
-            </tr>
-          </tbody>
-        </table>
+      <section class="section" id="floating">
+        <div class="section-head">
+          <div>
+            <h2>悬浮组件与浮层 <span class="review-tag">Review area B</span></h2>
+            <p>只展示 Hunter 自己的圆形组件、快捷控制卡片、抓包卡片和 toast，不复刻桌面背景、Dock 或菜单栏。</p>
+          </div>
+        </div>
+
+        <div class="widget-stage">
+          <div class="widget-canvas">
+            <div class="orb-grid">
+              <div class="orb-card"><div class="orb" style="--progress: 100%"><div class="orb-inner"><div class="avatar-face"></div></div></div><p>Idle</p></div>
+              <div class="orb-card"><div class="orb" style="--progress: 68%"><div class="orb-inner"><div class="avatar-face"></div><span class="orb-time">24:37</span></div></div><p>Focus active</p></div>
+              <div class="orb-card"><div class="orb listening" style="--progress: 68%"><div class="orb-inner"><div class="avatar-face"></div></div></div><p>Listening</p></div>
+              <div class="orb-card"><div class="orb" style="--progress: 68%"><div class="orb-inner"><div class="avatar-face"></div></div></div><p>You speaking</p></div>
+              <div class="orb-card"><div class="orb" style="--progress: 82%"><div class="orb-inner"><div class="avatar-face"></div></div></div><p>Hunter speaking</p></div>
+              <div class="orb-card"><div class="orb caught"><div class="orb-inner"><div class="avatar-face"></div></div></div><p>Caught</p></div>
+            </div>
+
+            <div class="toast-grid">
+              <div class="toast"><span class="toast-icon">T</span><div><h3>25 分钟监督已开始</h3><p>我盯着呢，别又开始乱点。</p></div><span>x</span></div>
+              <div class="toast success"><span class="toast-icon">✓</span><div><h3>这轮干得漂亮</h3><p>0 次抓包，今天像个人样。</p></div><span>x</span></div>
+              <div class="toast error"><span class="toast-icon">!</span><div><h3>没听清</h3><p>再说一次监督时长。</p></div><span>x</span></div>
+            </div>
+          </div>
+
+          <div class="popover-stack">
+            <article class="popover">
+              <h3>Focus for 24:37</h3>
+              <div style="height: 12px"></div>
+              <div class="progress-bar" style="--value: 68%"><span></span></div>
+              <div style="height: 14px"></div>
+              <div class="asset-chip-row"><span class="chip">15 min</span><span class="chip active">25 min</span><span class="chip">40 min</span></div>
+              <div style="height: 14px"></div>
+              <div class="two-column"><button class="secondary-btn">暂停</button><button class="danger-btn">取消</button></div>
+            </article>
+
+            <article class="popover">
+              <div class="card-head"><div><h3>抓到你在看 Bilibili</h3><p>Rule: bilibili.com</p></div><span class="pill red">Caught</span></div>
+              <div style="height: 10px"></div>
+              <p style="color: var(--text); font-size: 16px;">又他妈看龙同学，天天看，还干不干活了？</p>
+              <div class="wave live" aria-label="speaking waveform"><span style="--h:12px"></span><span style="--h:20px"></span><span style="--h:30px"></span><span style="--h:18px"></span><span style="--h:34px"></span><span style="--h:22px"></span><span style="--h:14px"></span></div>
+              <button class="primary-btn" style="width: 100%;">按住 Option + Space 对话</button>
+            </article>
+
+            <article class="popover">
+              <h3>Voice command parsed</h3>
+              <p>“帮我开始一个 40 分钟的监督任务”</p>
+              <div style="height: 12px"></div>
+              <button class="primary-btn">开始 40 分钟监督</button>
+            </article>
+
+            <article class="popover">
+              <h3>Dialog continues</h3>
+              <p>用户反驳后保持同一抓包上下文，播报结束后继续等待下一次按键。</p>
+              <div class="wave" aria-label="idle waveform"><span></span><span></span><span></span><span></span><span></span></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="components">
+        <div class="section-head">
+          <div>
+            <h2>组件与状态板 <span class="review-tag">Review area C</span></h2>
+            <p>把 PRD 里的共享组件拆成可复用样式，后续 SwiftUI 不能再自由发挥。</p>
+          </div>
+        </div>
+
+        <div class="component-canvas">
+          <article class="component-card">
+            <h3>Design tokens</h3>
+            <div class="token-grid">
+              <span class="swatch" style="--swatch:#f5f5f7">Background</span>
+              <span class="swatch" style="--swatch:#ffffff">Surface</span>
+              <span class="swatch" style="--swatch:#1d1d1f">Text</span>
+              <span class="swatch" style="--swatch:#007aff">Accent</span>
+              <span class="swatch" style="--swatch:#34c759">Success</span>
+            </div>
+          </article>
+
+          <article class="component-card">
+            <h3>Buttons and pills</h3>
+            <div class="asset-chip-row">
+              <button class="primary-btn">Primary</button>
+              <button class="secondary-btn">Secondary</button>
+              <button class="danger-btn">Danger</button>
+              <span class="pill green">已允许</span>
+              <span class="pill orange">Optional</span>
+              <span class="pill red">Error</span>
+            </div>
+          </article>
+
+          <article class="component-card">
+            <h3>KeyCaptureBox states</h3>
+            <div class="asset-chip-row"><span class="keybox">Option + Space</span><span class="keybox">Right Option</span><span class="keybox capturing">Press keys</span></div>
+            <p>点击后捕获组合键或单键，保存后显示 keycap tokens。</p>
+          </article>
+
+          <article class="component-card">
+            <h3>Permission rows</h3>
+            <div class="permission-grid">
+              <div class="permission-row"><div><h4>Microphone</h4><p>Required for voice input</p></div><span class="pill green">Allowed</span></div>
+              <div class="permission-row"><div><h4>Notifications</h4><p>Required for alerts</p></div><button class="secondary-btn">Grant</button></div>
+              <div class="permission-row"><div><h4>Accessibility</h4><p>Optional for stable hotkeys</p></div><span class="pill orange">Optional</span></div>
+            </div>
+          </article>
+
+          <article class="component-card">
+            <h3>Provider states</h3>
+            <div class="inline-list">
+              <div class="inline-row"><div><h4>DeepSeek LLM</h4><p>Saved and tested</p></div><span class="pill green">Connected</span></div>
+              <div class="inline-row"><div><h4>Brave Search</h4><p>API key missing</p></div><span class="pill orange">Missing key</span></div>
+              <div class="inline-row"><div><h4>QianWen TTS</h4><p>Testing request...</p></div><span class="pill blue">Testing</span></div>
+            </div>
+          </article>
+
+          <article class="component-card">
+            <h3>Waveform states</h3>
+            <div class="wave"><span></span><span style="--h:18px"></span><span></span><span style="--h:16px"></span><span></span></div>
+            <div class="wave live"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <p>空闲静态；播报和录音时动画。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="coverage">
+        <div class="section-head">
+          <div>
+            <h2>PRD 覆盖矩阵</h2>
+            <p>确认每个页面、组件和重要状态都有对应 HTML frame 和生成图参考。</p>
+          </div>
+        </div>
+        <div class="matrix">
+          <table>
+            <thead>
+              <tr>
+                <th>PRD Surface / Component</th>
+                <th>HTML Frame</th>
+                <th>Generated Reference</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Settings / General</td><td><code>#settings [data-panel-view="general"]</code></td><td><code>settings-general-watchlist-ai.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Settings / Watchlist</td><td><code>#settings [data-panel-view="watchlist"]</code></td><td><code>settings-general-watchlist-ai.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Settings / AI Providers</td><td><code>#settings [data-panel-view="ai"]</code></td><td><code>settings-general-watchlist-ai.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Settings / Voice & Language</td><td><code>#settings [data-panel-view="voice"]</code></td><td><code>settings-voice-history-states.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Settings / History</td><td><code>#settings [data-panel-view="history"]</code></td><td><code>settings-voice-history-states.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Floating Orb / Quick Control / Catch Popover / Toast</td><td><code>#floating</code></td><td><code>floating-widget-states.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Design System / Asset Sheet / Component States</td><td><code>#components</code></td><td><code>design-system-board.png</code>, <code>asset-sheet.png</code></td><td>真实 DOM 已覆盖</td></tr>
+              <tr><td>Menu bar menu, permission, provider testing, key capture states</td><td><code>#components</code> and matrix rows</td><td><code>settings-voice-history-states.png</code></td><td>部分以组件状态表达</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="references">
+        <div class="section-head">
+          <div>
+            <h2>生成图视觉参考</h2>
+            <p>这些图用于锁定审美方向，不作为页面背景；HTML 设计源以上面的真实 DOM 为准。</p>
+          </div>
+        </div>
+        <div class="visual-canvas">
+          <div class="ref-grid">
+            <article class="ref-card"><h3>Design system board</h3><p>Tokens, shared components, states.</p><img src="design-system-board.png" alt="Design system board" /></article>
+            <article class="ref-card"><h3>Asset sheet</h3><p>Icon, avatar, app glyph, waveform assets.</p><img src="asset-sheet.png" alt="Asset sheet" /></article>
+            <article class="ref-card"><h3>Settings pages A</h3><p>General, Watchlist, AI Providers.</p><img src="settings-general-watchlist-ai.png" alt="Settings General Watchlist AI visual reference" /></article>
+            <article class="ref-card"><h3>Settings pages B</h3><p>Voice, History, system states.</p><img src="settings-voice-history-states.png" alt="Voice history states visual reference" /></article>
+            <article class="ref-card"><h3>Floating widget states</h3><p>Orb, quick menu, catch popover, toast.</p><img src="floating-widget-states.png" alt="Floating widget states visual reference" /></article>
+          </div>
+        </div>
       </section>
     </main>
+
+    <script>
+      const navItems = document.querySelectorAll(".nav-item");
+      const panels = document.querySelectorAll("[data-panel-view]");
+
+      navItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          const target = item.dataset.panel;
+          navItems.forEach((nav) => nav.classList.toggle("active", nav === item));
+          panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panelView === target));
+        });
+      });
+    </script>
   </body>
 </html>

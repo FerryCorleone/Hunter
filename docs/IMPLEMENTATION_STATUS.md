@@ -103,6 +103,7 @@
 - 2026-05-30 悬浮与时长任务体验补强：快捷菜单 6 秒无操作自动收起，窗口尺寸变化时保留 top-left 锚点避免收起后跳位；手动语音命令 ASR 改为自动/中英混合，不再跟随 AI 监督语言；`DurationParser` 新增“三十五分钟”“半小时”“一个半小时”等口语时长；时长任务自然结束后生成本轮完成事件，生命周期检查收敛到约 2 秒，并按抓包次数播放 0 次夸奖、1-3 次鼓励、4 次以上吐槽式总结。
 - 2026-05-30 设置与黑名单补强：快捷键录制补充 `flagsChanged`，支持右侧 `Option` 等单独修饰键，并为 modifier-only 全局快捷键增加按下/松开监听；权限区移除绿点/对勾重复状态，只保留状态标签和未授权操作按钮，增加自动刷新和“重新检查”；黑名单页新增本机 App 扫描、搜索和一键加入 App 黑名单；英文监督语言增加本地兜底，模型返回明显中文时改用英文短句，避免 English 模式仍播中文。
 - 2026-05-30 设计开发流程重走：按 `vibe-product-builder` / `prd` / `imagegen-to-html-design` 补全 `docs/PRD.md` 2A 页面结构契约，生成并保存 `docs/design-prototype/redesign-2026-05-30/` 三张参考图和 HTML/覆盖矩阵；SwiftUI 设置窗口改为 196px sidebar、760px 内容宽度、实体白色 settings row、低饱和蓝色选中态和统一 Provider/Watchlist/History 表面；Settings Window 设置为不随失焦隐藏，并保留窗口实例。
+- 2026-05-30 HTML 设计稿补齐：重新按 `imagegen-to-html-design` 质量门生成设计系统板、资产表、设置页全量参考图和悬浮组件状态板，并将 `docs/design-prototype/redesign-2026-05-30/index.html` 改为真实 DOM/CSS 可批阅原型；已用本地 HTTP 服务和 Chrome 渲染检查，生成图仅作为底部视觉参考，不再作为整页背景。
 
 ## 未完成 / 下一步
 

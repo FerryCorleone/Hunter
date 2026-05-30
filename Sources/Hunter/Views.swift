@@ -14,7 +14,6 @@ struct FloatingOverlayView: View {
     let onOrbDrag: (OrbDragPhase) -> Void
     let onLayoutChange: (Bool, Bool, Bool) -> Void
     @State private var isQuickMenuVisible = false
-    @State private var didDragOrb = false
     @State private var toastDismissTask: Task<Void, Never>?
     @State private var incidentDismissTask: Task<Void, Never>?
 
@@ -73,27 +72,23 @@ struct FloatingOverlayView: View {
         )
         .frame(width: 64, height: 64)
         .contentShape(Circle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    let distance = hypot(value.translation.width, value.translation.height)
-                    guard distance > 3 else { return }
-                    didDragOrb = true
-                    onOrbDrag(.changed(value.translation))
-                }
-                .onEnded { value in
-                    let distance = hypot(value.translation.width, value.translation.height)
-                    if didDragOrb || distance > 3 {
-                        onOrbDrag(.ended)
-                    } else {
-                        isQuickMenuVisible.toggle()
-                        if isQuickMenuVisible {
-                            state.toastMessage = nil
-                        }
+        .overlay {
+            OrbPointerHandle(
+                onClick: {
+                    isQuickMenuVisible.toggle()
+                    if isQuickMenuVisible {
+                        state.toastMessage = nil
                     }
-                    didDragOrb = false
+                },
+                onDragChanged: { translation in
+                    onOrbDrag(.changed(translation))
+                },
+                onDragEnded: {
+                    onOrbDrag(.ended)
                 }
-        )
+            )
+            .clipShape(Circle())
+        }
         .help(state.copy("打开快捷监督菜单，可拖动位置", "Open quick controls, drag to move"))
         .accessibilityLabel(state.copy("Hunter 悬浮小组件", "Hunter floating widget"))
     }
@@ -240,6 +235,65 @@ struct FloatingOverlayView: View {
             state.currentIncident = nil
             state.voiceInteractionStatus = nil
         }
+    }
+}
+
+private struct OrbPointerHandle: NSViewRepresentable {
+    var onClick: () -> Void
+    var onDragChanged: (CGSize) -> Void
+    var onDragEnded: () -> Void
+
+    func makeNSView(context: Context) -> OrbDragHandleView {
+        let view = OrbDragHandleView()
+        view.onClick = onClick
+        view.onDragChanged = onDragChanged
+        view.onDragEnded = onDragEnded
+        return view
+    }
+
+    func updateNSView(_ nsView: OrbDragHandleView, context: Context) {
+        nsView.onClick = onClick
+        nsView.onDragChanged = onDragChanged
+        nsView.onDragEnded = onDragEnded
+    }
+}
+
+private final class OrbDragHandleView: NSView {
+    var onClick: (() -> Void)?
+    var onDragChanged: ((CGSize) -> Void)?
+    var onDragEnded: (() -> Void)?
+
+    private var dragStart: NSPoint?
+    private var didDrag = false
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        dragStart = NSEvent.mouseLocation
+        didDrag = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let dragStart else { return }
+        let current = NSEvent.mouseLocation
+        let dx = current.x - dragStart.x
+        let dy = current.y - dragStart.y
+        if hypot(dx, dy) > 2 {
+            didDrag = true
+        }
+        onDragChanged?(CGSize(width: dx, height: -dy))
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if didDrag {
+            onDragEnded?()
+        } else {
+            onClick?()
+        }
+        dragStart = nil
+        didDrag = false
     }
 }
 
@@ -654,7 +708,7 @@ struct SettingsView: View {
             Divider()
             content
         }
-        .frame(minWidth: 940, minHeight: 680)
+        .frame(minWidth: 1040, minHeight: 680)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -748,7 +802,6 @@ struct GeneralPanel: View {
     @State private var permissionMessage = ""
     @State private var shortcutMessage = ""
     @State private var isCapturingShortcut = false
-    @State private var shortcutCaptureMonitor: Any?
 
     var body: some View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
@@ -889,7 +942,9 @@ struct GeneralPanel: View {
                             ShortcutCaptureBox(
                                 shortcut: state.replyShortcut,
                                 isCapturing: isCapturingShortcut,
-                                language: state.interfaceLanguage
+                                language: state.interfaceLanguage,
+                                onCapture: captureShortcut,
+                                onCancel: cancelShortcutCapture
                             ) {
                                 beginShortcutCapture()
                             }
@@ -928,7 +983,7 @@ struct GeneralPanel: View {
                     }
                 }
 
-                SettingCard(icon: "lock.shield", title: state.copy("权限", "Permissions"), subtitle: state.copy("语音、浏览器页面读取和系统提醒所需权限。", "Permissions for voice, browser URL reading, and alerts.")) {
+                SettingCard(icon: "lock.shield", title: state.copy("权限", "Permissions"), subtitle: state.copy("麦克风和浏览器读取影响主链路；通知和辅助功能是可选增强。", "Microphone and browser access power the core flow; notifications and accessibility are optional.")) {
                     VStack(alignment: .trailing, spacing: 10) {
                         PermissionRow(
                             title: state.copy("麦克风", "Microphone"),
@@ -950,7 +1005,8 @@ struct GeneralPanel: View {
                             title: state.copy("通知", "Notifications"),
                             state: state.permissions.notifications,
                             language: state.interfaceLanguage,
-                            actionTitle: state.copy("请求", "Request")
+                            isOptional: true,
+                            actionTitle: state.permissions.notifications == .notDetermined ? state.copy("请求", "Request") : state.copy("打开设置", "Open")
                         ) {
                             requestNotifications()
                         }
@@ -958,6 +1014,7 @@ struct GeneralPanel: View {
                             title: state.copy("辅助功能（可选）", "Accessibility (optional)"),
                             state: state.permissions.accessibility,
                             language: state.interfaceLanguage,
+                            isOptional: true,
                             actionTitle: state.copy("打开设置", "Open")
                         ) {
                             PermissionCenter().openAccessibilitySettings()
@@ -992,6 +1049,9 @@ struct GeneralPanel: View {
         }
         .onDisappear {
             stopShortcutCapture()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            state.refreshPermissions()
         }
     }
 
@@ -1044,31 +1104,30 @@ struct GeneralPanel: View {
     }
 
     private func beginShortcutCapture() {
-        stopShortcutCapture()
         isCapturingShortcut = true
         shortcutMessage = state.copy("按下新的对话快捷键，Esc 取消。", "Press the new talk shortcut. Esc cancels.")
-        shortcutCaptureMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.keyCode == 53 {
-                stopShortcutCapture()
-                shortcutMessage = ""
-                return nil
-            }
-
-            let shortcut = replyShortcut(from: event)
-            state.replyShortcut = shortcut
-            state.persist()
-            stopShortcutCapture()
-            shortcutMessage = state.copy("已设置为 \(shortcut.displayText)", "Set to \(shortcut.displayText)")
-            return nil
-        }
     }
 
     private func stopShortcutCapture() {
-        if let shortcutCaptureMonitor {
-            NSEvent.removeMonitor(shortcutCaptureMonitor)
-        }
-        shortcutCaptureMonitor = nil
         isCapturingShortcut = false
+    }
+
+    private func cancelShortcutCapture() {
+        stopShortcutCapture()
+        shortcutMessage = ""
+    }
+
+    private func captureShortcut(_ event: NSEvent) {
+        if event.keyCode == 53 {
+            cancelShortcutCapture()
+            return
+        }
+
+        let shortcut = replyShortcut(from: event)
+        state.replyShortcut = shortcut
+        state.persist()
+        stopShortcutCapture()
+        shortcutMessage = state.copy("已设置为 \(shortcut.displayText)", "Set to \(shortcut.displayText)")
     }
 
     private func resetReplyShortcut() {
@@ -1144,11 +1203,16 @@ struct GeneralPanel: View {
 
     private func requestNotifications() {
         Task {
-            let granted = await PermissionCenter().requestNotifications()
-            state.refreshPermissions()
-            permissionMessage = granted
-                ? state.copy("通知已允许", "Notifications allowed")
-                : state.copy("通知未允许", "Notifications not allowed")
+            if state.permissions.notifications == .notDetermined {
+                let granted = await PermissionCenter().requestNotifications()
+                state.refreshPermissions()
+                permissionMessage = granted
+                    ? state.copy("通知已允许", "Notifications allowed")
+                    : state.copy("通知未允许，可在系统设置里开启。", "Notifications are not allowed; enable them in System Settings.")
+            } else {
+                PermissionCenter().openNotificationSettings()
+                permissionMessage = state.copy("已打开通知设置。", "Opened notification settings.")
+            }
         }
     }
 
@@ -1555,7 +1619,7 @@ struct VoicePanel: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置语言、吐槽强度和云端 TTS 音色。", "Language, persona, intensity, and cloud TTS voice.")) {
+        PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("设置语言、吐槽强度、云端音色和克隆音色 ID。", "Language, persona, intensity, cloud voices, and cloned voice IDs.")) {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 12) {
                     labeledRow(state.copy("界面语言", "Interface")) {
@@ -1600,6 +1664,47 @@ struct VoicePanel: View {
                     labeledRow(state.copy("TTS 音色 ID", "TTS voice ID")) {
                         TextField(state.copy("例如 longanyang 或云端克隆音色 ID", "e.g. longanyang or a cloud cloned voice ID"), text: $state.providers.voice)
                             .textFieldStyle(.roundedBorder)
+                    }
+                }
+                .padding(16)
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(state.copy("音色克隆", "Voice clone"), systemImage: "waveform.badge.plus")
+                        .font(.system(size: 15, weight: .semibold))
+
+                    Text(state.copy(
+                        "当前版本只使用云端 TTS。完成云端克隆后，把 Provider 返回的授权音色 ID 填到上面的 TTS 音色 ID；上传/录制样本会在接入云端克隆 API 后开放。",
+                        "This build uses cloud TTS only. After cloud cloning, paste the authorized voice ID into the TTS voice ID field above. Upload and record flows will open after the cloud clone API is wired."
+                    ))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 10) {
+                        Button {
+                        } label: {
+                            Label(state.copy("上传样本", "Upload sample"), systemImage: "waveform")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(true)
+
+                        Button {
+                        } label: {
+                            Label(state.copy("录制样本", "Record sample"), systemImage: "mic")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(true)
+
+                        Spacer()
+
+                        Text(state.copy("云端克隆待接入", "Cloud clone pending"))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 9)
+                            .frame(height: 24)
+                            .background(Color.black.opacity(0.06), in: Capsule())
                     }
                 }
                 .padding(16)
@@ -1736,6 +1841,7 @@ struct PermissionRow: View {
     var title: String
     var state: PermissionState
     var language: AppLanguage
+    var isOptional = false
     var actionTitle: String
     var action: () -> Void
 
@@ -1753,19 +1859,19 @@ struct PermissionRow: View {
 
             Spacer(minLength: 8)
 
-            Text(state.label(language: language))
+            Text(state.label(language: language, optional: isOptional))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(state == .allowed ? Color.green : .secondary)
                 .padding(.horizontal, 9)
                 .frame(height: 24)
-                .background(indicatorColor.opacity(state == .unknown ? 0.08 : 0.12), in: Capsule())
+                .background(indicatorColor.opacity(state == .unknown || isOptional ? 0.08 : 0.12), in: Capsule())
 
             if state == .allowed {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.green)
                     .frame(width: 34)
-                    .accessibilityLabel(state.label(language: language))
+                    .accessibilityLabel(state.label(language: language, optional: isOptional))
             } else {
                 Button(actionTitle, action: action)
                     .buttonStyle(.bordered)
@@ -1780,7 +1886,7 @@ struct PermissionRow: View {
         switch state {
         case .allowed: .green
         case .unknown: .secondary
-        case .notDetermined, .denied: .orange
+        case .notDetermined, .denied: isOptional ? .secondary : .orange
         }
     }
 }
@@ -1799,16 +1905,16 @@ struct PanelContainer<Content: View>: View {
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: 790, alignment: .leading)
+            .frame(maxWidth: 820, alignment: .leading)
 
             ScrollView {
                 content
-                    .frame(maxWidth: 790, alignment: .topLeading)
+                    .frame(maxWidth: 820, alignment: .topLeading)
                     .padding(.bottom, 26)
             }
         }
         .padding(.top, 26)
-        .padding(.horizontal, 38)
+        .padding(.horizontal, 34)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
@@ -1835,11 +1941,11 @@ struct SettingCard<Trailing: View>: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: 255, alignment: .leading)
+            .frame(width: 250, alignment: .leading)
 
             Spacer()
             trailing
-                .frame(maxWidth: 390, alignment: .trailing)
+                .frame(maxWidth: 410, alignment: .trailing)
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
@@ -1917,6 +2023,7 @@ struct ProviderEditor: View {
     var localInstallPath: Binding<String?>?
     var language: AppLanguage
     @State private var apiKey = ""
+    @State private var hasSavedAPIKey = false
     @State private var saveMessage = ""
     @State private var installMessage = ""
     @State private var isInstalling = false
@@ -1988,9 +2095,16 @@ struct ProviderEditor: View {
 
                     providerField("API Key") {
                         HStack(spacing: 10) {
-                            SecureField(copy("保存到本机密钥存储", "Saved to local secret storage"), text: $apiKey)
+                            SecureField(apiKeyPlaceholder, text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
-                            Button(copy("保存", "Save")) {
+                            if hasSavedAPIKey {
+                                Label(copy("已保存", "Saved"), systemImage: "lock.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .labelStyle(.titleAndIcon)
+                                    .fixedSize()
+                            }
+                            Button(hasSavedAPIKey ? copy("更新", "Update") : copy("保存", "Save")) {
                                 saveAPIKey()
                             }
                             .buttonStyle(.borderedProminent)
@@ -2010,6 +2124,15 @@ struct ProviderEditor: View {
         .padding(16)
         .background(role == .search ? Color.clear : Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(role == .search ? Color.clear : Color.black.opacity(0.07)))
+        .onAppear {
+            refreshSavedKeyState()
+        }
+        .onChange(of: provider.apiKeyEnvironmentName) {
+            refreshSavedKeyState()
+        }
+        .onChange(of: provider.providerName) {
+            refreshSavedKeyState()
+        }
     }
 
     private func saveAPIKey() {
@@ -2021,10 +2144,22 @@ struct ProviderEditor: View {
             }
             try SecretStore().saveAPIKey(apiKey, environmentName: storageName)
             apiKey = ""
-            saveMessage = copy("已保存到本机密钥存储", "Saved to local secret storage")
+            hasSavedAPIKey = true
+            saveMessage = copy("已保存，本机运行会直接读取。", "Saved. Hunter will use it automatically.")
         } catch {
             saveMessage = copy("密钥保存失败：\(error.localizedDescription)", "Secret save failed: \(error.localizedDescription)")
         }
+    }
+
+    private var apiKeyPlaceholder: String {
+        hasSavedAPIKey ? "••••••••••" : copy("输入 API Key", "Enter API Key")
+    }
+
+    private func refreshSavedKeyState() {
+        let name = provider.apiKeyEnvironmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? role.apiKeyName(for: provider.providerName)
+            : provider.apiKeyEnvironmentName
+        hasSavedAPIKey = SecretStore().apiKey(environmentName: name) != nil
     }
 
     @ViewBuilder
@@ -2166,6 +2301,8 @@ struct ShortcutCaptureBox: View {
     var shortcut: ReplyShortcut
     var isCapturing: Bool
     var language: AppLanguage
+    var onCapture: (NSEvent) -> Void
+    var onCancel: () -> Void
     var action: () -> Void
 
     var body: some View {
@@ -2199,12 +2336,68 @@ struct ShortcutCaptureBox: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
+        .background {
+            ShortcutKeyCaptureHost(
+                isActive: isCapturing,
+                onCapture: onCapture,
+                onCancel: onCancel
+            )
+        }
         .buttonStyle(.plain)
         .help(copy("点击后直接按新的对话快捷键", "Click, then press the new talk shortcut"))
     }
 
     private func copy(_ zhHans: String, _ english: String) -> String {
         language == .english ? english : zhHans
+    }
+}
+
+private struct ShortcutKeyCaptureHost: NSViewRepresentable {
+    var isActive: Bool
+    var onCapture: (NSEvent) -> Void
+    var onCancel: () -> Void
+
+    func makeNSView(context: Context) -> ShortcutKeyCaptureView {
+        let view = ShortcutKeyCaptureView()
+        view.onCapture = onCapture
+        view.onCancel = onCancel
+        return view
+    }
+
+    func updateNSView(_ nsView: ShortcutKeyCaptureView, context: Context) {
+        nsView.onCapture = onCapture
+        nsView.onCancel = onCancel
+        nsView.isActive = isActive
+        guard isActive else { return }
+        DispatchQueue.main.async {
+            nsView.window?.makeFirstResponder(nsView)
+        }
+    }
+}
+
+private final class ShortcutKeyCaptureView: NSView {
+    var onCapture: ((NSEvent) -> Void)?
+    var onCancel: (() -> Void)?
+    var isActive = false
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    override func keyDown(with event: NSEvent) {
+        guard isActive else {
+            super.keyDown(with: event)
+            return
+        }
+        if event.keyCode == 53 {
+            onCancel?()
+        } else {
+            onCapture?(event)
+        }
     }
 }
 

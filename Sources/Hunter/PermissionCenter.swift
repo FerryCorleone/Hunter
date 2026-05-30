@@ -10,8 +10,11 @@ enum PermissionState: String, Codable, Equatable {
     case denied
     case unknown
 
-    func label(language: AppLanguage) -> String {
+    func label(language: AppLanguage, optional: Bool = false) -> String {
         let english = language == .english
+        if optional, self != .allowed {
+            return english ? "Optional" : "可选"
+        }
         return switch self {
         case .allowed: english ? "Allowed" : "已允许"
         case .notDetermined: english ? "Not asked" : "未请求"

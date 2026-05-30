@@ -1,4 +1,5 @@
 import Carbon
+import AppKit
 import Combine
 import Foundation
 
@@ -8,6 +9,8 @@ final class HotkeyController {
     private let voiceCommands: VoiceCommandController
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
+    private var localFlagsMonitor: Any?
+    private var globalFlagsMonitor: Any?
     private var cancellables: Set<AnyCancellable> = []
     private var isHoldingShortcut = false
     private let signature = OSType(UInt32(ascii: "HUNT"))
@@ -73,6 +76,11 @@ final class HotkeyController {
         unregisterCurrentShortcut()
         let hotKeyID = EventHotKeyID(signature: signature, id: 1)
         let shortcut = state.replyShortcut
+        if shortcut.isModifierOnly {
+            registerModifierOnlyShortcut(shortcut)
+            return
+        }
+
         let status = RegisterEventHotKey(
             UInt32(shortcut.keyCode),
             shortcut.carbonModifierFlags,
@@ -101,7 +109,34 @@ final class HotkeyController {
             UnregisterEventHotKey(hotKeyRef)
         }
         hotKeyRef = nil
+        if let localFlagsMonitor {
+            NSEvent.removeMonitor(localFlagsMonitor)
+        }
+        if let globalFlagsMonitor {
+            NSEvent.removeMonitor(globalFlagsMonitor)
+        }
+        localFlagsMonitor = nil
+        globalFlagsMonitor = nil
         isHoldingShortcut = false
+    }
+
+    private func registerModifierOnlyShortcut(_ shortcut: ReplyShortcut) {
+        localFlagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            Task { @MainActor in
+                self?.handleModifierOnlyEvent(event)
+            }
+            return event
+        }
+        globalFlagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            Task { @MainActor in
+                self?.handleModifierOnlyEvent(event)
+            }
+        }
+        ASRDiagnostics.record("HOTKEY_REGISTERED_MODIFIER_ONLY shortcut=\(shortcut.displayText)")
+        state.permissionStatus = state.copy(
+            "\(shortcut.displayText) 单键快捷键已启用",
+            "\(shortcut.displayText) single-key hotkey active"
+        )
     }
 
     private func handle(eventKind: UInt32) {
@@ -116,6 +151,27 @@ final class HotkeyController {
             voiceCommands.finishManualReply()
         default:
             break
+        }
+    }
+
+    private func handleModifierOnlyEvent(_ event: NSEvent) {
+        let shortcut = state.replyShortcut
+        guard shortcut.isModifierOnly,
+              event.keyCode == shortcut.keyCode,
+              let modifier = shortcut.modifierOnlyKind?.eventFlag
+        else {
+            return
+        }
+
+        let isPressed = event.modifierFlags.contains(modifier)
+        if isPressed, !isHoldingShortcut {
+            ASRDiagnostics.record("HOTKEY_MODIFIER_ONLY_PRESSED shortcut=\(shortcut.displayText)")
+            isHoldingShortcut = true
+            voiceCommands.beginManualReply()
+        } else if !isPressed, isHoldingShortcut {
+            ASRDiagnostics.record("HOTKEY_MODIFIER_ONLY_RELEASED shortcut=\(shortcut.displayText)")
+            isHoldingShortcut = false
+            voiceCommands.finishManualReply()
         }
     }
 }
@@ -135,6 +191,15 @@ private extension ReplyShortcutModifier {
         case .control: UInt32(controlKey)
         case .option: UInt32(optionKey)
         case .shift: UInt32(shiftKey)
+        }
+    }
+
+    var eventFlag: NSEvent.ModifierFlags {
+        switch self {
+        case .command: .command
+        case .control: .control
+        case .option: .option
+        case .shift: .shift
         }
     }
 }

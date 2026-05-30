@@ -36,7 +36,7 @@ struct PermissionCenter {
     func snapshot() async -> PermissionSnapshot {
         let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
         return PermissionSnapshot(
-            accessibility: AXIsProcessTrusted() ? .allowed : .denied,
+            accessibility: accessibilityState,
             microphone: microphoneState,
             notifications: notificationState(from: notificationSettings.authorizationStatus),
             browserAutomation: browserAutomationState()
@@ -84,6 +84,13 @@ struct PermissionCenter {
         case .denied, .restricted: .denied
         @unknown default: .unknown
         }
+    }
+
+    private var accessibilityState: PermissionState {
+        let trusted = AXIsProcessTrustedWithOptions([
+            "AXTrustedCheckOptionPrompt": false
+        ] as CFDictionary)
+        return trusted ? .allowed : .denied
     }
 
     private func notificationState(from status: UNAuthorizationStatus) -> PermissionState {

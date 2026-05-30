@@ -170,6 +170,32 @@ struct DurationParserTests {
         let singleKey = ReplyShortcut(keyCode: 36, keyName: "Return", modifiers: [])
         #expect(singleKey.parts == ["Return"])
         #expect(singleKey.displayText == "Return")
+        let rightOption = ReplyShortcut(keyCode: 61, keyName: "Right Option", modifiers: [])
+        #expect(rightOption.isModifierOnly)
+        #expect(rightOption.modifierOnlyKind == .option)
+        #expect(rightOption.displayText == "Right Option")
+    }
+
+    @Test func installedAppScannerReadsBundleMetadata() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("hunter-app-scan-\(UUID().uuidString)", isDirectory: true)
+        let contents = root.appendingPathComponent("Arc.app/Contents", isDirectory: true)
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        let plist: [String: String] = [
+            "CFBundleDisplayName": "Arc",
+            "CFBundleIdentifier": "company.thebrowser.Browser"
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        try data.write(to: contents.appendingPathComponent("Info.plist"))
+
+        let apps = InstalledAppScanner(roots: [root]).scan()
+        #expect(apps.count == 1)
+        #expect(apps.first?.name == "Arc")
+        #expect(apps.first?.matchPattern == "company.thebrowser.Browser")
     }
 
     @Test func providerSettingsDecodeMigratesRetiredVoiceToCloudDefault() throws {
@@ -342,6 +368,16 @@ struct DurationParserTests {
         )
 
         #expect(sanitized == "Back to work.")
+    }
+
+    @Test func roastPolicyEnforcesEnglishOutputFallback() {
+        let enforced = RoastPolicy.enforceOutputLanguage(
+            "又他妈看视频？还干不干活。",
+            languageCode: "en",
+            fallback: "Video again? Back to work."
+        )
+        #expect(enforced == "Video again? Back to work.")
+        #expect(RoastPolicy.enforceOutputLanguage("YouTube again? Back to work.", languageCode: "en", fallback: "x") == "YouTube again? Back to work.")
     }
 
     @Test func visibleLabelsFollowInterfaceLanguage() {

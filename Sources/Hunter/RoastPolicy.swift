@@ -41,6 +41,13 @@ enum RoastPolicy {
         return trimmed.isEmpty ? fallback : trimmed
     }
 
+    static func enforceOutputLanguage(_ text: String, languageCode: String, fallback: String) -> String {
+        guard languageCode == "en", containsCJK(text) else {
+            return text
+        }
+        return fallback
+    }
+
     static func parsedBannedTerms(from text: String) -> [String] {
         text.split { character in
             character == ","
@@ -112,7 +119,7 @@ enum RoastPolicy {
         return cappedWords(trimmed, maxWords: 18)
     }
 
-    private static func containsCJK(_ text: String) -> Bool {
+    static func containsCJK(_ text: String) -> Bool {
         text.unicodeScalars.contains { scalar in
             (0x4E00...0x9FFF).contains(scalar.value)
                 || (0x3400...0x4DBF).contains(scalar.value)

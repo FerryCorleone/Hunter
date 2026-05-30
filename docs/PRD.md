@@ -88,6 +88,7 @@ As a user, I want to define websites and apps that count as slacking so that Hun
 Acceptance Criteria:
 
 - 支持按域名、URL 关键词、App 名称配置。
+- App 黑名单支持读取本机已安装应用列表，用户可以搜索 App 名称或 Bundle ID 并一键加入黑名单。
 - 支持快速添加常见平台预设。
 - 支持每条规则启用/停用。
 - 命中日志能展示具体命中的规则。
@@ -117,7 +118,7 @@ Acceptance Criteria:
 
 - 用户可通过快捷键或界面按钮进入录音。
 - 用户按住对话快捷键时，悬浮球外侧出现绿色呼吸圆环，明确反馈正在收音。
-- 默认对话快捷键为 `Option + Space`，用户可以在设置页点击快捷键输入框后直接按下新的组合键或单键完成录制；抓包卡片按钮展示“按住 {当前快捷键} 对话 / Hold {shortcut} to talk”，并按“按下开始录音、松开发送”执行。
+- 默认对话快捷键为 `Option + Space`，用户可以在设置页点击快捷键输入框后直接按下新的组合键或单键完成录制；单独的修饰键也要支持，例如右侧 `Option`；抓包卡片按钮展示“按住 {当前快捷键} 对话 / Hold {shortcut} to talk”，并按“按下开始录音、松开发送”执行。
 - ASR 返回后，界面展示用户转写文本。
 - LLM 根据用户狡辩内容继续回应。
 - TTS 播报回应，且日志保存这一轮对话。
@@ -180,7 +181,7 @@ Acceptance Criteria:
 - UI 支持 Simplified Chinese 和 English。
 - AI 监督语言可选择：跟随界面、中文、English。
 - ASR 语言提示由 provider/local adapter 默认处理；后续高级模式再展示自动、中文、English、中英混合。
-- LLM prompt 必须显式传入目标输出语言。
+- LLM prompt 必须显式传入目标输出语言；如果模型仍返回明显错误语言，Hunter 需要用目标语言兜底短句，避免用户把监督语言改成 English 后仍听到中文抓包。
 - TTS 音色以云端 Provider 的 voice id 为准，默认 `longanyang`。
 - MVP 不提供本地声音克隆入口；云端克隆/音色设计进入后必须要求用户确认授权，且不复刻未授权第三方声音。
 

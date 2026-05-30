@@ -1001,6 +1001,21 @@ struct GeneralPanel: View {
 
                 SettingCard(icon: "lock.shield", title: state.copy("权限", "Permissions"), subtitle: state.copy("麦克风和浏览器读取影响主链路；通知和辅助功能是可选增强。", "Microphone and browser access power the core flow; notifications and accessibility are optional.")) {
                     VStack(alignment: .trailing, spacing: 10) {
+                        HStack {
+                            Text(state.copy("状态会自动刷新；设置后也可以手动重新检查。", "Status refreshes automatically; you can also re-check manually."))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button {
+                                refreshPermissionsNow()
+                            } label: {
+                                Label(state.copy("重新检查", "Re-check"), systemImage: "arrow.clockwise")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        .frame(maxWidth: 390)
+
                         PermissionRow(
                             title: state.copy("麦克风", "Microphone"),
                             state: state.permissions.microphone,
@@ -1033,7 +1048,7 @@ struct GeneralPanel: View {
                             isOptional: true,
                             actionTitle: state.copy("打开设置", "Open")
                         ) {
-                            PermissionCenter().openAccessibilitySettings()
+                            requestAccessibility()
                         }
                         if !permissionMessage.isEmpty {
                             Text(permissionMessage)
@@ -1067,6 +1082,9 @@ struct GeneralPanel: View {
             stopShortcutCapture()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            state.refreshPermissions()
+        }
+        .onReceive(Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()) { _ in
             state.refreshPermissions()
         }
     }
@@ -1153,6 +1171,16 @@ struct GeneralPanel: View {
     }
 
     private func replyShortcut(from event: NSEvent) -> ReplyShortcut {
+        if let modifierKeyName = Self.modifierKeyName(for: event.keyCode),
+           let modifier = Self.modifierKind(for: event.keyCode),
+           event.modifierFlags.contains(modifier.eventFlag) {
+            return ReplyShortcut(
+                keyCode: Int64(event.keyCode),
+                keyName: modifierKeyName,
+                modifiers: []
+            )
+        }
+
         let modifiers = ReplyShortcutModifier.from(event.modifierFlags)
         return ReplyShortcut(
             keyCode: Int64(event.keyCode),
@@ -1168,6 +1196,14 @@ struct GeneralPanel: View {
         case 49: return "Space"
         case 51: return "Delete"
         case 53: return "Esc"
+        case 54: return "Right Command"
+        case 55: return "Command"
+        case 56: return "Shift"
+        case 58: return "Option"
+        case 59: return "Control"
+        case 60: return "Right Shift"
+        case 61: return "Right Option"
+        case 62: return "Right Control"
         case 96: return "F5"
         case 97: return "F6"
         case 98: return "F7"
@@ -1195,6 +1231,30 @@ struct GeneralPanel: View {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .uppercased()
             return text?.isEmpty == false ? text! : "Key \(event.keyCode)"
+        }
+    }
+
+    private static func modifierKeyName(for keyCode: UInt16) -> String? {
+        switch keyCode {
+        case 54: "Right Command"
+        case 55: "Command"
+        case 56: "Shift"
+        case 58: "Option"
+        case 59: "Control"
+        case 60: "Right Shift"
+        case 61: "Right Option"
+        case 62: "Right Control"
+        default: nil
+        }
+    }
+
+    private static func modifierKind(for keyCode: UInt16) -> ReplyShortcutModifier? {
+        switch keyCode {
+        case 54, 55: .command
+        case 56, 60: .shift
+        case 58, 61: .option
+        case 59, 62: .control
+        default: nil
         }
     }
 
@@ -1254,6 +1314,30 @@ struct GeneralPanel: View {
             : state.copy("请在弹窗中允许 Hunter 读取当前浏览器标签页", "Allow Hunter to read the current browser tab in the system prompt")
     }
 
+    private func requestAccessibility() {
+        PermissionCenter().openAccessibilitySettings()
+        permissionMessage = state.copy(
+            "已打开辅助功能设置；请确认当前 Hunter 已开启，然后点重新检查。",
+            "Opened Accessibility settings; enable the current Hunter app, then re-check."
+        )
+        schedulePermissionRefreshes()
+    }
+
+    private func refreshPermissionsNow() {
+        state.refreshPermissions()
+        permissionMessage = state.copy("已重新检查权限状态。", "Permission status re-checked.")
+    }
+
+    private func schedulePermissionRefreshes() {
+        state.refreshPermissions()
+        Task { @MainActor in
+            for delay in [1.0, 2.5, 5.0] {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                state.refreshPermissions()
+            }
+        }
+    }
+
     private func compactSwitch(title: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 7) {
             Text(title)
@@ -1286,6 +1370,15 @@ private extension ReplyShortcutModifier {
         }
         return ordered(modifiers)
     }
+
+    var eventFlag: NSEvent.ModifierFlags {
+        switch self {
+        case .command: .command
+        case .control: .control
+        case .option: .option
+        case .shift: .shift
+        }
+    }
 }
 
 struct WatchlistPanel: View {
@@ -1293,6 +1386,10 @@ struct WatchlistPanel: View {
     @State private var newName = ""
     @State private var newPattern = ""
     @State private var newKind: RuleKind = .website
+    @State private var installedApps: [InstalledApplication] = []
+    @State private var appSearch = ""
+    @State private var isLoadingInstalledApps = false
+    @State private var appListMessage = ""
 
     var body: some View {
         PanelContainer(title: state.copy("黑名单", "Watchlist"), subtitle: state.copy("命中这些网站或 App 时触发悬浮监督。", "Sites and apps that trigger the floating supervisor.")) {
@@ -1356,6 +1453,8 @@ struct WatchlistPanel: View {
                 .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
 
+                installedAppsCard
+
                 ForEach($state.rules) { $rule in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -1386,6 +1485,77 @@ struct WatchlistPanel: View {
             .onChange(of: state.rules) {
                 state.persist()
             }
+            .task {
+                await loadInstalledAppsIfNeeded()
+            }
+        }
+    }
+
+    private var installedAppsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(state.copy("本机 App", "Installed apps"))
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(state.copy("从本机应用列表里勾选要监督的 App。", "Pick apps from this Mac to add to the watchlist."))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button {
+                    Task { await loadInstalledApps(force: true) }
+                } label: {
+                    Label(state.copy("刷新", "Refresh"), systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isLoadingInstalledApps)
+            }
+
+            TextField(state.copy("搜索 App 名称或 Bundle ID", "Search app name or bundle ID"), text: $appSearch)
+                .textFieldStyle(.roundedBorder)
+
+            if isLoadingInstalledApps {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(state.copy("正在读取本机应用...", "Loading installed apps..."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else if filteredInstalledApps.isEmpty {
+                Text(appListMessage.isEmpty ? state.copy("没有匹配的 App", "No matching apps") : appListMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(Array(filteredInstalledApps.prefix(36))) { app in
+                        InstalledAppPickerRow(
+                            app: app,
+                            isAdded: installedAppExists(app),
+                            language: state.interfaceLanguage
+                        ) {
+                            addInstalledApp(app)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
+    }
+
+    private var filteredInstalledApps: [InstalledApplication] {
+        let query = appSearch.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else {
+            return installedApps
+        }
+        return installedApps.filter { app in
+            app.name.lowercased().contains(query)
+                || (app.bundleIdentifier?.lowercased().contains(query) ?? false)
         }
     }
 
@@ -1415,10 +1585,44 @@ struct WatchlistPanel: View {
         state.persist()
     }
 
+    private func addInstalledApp(_ app: InstalledApplication) {
+        guard !installedAppExists(app) else { return }
+        state.rules.append(BlacklistRule(name: app.name, kind: .app, pattern: app.matchPattern))
+        state.persist()
+    }
+
+    private func installedAppExists(_ app: InstalledApplication) -> Bool {
+        state.rules.contains {
+            $0.kind == .app && (
+                $0.pattern.caseInsensitiveCompare(app.matchPattern) == .orderedSame
+                    || $0.name.caseInsensitiveCompare(app.name) == .orderedSame
+            )
+        }
+    }
+
     private func ruleExists(_ preset: BlacklistRule) -> Bool {
         state.rules.contains {
             $0.kind == preset.kind && $0.pattern.caseInsensitiveCompare(preset.pattern) == .orderedSame
         }
+    }
+
+    private func loadInstalledAppsIfNeeded() async {
+        guard installedApps.isEmpty else { return }
+        await loadInstalledApps(force: false)
+    }
+
+    private func loadInstalledApps(force: Bool) async {
+        guard force || installedApps.isEmpty else { return }
+        isLoadingInstalledApps = true
+        appListMessage = ""
+        let apps = await Task.detached(priority: .utility) {
+            InstalledAppScanner().scan()
+        }.value
+        installedApps = apps
+        appListMessage = apps.isEmpty
+            ? state.copy("没有读取到本机 App", "No installed apps were found")
+            : state.copy("已读取 \(apps.count) 个 App", "Loaded \(apps.count) apps")
+        isLoadingInstalledApps = false
     }
 
     private func watchlistField<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -1429,6 +1633,51 @@ struct WatchlistPanel: View {
             content()
                 .frame(maxWidth: .infinity)
         }
+    }
+}
+
+private struct InstalledAppPickerRow: View {
+    var app: InstalledApplication
+    var isAdded: Bool
+    var language: AppLanguage
+    var add: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
+                .resizable()
+                .frame(width: 28, height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.name)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                Text(app.bundleIdentifier ?? app.path)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer(minLength: 8)
+
+            Button(isAdded ? copy("已添加", "Added") : copy("添加", "Add")) {
+                add()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(isAdded ? .secondary : .accentColor)
+            .disabled(isAdded)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 44)
+        .background(Color.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.black.opacity(0.05)))
+    }
+
+    private func copy(_ zhHans: String, _ english: String) -> String {
+        language == .english ? english : zhHans
     }
 }
 
@@ -1544,8 +1793,9 @@ struct ProvidersPanel: View {
         state.providerStatus = state.copy("正在测试 TTS...", "Testing TTS...")
         Task {
             do {
+                let sampleText = state.targetLanguageCode() == "en" ? "Voice test." : "测试"
                 let audio = try await DashScopeClient().synthesizeSpeech(
-                    text: state.copy("测试", "test"),
+                    text: sampleText,
                     settings: state.providers,
                     languageCode: state.targetLanguageCode()
                 )
@@ -1862,11 +2112,7 @@ struct PermissionRow: View {
     var action: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(indicatorColor)
-                .frame(width: 8, height: 8)
-
+        HStack(spacing: 12) {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
@@ -1877,28 +2123,25 @@ struct PermissionRow: View {
 
             Text(state.label(language: language, optional: isOptional))
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(state == .allowed ? Color.green : .secondary)
+                .foregroundStyle(statusColor)
                 .padding(.horizontal, 9)
                 .frame(height: 24)
-                .background(indicatorColor.opacity(state == .unknown || isOptional ? 0.08 : 0.12), in: Capsule())
+                .background(statusColor.opacity(state == .allowed ? 0.12 : 0.08), in: Capsule())
 
-            if state == .allowed {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.green)
-                    .frame(width: 34)
-                    .accessibilityLabel(state.label(language: language, optional: isOptional))
-            } else {
+            if state != .allowed {
                 Button(actionTitle, action: action)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .frame(minWidth: 96)
+            } else {
+                Spacer()
+                    .frame(width: 96)
             }
         }
         .frame(maxWidth: 390, minHeight: 32, alignment: .trailing)
     }
 
-    private var indicatorColor: Color {
+    private var statusColor: Color {
         switch state {
         case .allowed: .green
         case .unknown: .secondary
@@ -2394,10 +2637,22 @@ private struct ShortcutKeyCaptureHost: NSViewRepresentable {
 private final class ShortcutKeyCaptureView: NSView {
     var onCapture: ((NSEvent) -> Void)?
     var onCancel: (() -> Void)?
-    var isActive = false
+    var isActive = false {
+        didSet {
+            updateMonitor()
+        }
+    }
+    private var monitor: Any?
 
     override var acceptsFirstResponder: Bool {
         true
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil {
+            removeMonitor()
+        }
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
@@ -2413,6 +2668,62 @@ private final class ShortcutKeyCaptureView: NSView {
             onCancel?()
         } else {
             onCapture?(event)
+        }
+    }
+
+    override func flagsChanged(with event: NSEvent) {
+        guard isActive else {
+            super.flagsChanged(with: event)
+            return
+        }
+        if Self.isModifierPress(event) {
+            onCapture?(event)
+        } else {
+            super.flagsChanged(with: event)
+        }
+    }
+
+    private func updateMonitor() {
+        removeMonitor()
+        guard isActive else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
+            guard let self, self.isActive else { return event }
+            switch event.type {
+            case .keyDown:
+                if event.keyCode == 53 {
+                    self.onCancel?()
+                } else {
+                    self.onCapture?(event)
+                }
+                return nil
+            case .flagsChanged where Self.isModifierPress(event):
+                self.onCapture?(event)
+                return nil
+            default:
+                return event
+            }
+        }
+    }
+
+    private func removeMonitor() {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        monitor = nil
+    }
+
+    private static func isModifierPress(_ event: NSEvent) -> Bool {
+        switch event.keyCode {
+        case 54, 55:
+            event.modifierFlags.contains(.command)
+        case 56, 60:
+            event.modifierFlags.contains(.shift)
+        case 58, 61:
+            event.modifierFlags.contains(.option)
+        case 59, 62:
+            event.modifierFlags.contains(.control)
+        default:
+            false
         }
     }
 }

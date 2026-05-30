@@ -389,6 +389,20 @@ struct ReplyShortcut: Codable, Equatable {
         parts.joined(separator: " + ")
     }
 
+    var isModifierOnly: Bool {
+        modifiers.isEmpty && modifierOnlyKind != nil
+    }
+
+    var modifierOnlyKind: ReplyShortcutModifier? {
+        switch keyCode {
+        case 55, 54: .command
+        case 59, 62: .control
+        case 58, 61: .option
+        case 56, 60: .shift
+        default: nil
+        }
+    }
+
     init(keyCode: Int64, keyName: String, modifiers: [ReplyShortcutModifier]) {
         self.keyCode = keyCode
         self.keyName = keyName

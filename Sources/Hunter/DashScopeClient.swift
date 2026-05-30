@@ -66,11 +66,15 @@ struct DashScopeClient {
         guard let content = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty else {
             throw ProviderError.invalidResponse
         }
-        return RoastPolicy.sanitize(
+        let fallback = languageCode == "en"
+            ? "\(context.displayTarget) again? Get back to work."
+            : "赶紧干活。"
+        let sanitized = RoastPolicy.sanitize(
             content,
             bannedTerms: bannedTerms,
-            fallback: languageCode == "en" ? "Back to work." : "赶紧干活。"
+            fallback: fallback
         )
+        return RoastPolicy.enforceOutputLanguage(sanitized, languageCode: languageCode, fallback: fallback)
     }
 
     func generateReply(
@@ -140,11 +144,12 @@ struct DashScopeClient {
         guard let content = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty else {
             throw ProviderError.invalidResponse
         }
-        return RoastPolicy.sanitize(
+        let sanitized = RoastPolicy.sanitize(
             content,
             bannedTerms: bannedTerms,
             fallback: fallback
         )
+        return RoastPolicy.enforceOutputLanguage(sanitized, languageCode: languageCode, fallback: fallback)
     }
 
     func synthesizeSpeech(text: String, settings: ProviderSettings, languageCode: String) async throws -> Data {

@@ -37,6 +37,9 @@ final class SettingsWindowController {
             newWindow.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             newWindow.titlebarAppearsTransparent = false
             newWindow.toolbarStyle = .unified
+            newWindow.isReleasedWhenClosed = false
+            newWindow.hidesOnDeactivate = false
+            newWindow.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
             newWindow.center()
             window = newWindow
         }

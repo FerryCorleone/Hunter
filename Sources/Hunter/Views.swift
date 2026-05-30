@@ -2,6 +2,20 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum HunterUI {
+    static let background = Color(red: 0.956, green: 0.956, blue: 0.969)
+    static let sidebar = Color(red: 0.975, green: 0.976, blue: 0.982)
+    static let surface = Color.white
+    static let surfaceSoft = Color(red: 0.985, green: 0.986, blue: 0.991)
+    static let line = Color.black.opacity(0.085)
+    static let lineSoft = Color.black.opacity(0.055)
+    static let text = Color(red: 0.114, green: 0.114, blue: 0.122)
+    static let secondaryText = Color(red: 0.431, green: 0.431, blue: 0.451)
+    static let accent = Color(red: 0.0, green: 0.478, blue: 1.0)
+    static let danger = Color(red: 1.0, green: 0.231, blue: 0.188)
+    static let success = Color(red: 0.204, green: 0.78, blue: 0.349)
+}
+
 enum OrbDragPhase {
     case changed(CGSize)
     case ended
@@ -725,42 +739,53 @@ struct SettingsView: View {
             content
         }
         .frame(minWidth: 1040, minHeight: 680)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(HunterUI.background)
     }
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Hunter")
-                    .font(.system(size: 22, weight: .semibold))
-                Text(state.copy("AI 桌面监工", "AI desktop supervisor"))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                FloatingAvatarPreview(avatarPath: state.floatingAvatarPath)
+                    .frame(width: 42, height: 42)
+                    .scaleEffect(0.86)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hunter")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(HunterUI.text)
+                    Text(state.copy("AI 桌面监工", "AI Supervisor"))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(HunterUI.secondaryText)
+                }
             }
             .padding(.horizontal, 10)
-            .padding(.bottom, 6)
+            .padding(.bottom, 12)
 
-            ForEach(Panel.allCases) { panel in
-                Button {
-                    selectedPanel = panel
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: panel.icon)
-                            .font(.system(size: 15, weight: .medium))
-                            .frame(width: 18)
-                        Text(panel.title(language: state.interfaceLanguage))
-                            .font(.system(size: 14, weight: .medium))
-                        Spacer()
+            VStack(spacing: 4) {
+                ForEach(Panel.allCases) { panel in
+                    Button {
+                        selectedPanel = panel
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: panel.icon)
+                                .font(.system(size: 15, weight: .semibold))
+                                .frame(width: 20)
+                            Text(panel.title(language: state.interfaceLanguage))
+                                .font(.system(size: 14, weight: selectedPanel == panel ? .semibold : .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(selectedPanel == panel ? HunterUI.accent : HunterUI.text)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .frame(height: 38)
+                        .background(
+                            selectedPanel == panel ? HunterUI.accent.opacity(0.12) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                     }
-                    .foregroundStyle(selectedPanel == panel ? Color.accentColor : Color.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .frame(height: 38)
-                    .background(selectedPanel == panel ? Color.accentColor.opacity(0.13) : Color.clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.plain)
                 }
-                .frame(maxWidth: .infinity)
-                .buttonStyle(.plain)
             }
 
             Spacer()
@@ -770,7 +795,7 @@ struct SettingsView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .tint(state.isMonitoring ? .orange : .green)
+            .tint(state.isMonitoring ? .orange : HunterUI.accent)
             .frame(maxWidth: .infinity)
 
             Button {
@@ -781,11 +806,11 @@ struct SettingsView: View {
             }
             .buttonStyle(.bordered)
         }
-        .padding(.top, 22)
-        .padding(.horizontal, 14)
+        .padding(.top, 24)
+        .padding(.horizontal, 12)
         .padding(.bottom, 18)
-        .frame(width: 220)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.86))
+        .frame(width: 196)
+        .background(HunterUI.sidebar)
     }
 
     @ViewBuilder
@@ -821,7 +846,7 @@ struct GeneralPanel: View {
 
     var body: some View {
         PanelContainer(title: state.copy("通用", "General"), subtitle: state.copy("设置监督、时段和桌面小组件。", "Basic settings for your focus sessions.")) {
-            VStack(spacing: 16) {
+            VStack(spacing: 10) {
                 SettingCard(icon: "play.circle", title: state.copy("监督状态", "Monitoring"), subtitle: state.copy("开启后按工作时段和黑名单自动抓包。", "Catch blacklisted apps and sites while monitoring is on.")) {
                     Toggle(state.isMonitoring ? state.copy("已开启", "On") : state.copy("未开启", "Off"), isOn: $state.isMonitoring)
                         .toggleStyle(.switch)
@@ -1428,8 +1453,8 @@ struct WatchlistPanel: View {
                     }
                 }
                 .padding(16)
-                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(state.copy("常见预设", "Common presets"))
@@ -1450,8 +1475,8 @@ struct WatchlistPanel: View {
                     }
                 }
                 .padding(16)
-                .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
+                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
 
                 installedAppsCard
 
@@ -1478,8 +1503,8 @@ struct WatchlistPanel: View {
                         .foregroundStyle(.secondary)
                     }
                     .padding(16)
-                    .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
+                    .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
                 }
             }
             .onChange(of: state.rules) {
@@ -1544,8 +1569,8 @@ struct WatchlistPanel: View {
             }
         }
         .padding(16)
-        .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
+        .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
     }
 
     private var filteredInstalledApps: [InstalledApplication] {
@@ -1672,8 +1697,8 @@ private struct InstalledAppPickerRow: View {
         }
         .padding(.horizontal, 10)
         .frame(height: 44)
-        .background(Color.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.black.opacity(0.05)))
+        .background(HunterUI.surfaceSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(HunterUI.lineSoft))
     }
 
     private func copy(_ zhHans: String, _ english: String) -> String {
@@ -1721,8 +1746,8 @@ struct ProvidersPanel: View {
                         .opacity(state.providers.webSearchEnabled ? 1 : 0.58)
                 }
                 .padding(16)
-                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
 
                 VStack(alignment: .leading, spacing: 12) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 116), spacing: 8)], alignment: .leading, spacing: 8) {
@@ -1759,8 +1784,8 @@ struct ProvidersPanel: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(14)
-                .background(.white.opacity(0.60), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
+                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
             }
             .onChange(of: state.providers) {
                 state.persist()
@@ -1932,9 +1957,10 @@ struct VoicePanel: View {
                             .textFieldStyle(.roundedBorder)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
-                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
 
                 VStack(alignment: .leading, spacing: 12) {
                     Label(state.copy("音色克隆", "Voice clone"), systemImage: "waveform.badge.plus")
@@ -1974,8 +2000,8 @@ struct VoicePanel: View {
                     }
                 }
                 .padding(16)
-                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2019,6 +2045,7 @@ struct VoicePanel: View {
 
 struct HistoryPanel: View {
     @ObservedObject var state: AppState
+    @State private var isConfirmingClear = false
 
     var body: some View {
         PanelContainer(title: state.copy("历史", "History"), subtitle: state.copy("最近抓包记录和今日命中统计。", "Recent catches and today's hit summary.")) {
@@ -2031,9 +2058,14 @@ struct HistoryPanel: View {
                         StatPill(title: state.copy("今日最多命中", "Most hit today"), value: topTarget)
                         Spacer()
                         Button(role: .destructive) {
-                            state.clearEvents()
+                            if isConfirmingClear {
+                                state.clearEvents()
+                                isConfirmingClear = false
+                            } else {
+                                isConfirmingClear = true
+                            }
                         } label: {
-                            Label(state.copy("清除", "Clear"), systemImage: "trash")
+                            Label(isConfirmingClear ? state.copy("确认清除", "Confirm clear") : state.copy("清除", "Clear"), systemImage: "trash")
                         }
                         .buttonStyle(.bordered)
                     }
@@ -2054,8 +2086,8 @@ struct HistoryPanel: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .padding()
-                                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.06)))
+                                .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
                             }
                         }
                     }
@@ -2098,8 +2130,8 @@ struct StatPill: View {
         .padding(.horizontal, 16)
         .frame(height: 64)
         .frame(minWidth: 132, alignment: .leading)
-        .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
+        .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
     }
 }
 
@@ -2124,7 +2156,7 @@ struct PermissionRow: View {
             Text(state.label(language: language, optional: isOptional))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(statusColor)
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .frame(height: 24)
                 .background(statusColor.opacity(state == .allowed ? 0.12 : 0.08), in: Capsule())
 
@@ -2138,7 +2170,7 @@ struct PermissionRow: View {
                     .frame(width: 96)
             }
         }
-        .frame(maxWidth: 390, minHeight: 32, alignment: .trailing)
+        .frame(maxWidth: 390, minHeight: 34, alignment: .trailing)
     }
 
     private var statusColor: Color {
@@ -2156,25 +2188,27 @@ struct PanelContainer<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(HunterUI.text)
                 Text(subtitle)
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HunterUI.secondaryText)
             }
-            .frame(maxWidth: 820, alignment: .leading)
+            .frame(maxWidth: 760, alignment: .leading)
 
             ScrollView {
                 content
-                    .frame(maxWidth: 820, alignment: .topLeading)
+                    .frame(maxWidth: 760, alignment: .topLeading)
                     .padding(.bottom, 26)
             }
         }
-        .padding(.top, 26)
+        .padding(.top, 30)
         .padding(.horizontal, 34)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(HunterUI.background)
     }
 }
 
@@ -2185,32 +2219,33 @@ struct SettingCard<Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 34, height: 34)
-                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(HunterUI.accent)
+                .frame(width: 30, height: 30)
+                .background(HunterUI.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(HunterUI.text)
                 Text(subtitle)
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HunterUI.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: 250, alignment: .leading)
+            .frame(width: 244, alignment: .leading)
 
             Spacer()
             trailing
-                .frame(maxWidth: 410, alignment: .trailing)
+                .frame(maxWidth: 390, alignment: .trailing)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
-        .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.black.opacity(0.07)))
-        .shadow(color: .black.opacity(0.035), radius: 10, y: 4)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
+        .frame(maxWidth: .infinity, minHeight: 74, alignment: .leading)
+        .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft, lineWidth: 1))
     }
 }
 
@@ -2381,8 +2416,8 @@ struct ProviderEditor: View {
             }
         }
         .padding(16)
-        .background(role == .search ? Color.clear : Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(role == .search ? Color.clear : Color.black.opacity(0.07)))
+        .background(role == .search ? Color.clear : HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(role == .search ? Color.clear : HunterUI.lineSoft))
         .onAppear {
             refreshSavedKeyState()
         }

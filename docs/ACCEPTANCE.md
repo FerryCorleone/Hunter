@@ -16,7 +16,7 @@
 | `.app` 签名校验 | Pass | `codesign --verify --deep --strict build/Hunter.app` 通过 |
 | DMG 可分发包 | Pass | `./scripts/package_dmg.sh` 产出 `build/Hunter.dmg`，`hdiutil verify` 通过 |
 | App 可启动并创建窗口 | Pass | `open build/Hunter.app` 后 Computer Use 可读取 `Hunter` 设置窗 |
-| 设置窗口视觉完成度 | Pass | sidebar 整行可点并使用低饱和选中态；右侧内容限制最大阅读宽度；通用、黑名单、AI、声音、历史页统一卡片、字段标签和控件间距；AI Provider 表单使用上标签字段，测试按钮自适应排列 |
+| 设置窗口视觉完成度 | Pass | 本轮先补全 PRD 2A 页面结构契约，再生成 `docs/design-prototype/redesign-2026-05-30/` 高保真参考图；SwiftUI 设置窗口已按参考稿收敛为 196px sidebar、760px 内容宽度、低饱和蓝色选中态、实体白色 settings row；通用、黑名单、AI、声音、历史页用 Computer Use 逐页检查，布局无明显遮挡；AI Provider 表单使用上标签字段，API Key 已保存时显示 masked 状态；历史清除增加二次确认 |
 | 权限引导 | Pass | 设置页展示麦克风、浏览器自动化、通知和辅助功能状态；权限区已简化为“状态标签 + 未允许时的操作按钮”，移除绿点/已允许/对勾重复表达；页面自动刷新权限，并提供“重新检查”按钮；麦克风可请求或打开系统设置，浏览器自动化优先检查当前浏览器，若设置窗口在前台则回退检查 Chrome，且只在用户点击授权时触发系统弹窗；通知和辅助功能改为可选增强，不再用“需要处理”误导用户；当前 ad-hoc 重新打包后麦克风可能被系统视为新 App 主体，需要重新允许 |
 | 界面中英文切换 | Pass | 设置页、菜单栏、悬浮窗、Provider 表单、枚举标签和主要运行时状态已跟随语言切换 |
 | 工作时段配置 | Pass | 设置页支持多个时段、工作日/周末开关，单测覆盖日间、跨午夜、多时段和周末排除 |

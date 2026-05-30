@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hunter Redesign Reference</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f5f7;
+        --surface: #ffffff;
+        --text: #1d1d1f;
+        --muted: #6e6e73;
+        --line: #d2d2d7;
+        --accent: #007aff;
+        --danger: #ff3b30;
+        --success: #34c759;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        letter-spacing: 0;
+      }
+
+      main {
+        width: min(1180px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 34px 0 52px;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 34px;
+        line-height: 1.15;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent), transparent 88%);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 22px;
+      }
+
+      .frame {
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb, var(--line), transparent 20%);
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: 0 18px 50px rgb(0 0 0 / 0.08);
+      }
+
+      .frame h2 {
+        margin: 0;
+        padding: 18px 20px 12px;
+        font-size: 18px;
+      }
+
+      .frame img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-top: 1px solid color-mix(in srgb, var(--line), transparent 45%);
+      }
+
+      .matrix {
+        margin-top: 24px;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb, var(--line), transparent 20%);
+        border-radius: 16px;
+        background: var(--surface);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        padding: 13px 14px;
+        border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 45%);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 650;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Hunter Redesign Reference</h1>
+          <p>Generated visual references for the macOS-native settings window, floating widget states, and shared component system. PRD section 2A remains the source of truth.</p>
+        </div>
+        <span class="pill">2026-05-30</span>
+      </header>
+
+      <section class="grid" aria-label="Generated references">
+        <article class="frame">
+          <h2>Settings Window</h2>
+          <img src="settings-window-reference.png" alt="Hunter macOS settings window reference" />
+        </article>
+
+        <article class="frame">
+          <h2>Floating Widget States</h2>
+          <img src="floating-widget-reference.png" alt="Hunter floating widget states reference" />
+        </article>
+
+        <article class="frame">
+          <h2>Component Board</h2>
+          <img src="component-board-reference.png" alt="Hunter component board reference" />
+        </article>
+      </section>
+
+      <section class="matrix" aria-label="Coverage matrix">
+        <table>
+          <thead>
+            <tr>
+              <th>PRD Surface</th>
+              <th>Design Reference</th>
+              <th>SwiftUI Implementation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Floating Orb / Quick Control / Catch Popover / Focus Toast</td>
+              <td><code>floating-widget-reference.png</code></td>
+              <td><code>FloatingOverlayView</code>, <code>QuickControlMenu</code>, <code>FloatingMascotIcon</code></td>
+            </tr>
+            <tr>
+              <td>Settings / General</td>
+              <td><code>settings-window-reference.png</code>, <code>component-board-reference.png</code></td>
+              <td><code>SettingsView</code>, <code>GeneralPanel</code>, <code>SettingCard</code>, <code>PermissionRow</code></td>
+            </tr>
+            <tr>
+              <td>Settings / Watchlist</td>
+              <td><code>component-board-reference.png</code></td>
+              <td><code>WatchlistPanel</code>, <code>InstalledAppPickerRow</code></td>
+            </tr>
+            <tr>
+              <td>Settings / AI Providers</td>
+              <td><code>component-board-reference.png</code></td>
+              <td><code>ProvidersPanel</code>, <code>ProviderEditor</code></td>
+            </tr>
+            <tr>
+              <td>Settings / Voice and History</td>
+              <td><code>settings-window-reference.png</code>, shared component tokens</td>
+              <td><code>VoicePanel</code>, <code>HistoryPanel</code>, <code>StatPill</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

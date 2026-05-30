@@ -1,8 +1,8 @@
 # Hunter PRD
 
-版本：v0.8
+版本：v0.9
 日期：2026-05-30
-状态：实现中，MVP 验收推进
+状态：页面结构契约锁定，设置页重构中
 
 ## 0. Discovery Notes
 
@@ -184,6 +184,222 @@ Acceptance Criteria:
 - LLM prompt 必须显式传入目标输出语言；如果模型仍返回明显错误语言，Hunter 需要用目标语言兜底短句，避免用户把监督语言改成 English 后仍听到中文抓包。
 - TTS 音色以云端 Provider 的 voice id 为准，默认 `longanyang`。
 - MVP 不提供本地声音克隆入口；云端克隆/音色设计进入后必须要求用户确认授权，且不复刻未授权第三方声音。
+
+## 2A. Frontend Page Contract
+
+本节是设计和实现的页面结构真源。设计稿、SwiftUI 页面和验收清单不得新增未在本节定义的入口、卡片、字段或操作；如发现必要元素缺失，先更新本节再实现。
+
+### Page Tree & Entry Points
+
+| Level | Surface / Screen | Entry Point | Global Navigation | Purpose |
+| --- | --- | --- | --- | --- |
+| L1 | Floating Orb | App launch, menu bar “Show Widget”, setting toggle | No | 日常主入口，展示监督状态、倒计时、收音/播报反馈 |
+| L2 | Quick Control Popover | Click floating orb | No | 快速开始 15/25/40 分钟监督、暂停/恢复、取消、查看倒计时 |
+| L2 | Catch Popover | Blacklist hit after TTS is ready | No | 展示抓包对象、短吐槽、声波、按住快捷键对话 |
+| L2 | Focus Toast | Voice duration command, session start/end | No | 2-4 秒自动消失的结果确认 |
+| L1 | Menu Bar Menu | macOS menu bar icon | No | 开始/暂停、显示设置、显示/隐藏悬浮球、退出 |
+| L1 | Settings Window / General | Menu bar “Settings”, first launch | Yes, sidebar | 监督开关、时长任务、工作时段、悬浮球、快捷键、权限 |
+| L1 | Settings Window / Watchlist | Sidebar | Yes, sidebar | 网站/App 黑名单、本机 App 选择器、规则管理 |
+| L1 | Settings Window / AI Providers | Sidebar | Yes, sidebar | ASR、LLM、TTS、Search 独立 Provider 配置和测试 |
+| L1 | Settings Window / Voice & Language | Sidebar | Yes, sidebar | 界面语言、监督语言、角色、强度、粗口、音色、音色克隆占位 |
+| L1 | Settings Window / History | Sidebar | Yes, sidebar | 今日事件摘要、事件列表、清除日志 |
+
+### Navigation Contract
+
+- Settings Window 左侧 sidebar 固定 196px 宽，入口顺序固定为：General、Watchlist、AI、Voice、History。每个导航项整行可点，选中态使用低饱和蓝色背景、蓝色 SF Symbol 和半粗体文字。
+- Settings Window 右侧内容区使用单列设置列表，最大内容宽度 760px，顶部为页面标题和一句说明；不使用顶部横向菜单。
+- Settings Window 底部 sidebar 固定两个主操作：`Start/Pause` 监督按钮、`Demo Catch` 演示抓包按钮。
+- Floating Orb 点击只打开 Quick Control Popover，不打开 Settings Window。Settings Window 只能通过 menu bar、sidebar 或系统窗口操作打开。
+- Quick Control Popover 和 Catch Popover 均为桌面浮层，6 秒无操作自动收起；用户再次点击 orb 手动收起时，orb 位置不得跳动。
+- 权限按钮只能打开系统设置或触发明确的系统授权请求；Hunter 设置窗口在切到 System Settings 后保持可重新打开，回到前台时自动刷新权限状态。
+
+### Shared Component Contract
+
+| Component | Required Structure | States |
+| --- | --- | --- |
+| SettingsRow | 左侧 28px 图标容器、标题、说明；右侧单个控件组；整行白色/系统 surface，12-14px 圆角，1px 低透明描边 | default, disabled, error, saved/unsaved |
+| SectionGroup | 可选 section 标题 + 多个 SettingsRow；不嵌套卡片 | default, empty |
+| KeyCaptureBox | Keycap tokens，例如 `Option + Space` 或 `Right Option`；点击后显示 `Press keys`，捕获后显示成功短提示 | default, capturing, saved, error |
+| ProviderCard | Header：Provider role + mode/status；Body：Provider、Base URL、Model、API Key 四字段；Footer：测试按钮与状态 | collapsed, expanded, saved, testing, error, missing key |
+| PermissionRow | 权限名称、一个状态 pill、未允许时的单个操作按钮；不得同时出现绿点、对勾和状态标签 | allowed, notDetermined, denied, optional, unknown |
+| InstalledAppRow | App 图标、App 名称、Bundle ID 或路径、Add/Added 按钮 | default, added, loading icon |
+| Waveform | 5-9 根细圆角条，播报/录音时动画，空闲时静态 | idle, speaking, listening |
+| OrbProgressRing | 头像外侧 3px 圆环，蓝色表示剩余时长，绿色呼吸表示收音 | idle, focus, paused, listening, speaking, caught |
+
+### Settings / General Structure
+
+1. **Monitoring Row**
+   - Visible elements：状态标题、说明、`Start/Pause` toggle。
+   - Dynamic fields：`isMonitoring`、`workSchedule.enabled`。
+   - States：off、on、disabled by missing setup、transitioning。
+
+2. **Focus Session Row**
+   - Visible elements：当前会话状态、剩余时间、15/25/40/60/90 分钟 segmented control、`Start Focus` 或 `Pause/Resume + Cancel`。
+   - Dynamic fields：`focusSession.duration`、`focusSession.remaining`、`focusSession.isPaused`、`focusSession.catchCount`。
+   - Empty state：无时长任务时展示“临时监督一段时间；到点自动结束”。
+
+3. **Floating Widget Row**
+   - Visible elements：圆形头像预览、`Show Widget` toggle、`Upload Avatar`、`Reset`。
+   - Dynamic fields：`showFloatingWidget`、`floatingAvatarPath`。
+   - Validation：头像必须圆形裁切，预览不得超出倒计时环。
+
+4. **Work Schedule Row**
+   - Visible elements：`Enable schedule` toggle、工作日/周末 checkbox、时间段列表、`Add Period`。
+   - Dynamic fields：`workSchedule.periods`、`enabledWeekdays`、`enabledWeekend`。
+   - States：disabled 时所有时间控件禁用但仍可读。
+
+5. **Talk Shortcut Row**
+   - Visible elements：说明、KeyCaptureBox、Reset、`Test Voice Command`。
+   - Dynamic fields：`replyShortcut`、`isCapturingShortcut`、`permission.microphone`。
+   - Required behavior：点击框后按任意组合键或单键保存；支持 `Right Option` 等 modifier-only key。
+
+6. **Permissions Row**
+   - Visible elements：说明、`Re-check`、四条 PermissionRow：Microphone、Browser Automation、Notifications、Accessibility (Optional)。
+   - Dynamic fields：`permissions.microphone`、`permissions.browserAutomation`、`permissions.notifications`、`permissions.accessibility`。
+   - UI rule：每条权限只保留一个状态 pill；未允许才显示操作按钮。
+
+7. **Launch Row**
+   - Visible elements：`Launch at Login` toggle。
+   - Dynamic fields：`launchAtLogin`。
+
+### Settings / Watchlist Structure
+
+1. **Add Rule Row**
+   - Elements：Rule type picker (`Website/App`)、Name text field、Pattern text field、`Add`。
+   - Validation：Pattern 为空时禁用 Add；Name 为空时使用 Pattern。
+
+2. **Preset Row**
+   - Elements：YouTube、Bilibili、Douyin、X/Twitter、Reddit、Steam、Discord chips。
+   - States：未添加、已添加 disabled。
+
+3. **Installed Apps Row**
+   - Elements：section title、description、Refresh、search field、InstalledAppRow list。
+   - Dynamic fields：installed app `name`、`bundleIdentifier`、`path` from `/Applications`、`~/Applications`、`/System/Applications`。
+   - States：loading、empty、filtered empty、loaded、added。
+
+4. **Rule List Row**
+   - Elements：规则名称、kind pill、pattern、enabled toggle、delete。
+   - States：enabled、disabled、empty。
+
+### Settings / AI Providers Structure
+
+AI 页面不得出现“基础配置”或跨模型联动配置。ASR、LLM、TTS、Search 四块独立配置。
+
+1. **ASR ProviderCard**
+   - Fields：Mode (`Local model/Cloud API`)、Provider、Base URL、Model、API Key。
+   - Local mode elements：SenseVoice Small INT8 descriptor、download/status button、local path/status。
+   - Actions：Test ASR。
+
+2. **LLM ProviderCard**
+   - Fields：Provider、Base URL、Model、API Key。
+   - Default template：DeepSeek / `deepseek-v4-flash`。
+   - Actions：Test LLM。
+
+3. **TTS ProviderCard**
+   - Fields：Provider、Base URL、Model、API Key。
+   - No local TTS mode.
+   - Actions：Test TTS。
+
+4. **Search ProviderCard**
+   - Elements：Enable toggle、Provider (`Brave/Tavily/Custom`)、Base URL、Model/query preset、API Key、privacy note。
+   - Actions：Test Search。
+
+5. **End-to-End Test Row**
+   - Elements：`Run E2E Test`、status text。
+   - States：idle、running、success、failure。
+
+### Settings / Voice & Language Structure
+
+1. **Language Row**
+   - Elements：Interface Language picker、Roast Language picker。
+   - Dynamic fields：`interfaceLanguage`、`aiLanguage`。
+   - Behavior：Roast Language 控制 LLM output language and TTS language hint；模型返回明显错误语言时本地兜底。
+
+2. **Persona Row**
+   - Elements：Persona picker、Intensity picker、Allow Profanity toggle、Banned Terms text field。
+   - Dynamic fields：`persona`、`intensity`、`allowProfanity`、`bannedTerms`。
+
+3. **Voice Row**
+   - Elements：TTS Voice ID text field、Test Voice button。
+   - Dynamic fields：`voice`。
+
+4. **Voice Clone Row**
+   - Elements：title、copy、disabled Upload Sample、disabled Record Sample、status pill `Cloud clone pending`。
+   - Behavior：MVP 不允许上传或录制样本；后续只保存云端 Provider 返回的授权 voice id。
+
+### Settings / History Structure
+
+1. **Today Summary Row**
+   - Elements：抓包次数、今日最多命中对象、最近一次抓包时间。
+   - Dynamic fields：`eventsForToday.count`、group by `targetName`、latest date。
+   - Empty state：无事件时显示“今天还没抓到你”。
+
+2. **Incident List Row**
+   - Elements：time、target、rule/source、roast quote。
+   - Dynamic fields：`Incident.date`、`targetName`、`matchedRule`、`roastText`。
+   - No copy quote button in MVP;用户没有明确需要，不做。
+
+3. **Clear Logs Row**
+   - Elements：`Clear Today` 或 `Clear All Local Logs` button、confirmation text。
+   - Behavior：需二次确认或显著危险样式。
+
+### Floating Surface Structure
+
+**Orb**
+
+- Frame：72x72 transparent panel with at least 4px safe inset.
+- Elements：progress ring、round avatar、optional animated ring/waveform.
+- Forbidden：square translucent backing, clipped ring, green status dot.
+
+**Quick Control Popover**
+
+- Elements：title (`Focus`)、remaining countdown、blue remaining progress bar、15/25/40 minute buttons、Pause/Resume、Cancel、shortcut hint。
+- States：no session、running、paused、listening、auto-dismiss.
+
+**Catch Popover**
+
+- Elements：caught target, timestamp, roast text max 3 lines, waveform, hold-to-talk button, optional pause action。
+- States：speaking、listening、thinking、idle waiting、auto-dismiss、TTS failure。
+- Forbidden：provider/model/internal status copy。
+
+**Focus Toast**
+
+- Elements：short title, optional one-line detail, no controls.
+- States：session started、session completed praised/encouraged/roasted、parse failed。
+
+### Field Source Matrix
+
+| Field Key | Label | Type | Source of Truth | Derivation / Freshness | Null Handling |
+| --- | --- | --- | --- | --- | --- |
+| `isMonitoring` | Supervision status | Boolean | `AppState.isMonitoring` | Immediate user toggle / menu bar | Off |
+| `focusSession.remaining` | Remaining time | TimeInterval | `FocusSession` | Recomputed every tick | Hide countdown |
+| `focusSession.catchCount` | Session catch count | Int | Incidents linked to session | Updated on incident | 0 |
+| `showFloatingWidget` | Floating widget | Boolean | `AppState.showFloatingWidget` | Immediate | On by default |
+| `replyShortcut` | Talk shortcut | Struct | `AppState.replyShortcut` | Persisted on capture | `Option + Space` |
+| `permissions.*` | Permission state | Enum | `PermissionCenter.snapshot()` | Refresh on active + 1.5s timer while settings visible | Unknown |
+| `rules[]` | Watchlist rules | Array | Local store | Immediate add/delete/toggle | Empty list with presets |
+| `installedApps[]` | Installed apps | Array | `InstalledAppScanner` | On page load / refresh | Empty state |
+| `providers.asr/llm/tts/search` | Provider config | Object | Local settings + `.env.local` secret | Persist on edit | Missing key pill |
+| `interfaceLanguage` | Interface language | Enum | Local settings | Immediate | Chinese |
+| `aiLanguage` | Roast language | Enum | Local settings | Used per LLM/TTS request | Follow interface |
+| `voice` | TTS voice ID | String | Local settings | Used per TTS request | `longanyang` |
+| `eventsForToday` | Today incidents | Array | Local incident store | Filter by local calendar day | Empty summary |
+
+### Interaction & Error Contract
+
+- Settings 表单字段编辑后立即保存本地设置；API Key 字段失焦或点击保存时写入本地 secret store，显示 `•••••••• + saved`，不回显明文。
+- Provider 测试按钮进入 running state，成功显示 bytes/model/provider 摘要，失败显示用户可读错误；详细日志只写诊断文件。
+- Voice command 解析失败时只显示轻 toast，不打开设置窗口。
+- TTS 失败不得回退到系统朗读；必须显示可见错误状态并写入诊断。
+- Browser automation 未授权时监控循环跳过 URL 读取，不弹系统框；只有用户点击授权按钮才请求。
+- Accessibility 在 MVP 是可选增强；即使未开启也不得阻断核心功能或显示成严重错误。
+
+### Design Coverage Gate
+
+- 每个 L1/L2 surface 必须至少有一个视觉稿或组件状态样例。
+- 每个 Settings 页面必须有页面级结构图、字段列表和至少一个主要错误/空状态说明。
+- 每个浮层状态必须在设计稿或组件板中出现：idle、quick control、caught speaking、listening、focus toast。
+- SwiftUI 实现不得引入 PRD 未定义的字段、按钮或统计指标。
 
 ### Non-Goals
 

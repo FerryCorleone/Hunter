@@ -42,6 +42,7 @@ final class AppState: ObservableObject {
     @Published var providerStatus: String = ""
     @Published var permissionStatus: String = "Waiting for permissions"
     @Published var permissions = PermissionSnapshot()
+    @Published var pendingFocusCompletion: FocusSessionCompletion?
     var currentContext: FrontmostContext?
 
     private let store: SettingsStore
@@ -125,16 +126,32 @@ final class AppState: ObservableObject {
         persist()
     }
 
-    func clearExpiredFocusSessionIfNeeded() {
+    @discardableResult
+    func clearExpiredFocusSessionIfNeeded() -> FocusSessionCompletion? {
         let resumed = focusSession?.resumeIfPauseElapsed() ?? false
-        if focusSession?.isActive == false {
+        if let session = focusSession, !session.isActive {
+            let completedAt = Date()
+            let completion = FocusSessionCompletion(
+                session: session,
+                completedAt: completedAt,
+                catchCount: catchCount(in: session, completedAt: completedAt)
+            )
             focusSession = nil
             toastMessage = interfaceLanguage == .english ? "Focus session ended" : "监督时长已结束"
             voiceActivity = .idle
+            pendingFocusCompletion = completion
             persist()
+            return completion
         } else if resumed {
             persist()
         }
+        return nil
+    }
+
+    func consumePendingFocusCompletion() -> FocusSessionCompletion? {
+        let completion = pendingFocusCompletion
+        pendingFocusCompletion = nil
+        return completion
     }
 
     func pauseFocusSession(minutes: Int? = nil) {
@@ -241,6 +258,13 @@ final class AppState: ObservableObject {
             return "\(minutes)-minute focus session started"
         }
         return "\(minutes) 分钟监督已开始"
+    }
+
+    private func catchCount(in session: FocusSession, completedAt: Date) -> Int {
+        let endedAt = session.endsAt(at: completedAt)
+        return events.filter { event in
+            event.date >= session.startedAt && event.date <= endedAt
+        }.count
     }
 
     private func applicationSupportDirectory() throws -> URL {

@@ -130,11 +130,23 @@ As a user, I want to quickly tell Hunter how long to supervise me so that I can 
 Acceptance Criteria:
 
 - 用户按住快捷键后可以说：“监督我接下来的 40 分钟”“帮我开始一个 15 分钟的监督任务”“盯我 25 分钟”“keep me focused for one hour”。
-- Hunter 使用 ASR + duration parser 解析出时长和意图。
+- Hunter 使用自动中英混合 ASR + duration parser 解析出时长和意图；ASR 语言提示不得跟随“AI 监督语言”，避免用户用中文下指令但监督语言设为 English 时识别失败。
+- 时长解析需覆盖常见口语表达，例如“三十五分钟”“半小时”“一个半小时”。
 - 解析成功后，悬浮球显示确认态，例如“40 分钟监督已开始”；确认 toast 使用实体 popover 背景，不出现半透明灰色矩形底板，并在数秒后自动消失。
 - 时长任务期间，黑名单命中会触发抓包吐槽；时长结束后自动回到普通待机/按工作时间监督。
 - 解析不确定时，悬浮球展示轻量确认，而不是打开主窗口。
 - 时长任务可暂停、延长、结束，并写入历史记录。
+
+**Story 4.2：监督结束后的语音总结**
+As a user, I want Hunter to react to the outcome of a focus session so that finishing a session feels like a moment, not just a timer disappearing.
+
+Acceptance Criteria:
+
+- 时长监督正常倒计时结束后，Hunter 根据本轮抓包次数给出一条短语音反馈。
+- 0 次抓包：直接彩虹屁式表扬。
+- 1-3 次抓包：承认中间摸鱼，但鼓励用户最终完成。
+- 4 次及以上：根据粗口开关和语言设置，给出更强的吐槽式总结。
+- 总结语音走当前 TTS Provider，不使用 macOS 系统朗读；若 TTS 失败，只在状态中报错，不伪装成功。
 
 **Story 5：查看今日抓包记录**  
 As a user, I want to review what happened today so that I can use the data as 自律反馈 or video 素材.

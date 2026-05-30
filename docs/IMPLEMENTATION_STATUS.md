@@ -100,6 +100,7 @@
 - 2026-05-30 UI 修正验收：快捷键设置页展示单个录制框 `Option + Space`，权限按钮无文字裁切；悬浮球可拖动，拖动后窗口坐标从 `X=463,Y=720` 移到 `X=614,Y=724`；快捷菜单展示蓝色剩余进度条且只保留“暂停/取消”；点击“取消”后本机保存状态为 `isMonitoring=0`、`focusSession=nil`。
 - 2026-05-30 LLM 链路复核：本机保存运行配置为 DeepSeek `https://api.deepseek.com` / `deepseek-v4-flash`；`./build/Hunter.app/Contents/MacOS/Hunter --smoke-llm` 返回 `llm_ok=true`、`llm_provider=DeepSeek`、`llm_model=deepseek-v4-flash`。千问云/DashScope 仍只用于当前 TTS Provider。
 - 2026-05-30 设置页 UI QA：设置窗口最小宽度和可见区夹取已修正，重新打包启动后 sidebar 未再被裁切；通用、黑名单、AI、声音、历史页用 Computer Use 逐页检查，布局无明显遮挡；快捷键录制框实测点击后按 `A` 可写入单键快捷键，随后已重置回 `Option + Space`；AI 配置页已保存的 DeepSeek / DashScope API Key 显示为 `•••••••••• + 已保存`；声音页露出云端“音色克隆”区域，并将上传/录制样本标为待接入。
+- 2026-05-30 悬浮与时长任务体验补强：快捷菜单 6 秒无操作自动收起，窗口尺寸变化时保留 top-left 锚点避免收起后跳位；手动语音命令 ASR 改为自动/中英混合，不再跟随 AI 监督语言；`DurationParser` 新增“三十五分钟”“半小时”“一个半小时”等口语时长；时长任务自然结束后生成本轮完成事件，生命周期检查收敛到约 2 秒，并按抓包次数播放 0 次夸奖、1-3 次鼓励、4 次以上吐槽式总结。
 
 ## 未完成 / 下一步
 

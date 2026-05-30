@@ -44,6 +44,9 @@ struct DurationParser {
     }
 
     private func duration(in text: String) -> TimeInterval? {
+        if let minutes = mixedHourDurationInMinutes(in: text) {
+            return TimeInterval(minutes * 60)
+        }
         if let minutes = numberBeforeMinuteUnit(in: text) {
             return TimeInterval(minutes * 60)
         }
@@ -55,7 +58,7 @@ struct DurationParser {
 
     private func containsFocusIntent(_ text: String) -> Bool {
         let triggers = [
-            "监督", "盯我", "看着我", "专注", "focus", "focused", "supervise", "watch me", "keep me"
+            "监督", "盯我", "看着我", "专注", "开始", "设置", "计时", "倒计时", "focus", "focused", "supervise", "watch me", "keep me", "timer"
         ]
         return triggers.contains { text.contains($0) }
     }
@@ -68,9 +71,11 @@ struct DurationParser {
         if let value = firstMatch(pattern: #"(\d{1,3})\s*(分钟|min|mins|minute|minutes)"#, in: text) {
             return value
         }
-        let chineseMap = ["十五": 15, "二十": 20, "二十五": 25, "三十": 30, "四十": 40, "四十五": 45, "五十": 50, "六十": 60]
-        for (word, value) in chineseMap where text.contains("\(word)分钟") {
+        if let value = firstChineseNumberMatch(pattern: #"([零〇一二两三四五六七八九十百]{1,6})\s*(分钟|分)"#, in: text) {
             return value
+        }
+        if containsAny(["半小时", "半个小时", "半钟头", "half an hour"], in: text) {
+            return 30
         }
         return nil
     }
@@ -84,6 +89,65 @@ struct DurationParser {
         }
         if text.contains("两小时") || text.contains("二小时") || text.contains("two hours") {
             return 2
+        }
+        return nil
+    }
+
+    private func mixedHourDurationInMinutes(in text: String) -> Int? {
+        if containsAny(["半小时", "半个小时", "半钟头", "half an hour"], in: text),
+           !containsAny(["一个半", "一个半小时", "一小时半", "1个半", "1.5", "one and a half"], in: text) {
+            return 30
+        }
+        if containsAny(["一个半小时", "一个半钟头", "一小时半", "1个半小时", "1.5小时", "one and a half hour"], in: text) {
+            return 90
+        }
+        if containsAny(["两个半小时", "两小时半", "2个半小时", "2.5小时", "two and a half hour"], in: text) {
+            return 150
+        }
+        return nil
+    }
+
+    private func firstChineseNumberMatch(pattern: String, in text: String) -> Int? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return nil
+        }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard
+            let match = regex.firstMatch(in: text, range: range),
+            let numberRange = Range(match.range(at: 1), in: text)
+        else {
+            return nil
+        }
+        return chineseNumber(String(text[numberRange]))
+    }
+
+    private func chineseNumber(_ text: String) -> Int? {
+        let digits: [Character: Int] = [
+            "零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
+            "五": 5, "六": 6, "七": 7, "八": 8, "九": 9
+        ]
+        if text == "十" {
+            return 10
+        }
+        if text.hasPrefix("十") {
+            let ones = text.dropFirst().first.flatMap { digits[$0] } ?? 0
+            return 10 + ones
+        }
+        if let hundredIndex = text.firstIndex(of: "百") {
+            let prefix = text[..<hundredIndex]
+            let suffix = String(text[text.index(after: hundredIndex)...])
+            let hundreds = prefix.first.flatMap { digits[$0] } ?? 1
+            return hundreds * 100 + (chineseNumber(suffix) ?? 0)
+        }
+        if let tenIndex = text.firstIndex(of: "十") {
+            let prefix = text[..<tenIndex]
+            let suffix = text[text.index(after: tenIndex)...]
+            let tens = prefix.first.flatMap { digits[$0] } ?? 1
+            let ones = suffix.first.flatMap { digits[$0] } ?? 0
+            return tens * 10 + ones
+        }
+        if text.count == 1, let digit = text.first.flatMap({ digits[$0] }) {
+            return digit
         }
         return nil
     }

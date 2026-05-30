@@ -17,7 +17,7 @@ final class MonitorService {
     private var lastBrowserURL: String?
     private var lastBrowserTitle: String?
     private let browserURLPollInterval: TimeInterval = 1.5
-    private let lifecycleInterval: TimeInterval = 15
+    private let lifecycleInterval: TimeInterval = 2
 
     init(state: AppState, incidents: IncidentController) {
         self.state = state
@@ -69,7 +69,12 @@ final class MonitorService {
     }
 
     private func refreshMonitoringLifecycle() {
-        state.clearExpiredFocusSessionIfNeeded()
+        if let completion = state.clearExpiredFocusSessionIfNeeded() {
+            _ = state.consumePendingFocusCompletion()
+            incidents.handleFocusSessionCompleted(completion)
+        } else if let completion = state.consumePendingFocusCompletion() {
+            incidents.handleFocusSessionCompleted(completion)
+        }
         guard state.isMonitoring, shouldMonitorNow else {
             stopBrowserURLWatcher()
             return

@@ -109,14 +109,16 @@ final class FloatingWindowController {
         let visible = screen.visibleFrame
         let size = contentSize(hasToast: hasToast, hasIncident: hasIncident, hasQuickMenu: hasQuickMenu)
         let previousFrame = window.frame
-        let origin = hasPositionedWindow
-            ? clampedOrigin(window.frame.origin, size: size, visibleFrame: visible)
-            : NSPoint(x: visible.minX + 132, y: visible.minY + 118)
-        let frame = NSRect(origin: origin, size: size)
-        window.setFrame(frame, display: true)
-        if hasQuickMenu {
+        if !hasPositionedWindow {
+            let origin = NSPoint(x: visible.minX + 132, y: visible.minY + 118)
+            window.setFrame(NSRect(origin: origin, size: size), display: true)
+        } else if previousFrame.size != size {
             let topLeft = clampedTopLeft(previousFrame: previousFrame, size: size, visibleFrame: visible)
+            window.setFrame(NSRect(origin: previousFrame.origin, size: size), display: true)
             window.setFrameTopLeftPoint(topLeft)
+        } else {
+            let origin = clampedOrigin(window.frame.origin, size: size, visibleFrame: visible)
+            window.setFrame(NSRect(origin: origin, size: size), display: true)
         }
         window.contentView?.frame = NSRect(origin: .zero, size: size)
         hasPositionedWindow = true

@@ -16,6 +16,7 @@ struct FloatingOverlayView: View {
     @State private var isQuickMenuVisible = false
     @State private var toastDismissTask: Task<Void, Never>?
     @State private var incidentDismissTask: Task<Void, Never>?
+    @State private var quickMenuDismissTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -44,11 +45,13 @@ struct FloatingOverlayView: View {
         .onAppear {
             scheduleToastDismiss(for: state.toastMessage)
             scheduleIncidentDismiss(for: state.currentIncident)
+            scheduleQuickMenuDismiss(isVisible: isQuickMenuVisible)
             notifyLayoutChange()
         }
         .onDisappear {
             toastDismissTask?.cancel()
             incidentDismissTask?.cancel()
+            quickMenuDismissTask?.cancel()
         }
         .onChange(of: state.toastMessage) { _, message in
             scheduleToastDismiss(for: message)
@@ -59,6 +62,7 @@ struct FloatingOverlayView: View {
             notifyLayoutChange()
         }
         .onChange(of: isQuickMenuVisible) {
+            scheduleQuickMenuDismiss(isVisible: isQuickMenuVisible)
             notifyLayoutChange()
         }
     }
@@ -234,6 +238,16 @@ struct FloatingOverlayView: View {
             else { return }
             state.currentIncident = nil
             state.voiceInteractionStatus = nil
+        }
+    }
+
+    private func scheduleQuickMenuDismiss(isVisible: Bool) {
+        quickMenuDismissTask?.cancel()
+        guard isVisible else { return }
+        quickMenuDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard !Task.isCancelled, isQuickMenuVisible else { return }
+            isQuickMenuVisible = false
         }
     }
 }
@@ -448,6 +462,7 @@ private struct QuickControlMenu: View {
 
     private func start(minutes: Int) {
         state.startFocusSession(duration: TimeInterval(minutes * 60), source: "floating")
+        dismiss()
     }
 
     private func togglePause() {
@@ -464,6 +479,7 @@ private struct QuickControlMenu: View {
         } else {
             state.pauseFocusSession()
         }
+        dismiss()
     }
 }
 

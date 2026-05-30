@@ -234,9 +234,9 @@ final class VoiceCommandController {
 
     private func transcribe(_ audio: Data) async throws -> String {
         if state.providers.asrMode == .localModel {
-            try await localSpeech.transcribeWAV(audio, settings: state.providers, languageCode: state.targetLanguageCode())
+            try await localSpeech.transcribeWAV(audio, settings: state.providers, languageCode: "auto")
         } else {
-            try await asr.transcribeWAV(audio, settings: state.providers, languageHint: state.targetLanguageCode())
+            try await asr.transcribeWAV(audio, settings: state.providers, languageHint: nil)
         }
     }
 
@@ -263,7 +263,8 @@ final class VoiceCommandController {
                 state.voiceActivity = .idle
             }
         } else {
-            state.toastMessage = transcript
+            state.toastMessage = state.copy("没听懂监督时长：\(transcript)", "Could not parse a focus duration: \(transcript)")
+            state.voiceInteractionStatus = state.toastMessage
             state.voiceActivity = .idle
         }
     }

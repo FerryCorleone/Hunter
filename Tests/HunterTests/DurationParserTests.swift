@@ -17,6 +17,13 @@ struct DurationParserTests {
         #expect(parser.parse("帮我开始一个15分钟的监督任务") == TimeInterval(15 * 60))
     }
 
+    @Test func parsesFlexibleChineseDurations() {
+        #expect(parser.parse("给我设置一个三十五分钟的监督") == TimeInterval(35 * 60))
+        #expect(parser.parse("监督我半小时") == TimeInterval(30 * 60))
+        #expect(parser.parse("开始一个半小时专注") == TimeInterval(90 * 60))
+        #expect(parser.parse("设置一百二十分钟倒计时") == TimeInterval(120 * 60))
+    }
+
     @Test func parsesEnglishHourCommand() {
         #expect(parser.parse("Keep me focused for one hour") == TimeInterval(60 * 60))
     }
@@ -219,6 +226,30 @@ struct DurationParserTests {
 
         state.endFocusSession()
         #expect(state.toastMessage == "监督已结束")
+    }
+
+    @MainActor
+    @Test func expiredFocusSessionCreatesCompletionWithCatchCount() {
+        let suiteName = "hunter-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let state = AppState(store: SettingsStore(defaults: defaults))
+        let started = Date().addingTimeInterval(-120)
+        state.focusSession = FocusSession(startedAt: started, duration: 60)
+        state.events = [
+            Incident(date: started.addingTimeInterval(20), targetName: "YouTube", appName: "Chrome", url: nil, pageTitle: nil, roast: "抓包"),
+            Incident(date: started.addingTimeInterval(80), targetName: "Bilibili", appName: "Chrome", url: nil, pageTitle: nil, roast: "太晚")
+        ]
+
+        let completion = state.clearExpiredFocusSessionIfNeeded()
+        #expect(completion?.catchCount == 1)
+        #expect(state.pendingFocusCompletion?.catchCount == 1)
+        #expect(state.focusSession == nil)
+        #expect(state.consumePendingFocusCompletion()?.catchCount == 1)
+        #expect(state.pendingFocusCompletion == nil)
     }
 
     @Test func audioCacheStoresByVoiceModelLanguageAndText() throws {

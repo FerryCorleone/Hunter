@@ -82,6 +82,20 @@ final class IncidentController {
         )
     }
 
+    func handleFocusSessionCompleted(_ completion: FocusSessionCompletion) {
+        let text = focusCompletionMessage(catchCount: completion.catchCount)
+        state.toastMessage = text
+        state.voiceInteractionStatus = nil
+        Task {
+            await synthesizeAndPlay(
+                text: text,
+                target: state.copy("监督总结", "Focus summary"),
+                statusPrefix: state.copy("监督总结", "Focus summary"),
+                notify: false
+            )
+        }
+    }
+
     @discardableResult
     func handleUserReply(_ transcript: String) async -> Bool {
         guard let incident = state.currentIncident else {
@@ -123,7 +137,13 @@ final class IncidentController {
     }
 
     @discardableResult
-    private func synthesizeAndPlay(text: String, target: String, statusPrefix: String, revealIncident: Incident? = nil) async -> Bool {
+    private func synthesizeAndPlay(
+        text: String,
+        target: String,
+        statusPrefix: String,
+        revealIncident: Incident? = nil,
+        notify: Bool = true
+    ) async -> Bool {
         TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=cloud target=\(target) provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
         do {
             TTSDiagnostics.record("CLOUD_TTS_START provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
@@ -143,8 +163,10 @@ final class IncidentController {
             if let revealIncident {
                 state.recordIncident(revealIncident)
             }
-            Task {
-                await notifications.notifyCatch(target: target, roast: text)
+            if notify {
+                Task {
+                    await notifications.notifyCatch(target: target, roast: text)
+                }
             }
             do {
                 state.voiceActivity = .speaking
@@ -173,8 +195,10 @@ final class IncidentController {
                 state.voiceActivity = .idle
             }
             TTSDiagnostics.record("CLOUD_TTS_FAILED error=\(error.localizedDescription) fallback=none")
-            Task {
-                await notifications.notifyCatch(target: target, roast: text)
+            if notify {
+                Task {
+                    await notifications.notifyCatch(target: target, roast: text)
+                }
             }
             return false
         }
@@ -223,5 +247,29 @@ final class IncidentController {
             return "又他妈在 \(context.displayTarget)，活是会自己干吗？"
         }
         return "抓到你在 \(context.displayTarget)。还干不干活了？"
+    }
+
+    private func focusCompletionMessage(catchCount: Int) -> String {
+        if state.targetLanguageCode() == "en" {
+            if catchCount == 0 {
+                return "Zero catches. Clean focus run. Honestly, that was beautiful."
+            }
+            if catchCount <= 3 {
+                return "You slipped \(catchCount) time\(catchCount == 1 ? "" : "s"), but still finished. Not bad. Now keep that spine."
+            }
+            return state.allowProfanity
+                ? "\(catchCount) catches? Damn, you fought the work the whole way. Next round, stop feeding the slacking monster."
+                : "\(catchCount) catches. Rough run, but it ended. Next round, less wandering and more work."
+        }
+
+        if catchCount == 0 {
+            return "一次都没被抓，太稳了吧，今天这专注力有点帅。"
+        }
+        if catchCount <= 3 {
+            return "中间摸了 \(catchCount) 次鱼，但最后还是扛下来了，算你有点东西。"
+        }
+        return state.allowProfanity
+            ? "被抓 \(catchCount) 次还撑到结束，真是又菜又倔。下轮少他妈摸鱼。"
+            : "被抓 \(catchCount) 次还撑到结束，下轮少摸鱼，多干活。"
     }
 }

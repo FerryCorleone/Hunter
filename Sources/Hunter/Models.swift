@@ -603,6 +603,12 @@ struct FocusSession: Codable, Equatable {
     }
 }
 
+struct FocusSessionCompletion: Equatable {
+    var session: FocusSession
+    var completedAt: Date
+    var catchCount: Int
+}
+
 struct Incident: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var date: Date = Date()

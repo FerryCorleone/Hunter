@@ -776,9 +776,9 @@ private struct FloatingMascotIcon: View {
         .overlay {
             if isListening {
                 Circle()
-                    .stroke(Color.green.opacity(listeningPulse ? 0.34 : 0.92), lineWidth: listeningPulse ? 7 : 4)
-                    .scaleEffect(listeningPulse ? 1.08 : 0.98)
-                    .shadow(color: .green.opacity(0.36), radius: listeningPulse ? 14 : 8)
+                    .inset(by: 4.5)
+                    .stroke(Color.green.opacity(listeningPulse ? 0.28 : 0.88), lineWidth: listeningPulse ? 6 : 3.5)
+                    .scaleEffect(listeningPulse ? 1.02 : 0.96)
                     .animation(.easeInOut(duration: 0.92).repeatForever(autoreverses: true), value: listeningPulse)
             }
         }

@@ -125,7 +125,7 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
 
     var label: String {
         switch self {
-        case .gentle: "温柔提醒"
+        case .gentle: "温柔"
         case .encouraging: "鼓励"
         case .serious: "正经"
         case .fierce: "凶狠"

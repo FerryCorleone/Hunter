@@ -2097,6 +2097,8 @@ struct VoicePanel: View {
     @State private var cloneProgress = 0.0
     @State private var customPersonaDraft = ""
     @State private var customPersonaPersistTask: Task<Void, Never>?
+    @State private var hasLoadedCustomPersonaDraft = false
+    @State private var isEditingCustomPersona = false
 
     var body: some View {
         PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("配置监督员语言、人格、音色与克隆样本。", "Configure language, persona, voice, and clone samples.")) {
@@ -2126,6 +2128,10 @@ struct VoicePanel: View {
             }
             .onChange(of: customPersonaDraft) {
                 scheduleCustomPersonaPersist(customPersonaDraft)
+            }
+            .onChange(of: state.customPersonaPrompt) { _, newValue in
+                guard !isEditingCustomPersona, customPersonaDraft != newValue else { return }
+                customPersonaDraft = newValue
             }
             .onChange(of: state.allowProfanity) {
                 state.persist()
@@ -2168,7 +2174,7 @@ struct VoicePanel: View {
                 }
             }
             .onAppear {
-                customPersonaDraft = state.customPersonaPrompt
+                loadCustomPersonaDraftIfNeeded()
                 state.normalizeSupervisorLanguageForCurrentTTS()
                 normalizeCurrentVoiceIfNeeded()
             }
@@ -2250,6 +2256,9 @@ struct VoicePanel: View {
                             TextEditor(text: customPersonaBinding)
                                 .font(.system(size: 13))
                                 .scrollContentBackground(.hidden)
+                                .onTapGesture {
+                                    isEditingCustomPersona = true
+                                }
                                 .frame(width: controlColumnWidth)
                                 .frame(minHeight: 78)
                                 .padding(8)
@@ -2957,8 +2966,17 @@ struct VoicePanel: View {
     private var customPersonaBinding: Binding<String> {
         Binding(
             get: { customPersonaDraft },
-            set: { customPersonaDraft = String($0.prefix(300)) }
+            set: {
+                isEditingCustomPersona = true
+                customPersonaDraft = String($0.prefix(300))
+            }
         )
+    }
+
+    private func loadCustomPersonaDraftIfNeeded() {
+        guard !hasLoadedCustomPersonaDraft else { return }
+        customPersonaDraft = state.customPersonaPrompt
+        hasLoadedCustomPersonaDraft = true
     }
 
     private func scheduleCustomPersonaPersist(_ value: String) {
@@ -2970,6 +2988,7 @@ struct VoicePanel: View {
                 state.customPersonaPrompt = value
                 state.persist()
             }
+            isEditingCustomPersona = false
         }
     }
 
@@ -2980,6 +2999,7 @@ struct VoicePanel: View {
             state.customPersonaPrompt = customPersonaDraft
             state.persist()
         }
+        isEditingCustomPersona = false
     }
 
     private var cloneCardSubtitle: String {
@@ -4692,8 +4712,12 @@ private struct EditableModelComboBox: NSViewRepresentable {
         }
         comboBox.placeholderString = placeholder
         comboBox.numberOfVisibleItems = min(max(suggestions.count, 1), 10)
-        if comboBox.stringValue != text {
+        let isEditing = comboBox.currentEditor() != nil || context.coordinator.isEditingText
+        if !isEditing && comboBox.stringValue != text {
             comboBox.stringValue = text
+        }
+        if isEditing {
+            return
         }
         if let selectedIndex = suggestions.firstIndex(of: text) {
             if comboBox.indexOfSelectedItem != selectedIndex {
@@ -4707,6 +4731,7 @@ private struct EditableModelComboBox: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, NSComboBoxDelegate {
         var parent: EditableModelComboBox
+        var isEditingText = false
 
         init(_ parent: EditableModelComboBox) {
             self.parent = parent
@@ -4714,6 +4739,7 @@ private struct EditableModelComboBox: NSViewRepresentable {
 
         func controlTextDidChange(_ notification: Notification) {
             guard let comboBox = notification.object as? NSComboBox else { return }
+            isEditingText = true
             parent.text = comboBox.stringValue
         }
 
@@ -4730,6 +4756,7 @@ private struct EditableModelComboBox: NSViewRepresentable {
         func controlTextDidEndEditing(_ notification: Notification) {
             guard let comboBox = notification.object as? NSComboBox else { return }
             parent.text = comboBox.stringValue
+            isEditingText = false
         }
 
         private func commitSelection(from comboBox: NSComboBox) {

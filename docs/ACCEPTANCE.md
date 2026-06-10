@@ -35,7 +35,7 @@
 | TTS 本地清理 | Pass | 产品内不再提供本地 TTS 下载、安装、helper 打包或 smoke 入口；本轮 CosyVoice3 本地模型目录、Hugging Face cache 和 helper/cache 已从本机清理 |
 | TTS 本地缓存 | Pass | 仅缓存云端 TTS 返回的音频，按 model、voice、language、text 隔离；早前 Qwen TTS、本轮 CosyVoice3 benchmark/cache 和通用 TTS 音频缓存已清理 |
 | Provider 可配置 | Pass | 设置页中 ASR/LLM/TTS 三类能力可独立配置；ASR 默认展示云端 API，ASR 分段顺序为“云端 API / 本地模型”；旧版本保存过本地 ASR 的用户会一次性迁移回云端 API，之后用户再手动切换本地模型则按用户选择保留；历史配置选择本地 ASR 但模型或 runtime 未就绪时加载归一回云端 API；ASR/LLM/TTS 云端模式为厂商下拉、可编辑模型 ID 和 API Key，厂商选项只显示厂商名；内置厂商的 Base URL、鉴权头、region、语言提示由 adapter 模板自动处理；每类都提供自定义厂商，可填厂商名、Base URL、模型 ID 和 API Key；仅 ASR 提供本地模型下载入口；开始监督、开始时长任务、麦克风对话和 Provider 测试会先校验 ASR/LLM/TTS，未配好时弹窗列出缺失项并引导去 AI 配置 |
-| AI 监工角色 | Pass | 支持学习监督、工作监督、自定义，prompt 已按学习/工作场景注入任务语境，并兼容旧设置迁移；自定义提示词输入使用本地草稿和防抖保存，避免每个字符持久化导致光标回退或丢字 |
+| AI 监工角色 | Pass | 支持学习监督、工作监督、自定义，prompt 已按学习/工作场景注入任务语境，并兼容旧设置迁移；自定义提示词输入使用本地草稿和防抖保存，编辑中不会被页面刷新或状态回灌覆盖，避免光标回退或丢字 |
 | 强制档本地阻断 | Partial | 强制强度下，Hunter 会先弹出抓包卡片并播放包含“我现在就把它关掉”语义的 TTS，播完后网站规则才尝试关闭当前支持浏览器标签页，App 规则才请求退出当前前台 App；仍需 Chrome/Safari 自动化授权后的桌面验收 |
 | 吐槽边界配置 | Pass | 支持允许/禁止粗口和禁用词；prompt 已升级为“识别当前内容 -> 输出现场短句”，中文目标 12-26 字、英文目标 7-14 词；若用户允许粗口，prompt 仍按当前强度约束，主要在凶狠/强制档使用普通脏话增强节目效果；禁用词同时进入 prompt，并对 LLM 输出做本地过滤 |
 | 吐槽播报文本清洗 | Pass | LLM 输出进入 TTS 前会本地移除 URL、域名、长 ID 和符号串，并压缩过长中文吐槽；清洗后为空会回退为短提醒，避免把 B 站 BV 号、网页链接或 query 参数逐字念出来 |

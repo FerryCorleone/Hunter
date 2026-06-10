@@ -1056,6 +1056,7 @@ struct DurationParserTests {
     }
 
     @Test func visibleLabelsFollowInterfaceLanguage() {
+        #expect(RoastIntensity.gentle.label(language: .zhHans) == "温柔")
         #expect(RoastIntensity.forceful.label(language: .english) == "Forceful")
         #expect(RoastPersona.studySupervisor.label(language: .english) == "Study supervisor")
         #expect(RoastPersona.workSupervisor.label(language: .zhHans) == "工作监督")

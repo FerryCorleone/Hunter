@@ -25,6 +25,10 @@ struct ParaformerClient {
             throw ASRError.missingAPIKey
         }
 
+        if isMiMoASREndpoint(endpoint) {
+            return try await transcribeMiMo(audioData, endpoint: endpoint, apiKey: apiKey, languageHint: languageHint)
+        }
+
         if isOpenAITranscriptionEndpoint(endpoint) {
             return try await transcribeOpenAI(audioData, endpoint: endpoint, apiKey: apiKey, languageHint: languageHint)
         }
@@ -75,6 +79,57 @@ struct ParaformerClient {
         }
 
         let clean = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else {
+            throw ASRError.noTranscript
+        }
+        return clean
+    }
+
+    private func transcribeMiMo(
+        _ audioData: Data,
+        endpoint: ProviderEndpoint,
+        apiKey: String,
+        languageHint: String?
+    ) async throws -> String {
+        let audioDataURL = "data:audio/wav;base64,\(audioData.base64EncodedString())"
+        let body: [String: Any] = [
+            "model": endpoint.model,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "input_audio",
+                            "input_audio": [
+                                "data": audioDataURL
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "asr_options": [
+                "language": miMoLanguage(from: languageHint)
+            ]
+        ]
+
+        var request = URLRequest(url: try endpointURL(baseURL: endpoint.baseURL, path: "chat/completions"))
+        request.httpMethod = "POST"
+        request.applyProviderHeaders(endpoint: endpoint, apiKey: apiKey)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 60
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw ASRError.taskFailed(providerErrorSummary(response: response, data: data, operation: "MiMo ASR"))
+        }
+        let decoded: MiMoASRResponse
+        do {
+            decoded = try JSONDecoder().decode(MiMoASRResponse.self, from: data)
+        } catch {
+            throw ASRError.taskFailed("MiMo ASR response decode failed: \(error.localizedDescription)")
+        }
+        let clean = decoded.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !clean.isEmpty else {
             throw ASRError.noTranscript
         }
@@ -200,6 +255,17 @@ struct ParaformerClient {
         return url
     }
 
+    private func isMiMoASREndpoint(_ endpoint: ProviderEndpoint) -> Bool {
+        let provider = endpoint.providerName.lowercased()
+        let baseURL = endpoint.baseURL.lowercased()
+        let model = endpoint.model.lowercased()
+        return provider.contains("mimo")
+            || provider.contains("xiaomi")
+            || endpoint.providerName.contains("小米")
+            || baseURL.contains("xiaomimimo.com")
+            || model == "mimo-v2.5-asr"
+    }
+
     private func isOpenAITranscriptionEndpoint(_ endpoint: ProviderEndpoint) -> Bool {
         let provider = endpoint.providerName.lowercased()
         let baseURL = endpoint.baseURL.lowercased()
@@ -223,6 +289,20 @@ struct ParaformerClient {
             return "en"
         }
         return nil
+    }
+
+    private func miMoLanguage(from languageHint: String?) -> String {
+        let hint = languageHint?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !hint.isEmpty, !hint.contains("mixed"), !hint.contains(",") else {
+            return "auto"
+        }
+        if hint.hasPrefix("zh") || hint.contains("chinese") {
+            return "zh"
+        }
+        if hint.hasPrefix("en") || hint.contains("english") {
+            return "en"
+        }
+        return "auto"
     }
 
     private func appendMultipartField(name: String, value: String, boundary: String, to body: inout Data) {
@@ -296,6 +376,18 @@ private struct ASREvent: Decodable {
 
 private struct OpenAITranscriptionResponse: Decodable {
     let text: String
+}
+
+private struct MiMoASRResponse: Decodable {
+    struct Choice: Decodable {
+        struct Message: Decodable {
+            let content: String
+        }
+
+        let message: Message
+    }
+
+    let choices: [Choice]
 }
 
 private extension Data {

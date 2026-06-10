@@ -3,7 +3,7 @@ import Foundation
 enum RoastPolicy {
     static func safetyBoundary(allowProfanity: Bool, bannedTerms: String) -> String {
         let profanity = allowProfanity
-            ? "The user explicitly opted in to profanity for this self-supervision app. Strong profanity and harsh behavior-directed insults are allowed for fierce or forceful intensity; never use hateful slurs."
+            ? "The user explicitly opted in to profanity for this self-supervision app. Strong profanity and harsh behavior-directed insults are allowed for fierce intensity; never use hateful slurs."
             : "Do not use profanity."
         let banned = parsedBannedTerms(from: bannedTerms)
         let bannedInstruction = banned.isEmpty
@@ -22,9 +22,9 @@ enum RoastPolicy {
                 : "用户已允许粗口，但当前强度不应主动使用脏话，保持克制。"
         }
         if languageCode == "en" {
-            return "For fierce or forceful mode, the user wants harsher profanity. Use one or two strong swear words naturally, e.g. fuck, shit, bullshit, or ass, and make the command rough and memorable. Aim the abuse at the slacking behavior, excuse, or current choice, not identity."
+            return "For fierce mode, the user wants harsher profanity. Use one or two strong swear words naturally, e.g. fuck, shit, bullshit, or ass, and make the command rough and memorable. Aim the abuse at the slacking behavior, excuse, or current choice, not identity."
         }
-        return "凶狠或强制模式下，用户已明确允许粗口；可以更脏、更难听，短句里自然带一到两个强脏话，例如“他妈的”“妈的”“操”“靠”，也可以用粗暴命令句如“别他妈刷了，滚回去干活”。骂摸鱼行为、拖延借口和当下选择，不攻击身份。"
+        return "凶狠模式下，用户已明确允许粗口；可以更脏、更难听，短句里自然带一到两个强脏话，例如“他妈的”“妈的”“操”“靠”，也可以用粗暴命令句如“别他妈刷了，滚回去干活”。骂摸鱼行为、拖延借口和当下选择，不攻击身份。"
     }
 
     static func sanitize(

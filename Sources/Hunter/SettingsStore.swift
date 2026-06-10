@@ -10,6 +10,7 @@ struct SettingsSnapshot: Codable {
     var intensity: RoastIntensity
     var persona: RoastPersona
     var customPersonaPrompt: String
+    var allowForceClose: Bool
     var allowProfanity: Bool
     var bannedTerms: String
     var floatingAvatarPath: String?
@@ -29,6 +30,7 @@ struct SettingsSnapshot: Codable {
         intensity: .serious,
         persona: .workSupervisor,
         customPersonaPrompt: "",
+        allowForceClose: false,
         allowProfanity: false,
         bannedTerms: "",
         floatingAvatarPath: nil,
@@ -49,6 +51,7 @@ struct SettingsSnapshot: Codable {
         case intensity
         case persona
         case customPersonaPrompt
+        case allowForceClose
         case allowProfanity
         case bannedTerms
         case floatingAvatarPath
@@ -69,6 +72,7 @@ struct SettingsSnapshot: Codable {
         intensity: RoastIntensity,
         persona: RoastPersona,
         customPersonaPrompt: String,
+        allowForceClose: Bool,
         allowProfanity: Bool,
         bannedTerms: String,
         floatingAvatarPath: String?,
@@ -87,6 +91,7 @@ struct SettingsSnapshot: Codable {
         self.intensity = intensity
         self.persona = persona
         self.customPersonaPrompt = customPersonaPrompt
+        self.allowForceClose = allowForceClose
         self.allowProfanity = allowProfanity
         self.bannedTerms = bannedTerms
         self.floatingAvatarPath = floatingAvatarPath
@@ -105,7 +110,14 @@ struct SettingsSnapshot: Codable {
         workSchedule = try container.decodeIfPresent(WorkSchedule.self, forKey: .workSchedule) ?? .default
         interfaceLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .interfaceLanguage) ?? .zhHans
         aiLanguage = try container.decodeIfPresent(SupervisorLanguage.self, forKey: .aiLanguage) ?? .zhHans
-        intensity = try container.decodeIfPresent(RoastIntensity.self, forKey: .intensity) ?? .serious
+        let decodedIntensity = try container.decodeIfPresent(RoastIntensity.self, forKey: .intensity) ?? .serious
+        if decodedIntensity == .forceful {
+            intensity = .fierce
+            allowForceClose = try container.decodeIfPresent(Bool.self, forKey: .allowForceClose) ?? true
+        } else {
+            intensity = decodedIntensity
+            allowForceClose = try container.decodeIfPresent(Bool.self, forKey: .allowForceClose) ?? false
+        }
         persona = try container.decodeIfPresent(RoastPersona.self, forKey: .persona) ?? .workSupervisor
         customPersonaPrompt = try container.decodeIfPresent(String.self, forKey: .customPersonaPrompt) ?? ""
         allowProfanity = try container.decodeIfPresent(Bool.self, forKey: .allowProfanity) ?? false

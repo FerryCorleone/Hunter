@@ -8,6 +8,7 @@ enum VoiceControlCommand: Equatable {
     case setVoice(VoiceControlVoicePreference)
     case setInterfaceLanguage(AppLanguage)
     case setSupervisorLanguage(SupervisorLanguage)
+    case setForceClose(Bool)
     case setProfanity(Bool)
     case setWidgetVisible(Bool)
 
@@ -27,6 +28,8 @@ enum VoiceControlCommand: Equatable {
             return "set_interface_language.\(language.rawValue)"
         case .setSupervisorLanguage(let language):
             return "set_supervisor_language.\(language.rawValue)"
+        case .setForceClose(let enabled):
+            return "set_force_close.\(enabled)"
         case .setProfanity(let enabled):
             return "set_profanity.\(enabled)"
         case .setWidgetVisible(let visible):
@@ -59,6 +62,7 @@ struct VoiceControlAgentContext: Equatable {
     var supervisorLanguage: SupervisorLanguage
     var intensity: RoastIntensity
     var persona: RoastPersona
+    var allowForceClose: Bool
     var currentVoice: String
     var availableVoiceIDs: [String]
     var availableSupervisorLanguages: [SupervisorLanguage]
@@ -71,6 +75,7 @@ struct VoiceControlAgentContext: Equatable {
         supervisorLanguage = state.aiLanguage
         intensity = state.intensity
         persona = state.persona
+        allowForceClose = state.allowForceClose
         currentVoice = state.providers.voice
         availableVoiceIDs = Self.availableVoiceIDs(settings: state.providers)
         availableSupervisorLanguages = state.supervisorLanguageOptions()
@@ -83,6 +88,7 @@ struct VoiceControlAgentContext: Equatable {
         supervisorLanguage = snapshot.aiLanguage
         intensity = snapshot.intensity
         persona = snapshot.persona
+        allowForceClose = snapshot.allowForceClose
         currentVoice = snapshot.providers.voice
         availableVoiceIDs = Self.availableVoiceIDs(settings: snapshot.providers)
         availableSupervisorLanguages = SupervisorLanguage.supportedOptions(for: snapshot.providers.tts)
@@ -97,6 +103,7 @@ struct VoiceControlAgentContext: Equatable {
         - supervisor_language: \(supervisorLanguage.rawValue)
         - intensity: \(intensity.rawValue)
         - persona: \(persona.rawValue)
+        - force_close_allowed: \(allowForceClose)
         - current_voice: \(currentVoice)
         - available_voice_ids: \(availableVoiceIDs.joined(separator: ", "))
         - available_supervisor_languages: \(availableSupervisorLanguages.map(\.rawValue).joined(separator: ", "))
@@ -173,6 +180,8 @@ struct VoiceControlAgentDecision: Decodable, Equatable {
             return normalizedValue.flatMap(AppLanguage.voiceControlValue).map(VoiceControlCommand.setInterfaceLanguage)
         case "set_supervisor_language":
             return normalizedValue.flatMap(SupervisorLanguage.voiceControlValue).map(VoiceControlCommand.setSupervisorLanguage)
+        case "set_force_close":
+            return normalizedValue.flatMap(Self.boolValue).map(VoiceControlCommand.setForceClose)
         case "set_profanity":
             return normalizedValue.flatMap(Self.boolValue).map(VoiceControlCommand.setProfanity)
         case "set_widget_visible":
@@ -402,6 +411,9 @@ struct VoiceControlParser {
         if let command = parseVoice(normalized) {
             return command
         }
+        if let command = parseForceClose(normalized) {
+            return command
+        }
         if let command = parseIntensity(normalized) {
             return command
         }
@@ -473,18 +485,12 @@ struct VoiceControlParser {
     }
 
     private func parseIntensity(_ text: String) -> VoiceControlCommand? {
-        let directIntensityTerms = ["鼓励型", "鼓励一点", "温柔一点", "凶狠一点", "严厉一点", "强制模式", "gentle", "encouraging", "fierce", "forceful"]
+        let directIntensityTerms = ["鼓励型", "鼓励一点", "温柔一点", "凶狠一点", "严厉一点", "gentle", "encouraging", "fierce"]
         if !containsAny(directIntensityTerms, in: text) {
             let intensityTerms = ["强度", "风格", "语气", "模式", "吐槽", "roast", "intensity", "tone", "style", "mode"]
             guard containsAny(intensityTerms, in: text) else { return nil }
         }
 
-        if containsAny(["不要强制", "取消强制", "关闭强制", "别强制"], in: text) {
-            return .setIntensity(.serious)
-        }
-        if containsAny(["强制", "强制模式", "forceful", "force mode"], in: text) {
-            return .setIntensity(.forceful)
-        }
         if containsAny(["凶狠", "凶一点", "狠一点", "严厉", "严格", "暴躁", "savage", "fierce", "strict", "harsh"], in: text) {
             return .setIntensity(.fierce)
         }
@@ -496,6 +502,16 @@ struct VoiceControlParser {
         }
         if containsAny(["正经", "认真", "严肃", "serious"], in: text) {
             return .setIntensity(.serious)
+        }
+        return nil
+    }
+
+    private func parseForceClose(_ text: String) -> VoiceControlCommand? {
+        if containsAny(["不要强制关闭", "取消强制关闭", "关闭强制关闭", "别强制关闭", "不要强制", "取消强制", "关闭强制", "别强制", "disable force close", "force close off"], in: text) {
+            return .setForceClose(false)
+        }
+        if containsAny(["允许强制关闭", "开启强制关闭", "打开强制关闭", "可以强制关闭", "强制关闭", "强制模式", "force close", "forceful mode"], in: text) {
+            return .setForceClose(true)
         }
         return nil
     }
@@ -698,6 +714,12 @@ final class VoiceControlExecutor {
             return VoiceControlExecutionResult(success: true, message: message)
         case .setSupervisorLanguage(let language):
             return executeSupervisorLanguage(language)
+        case .setForceClose(let enabled):
+            state.allowForceClose = enabled
+            state.persist()
+            let message = enabled ? state.copy("已允许强制关闭", "Force close enabled") : state.copy("已关闭强制关闭", "Force close disabled")
+            setStatus(message)
+            return VoiceControlExecutionResult(success: true, message: message)
         case .setProfanity(let enabled):
             state.allowProfanity = enabled
             state.persist()
@@ -836,7 +858,7 @@ private extension RoastIntensity {
         case "fierce", "strict", "harsh", "savage", "凶狠", "严厉", "严格", "暴躁":
             return .fierce
         case "forceful", "force", "强制", "强制模式":
-            return .forceful
+            return .fierce
         default:
             return nil
         }

@@ -35,6 +35,7 @@ final class AppState: ObservableObject {
     @Published var intensity: RoastIntensity = .serious
     @Published var persona: RoastPersona = .workSupervisor
     @Published var customPersonaPrompt: String = ""
+    @Published var allowForceClose: Bool = false
     @Published var allowProfanity: Bool = false
     @Published var bannedTerms: String = ""
     @Published var floatingAvatarPath: String?
@@ -85,6 +86,7 @@ final class AppState: ObservableObject {
         intensity = snapshot.intensity
         persona = snapshot.persona
         customPersonaPrompt = snapshot.customPersonaPrompt
+        allowForceClose = snapshot.allowForceClose
         allowProfanity = snapshot.allowProfanity
         bannedTerms = snapshot.bannedTerms
         floatingAvatarPath = snapshot.floatingAvatarPath
@@ -115,6 +117,7 @@ final class AppState: ObservableObject {
             intensity: intensity,
             persona: persona,
             customPersonaPrompt: customPersonaPrompt,
+            allowForceClose: allowForceClose,
             allowProfanity: allowProfanity,
             bannedTerms: bannedTerms,
             floatingAvatarPath: floatingAvatarPath,

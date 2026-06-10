@@ -108,8 +108,8 @@ Acceptance Criteria:
 - 命中黑名单后生成一条 10-25 秒内可播完的吐槽。
 - 每次吐槽包含命中对象、当前工作状态和角色语气。
 - 悬浮球头像固定为圆形裁切，支持用户上传自定义头像并恢复默认头像，不允许头像超出圆环，也不允许出现方形或半透明底板。
-- 支持吐槽强度：温柔、鼓励、正经、凶狠、强制。
-- 强制档命中后仍先走正常抓包体验：LLM 文案末尾必须包含“我现在就把它关掉”语义，TTS 播放完成后才关闭当前浏览器标签页或对当前前台 App 发起 macOS 正常退出请求。该行为必须依赖用户主动开启监督或时长任务，不做后台远程控制、系统级断网或不可恢复强杀。
+- 支持吐槽强度：温柔、鼓励、正经、凶狠。
+- 用户可在“人格设定”里单独开启“允许强制关闭”。开启后命中仍先走正常抓包体验：LLM 文案末尾必须包含“我现在就把它关掉”语义，TTS 播放完成后才关闭当前浏览器标签页或对当前前台 App 发起 macOS 正常退出请求。该行为不依赖吐槽强度，但必须依赖用户主动开启监督或时长任务，不做后台远程控制、系统级断网或不可恢复强杀。
 - 同一抓包上下文内不重复生成多条语音；用户离开后再次进入黑名单目标才触发下一次抓包。
 
 **Story 4：语音对喷**  
@@ -323,11 +323,11 @@ AI 页面不得出现“基础配置”或跨模型联动配置。ASR、LLM、TT
    - Behavior：Roast Language 控制 LLM output language and TTS language hint；模型返回明显错误语言时本地兜底。
 
 2. **Persona Row**
-   - Elements：Persona picker、custom persona prompt textarea（仅选择“自定义”时展示）、Intensity picker、Allow Profanity toggle、Banned Terms text field。
-   - Dynamic fields：`persona`、`customPersonaPrompt`、`intensity`、`allowProfanity`、`bannedTerms`。
+   - Elements：Persona picker、custom persona prompt textarea（仅选择“自定义”时展示）、Intensity picker、Allow Force Close toggle、Allow Profanity toggle、Banned Terms text field。
+   - Dynamic fields：`persona`、`customPersonaPrompt`、`intensity`、`allowForceClose`、`allowProfanity`、`bannedTerms`。
    - Validation：custom persona prompt 最多 300 字，只进入 LLM system/persona prompt，不进入 TTS 配置；TTS 只负责用当前音色朗读 LLM 生成文本。
    - Persona options：学习监督、工作监督、自定义。
-   - Intensity options：温柔、鼓励、正经、凶狠、强制；强制档在抓包播报完成后额外触发本地关闭动作。
+   - Intensity options：温柔、鼓励、正经、凶狠；“允许强制关闭”作为独立开关，在抓包播报完成后额外触发本地关闭动作。
 
 3. **Voice Row**
    - Elements：TTS Voice picker、output volume slider、available voices refresh、Voice Preview button、visible preview status。
@@ -418,7 +418,7 @@ AI 页面不得出现“基础配置”或跨模型联动配置。ASR、LLM、TT
 - 不做老板/管理员远程监控员工。
 - 不做隐身后台采集或不可关闭监控。
 - MVP 不做跨设备同步、团队排行、远程管理后台。
-- MVP 不做强制断网、不可恢复强杀、系统级拦截、老板/管理员远程控制。仅当用户主动选择“强制”强度并开启监督时，Hunter 可以在抓包播报完成后关闭当前命中的浏览器标签页，或对当前前台黑名单 App 发起正常退出请求。
+- MVP 不做强制断网、不可恢复强杀、系统级拦截、老板/管理员远程控制。仅当用户主动开启“允许强制关闭”并开启监督时，Hunter 可以在抓包播报完成后关闭当前命中的浏览器标签页，或对当前前台黑名单 App 发起正常退出请求。
 - MVP 不做公开视频自动生成，只提供适合录屏的 UI 和日志。
 - MVP 不内置任何云端 API Key，也不提供代付模型额度。
 
@@ -439,7 +439,7 @@ LLM 输入最少包含：
 - 命中对象：App 名称、URL 域名或规则名。
 - 页面上下文：完整浏览器标签标题、URL host；完整网页标题作为 LLM 判断当前内容的关键上下文保留，但不得被原样照读进播报文本。
 - 当前阶段：首次抓包、连续摸鱼、用户反驳。
-- 用户配置：吐槽强度、角色、禁用词、是否允许粗口、输出语言。角色为学习监督、工作监督或自定义；学习监督会把分心与复习、练习、作业、考试和记忆进度关联，工作监督会把分心与任务交付、截止时间、工作节奏和产出质量关联；强度为温柔、鼓励、正经、凶狠、强制。鼓励模式是陪伴式正向引导，不强调抓包、不点名分心 App/网站，重点是鼓励用户坚持完成任务、避免继续分心；凶狠/强制模式在用户允许粗口后可以使用更强、更脏、更命令式的脏话，火力集中在摸鱼行为、拖延借口和当下选择上，并禁止仇恨辱骂、真实威胁和受保护属性攻击。
+- 用户配置：吐槽强度、角色、禁用词、是否允许强制关闭、是否允许粗口、输出语言。角色为学习监督、工作监督或自定义；学习监督会把分心与复习、练习、作业、考试和记忆进度关联，工作监督会把分心与任务交付、截止时间、工作节奏和产出质量关联；强度为温柔、鼓励、正经、凶狠。鼓励模式是陪伴式正向引导，不强调抓包、不点名分心 App/网站，重点是鼓励用户坚持完成任务、避免继续分心；凶狠模式在用户允许粗口后可以使用更强、更脏、更命令式的脏话，火力集中在摸鱼行为、拖延借口和当下选择上，并禁止仇恨辱骂、真实威胁和受保护属性攻击。
 - Provider 能力：模型名称、语言支持、TTS 音色语言、方言/口音风格支持、是否支持流式。
 - 安全边界：不攻击受保护属性，不鼓励自伤，不输出真实威胁。
 

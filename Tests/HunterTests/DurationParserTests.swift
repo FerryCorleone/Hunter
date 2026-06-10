@@ -719,7 +719,9 @@ struct DurationParserTests {
         #expect(parser.parse("开始监督") == .setMonitoring(true))
         #expect(parser.parse("改成鼓励型") == .setIntensity(.encouraging))
         #expect(parser.parse("把风格改成鼓励型") == .setIntensity(.encouraging))
-        #expect(parser.parse("严厉一点，改成强制模式") == .setIntensity(.forceful))
+        #expect(parser.parse("严厉一点") == .setIntensity(.fierce))
+        #expect(parser.parse("允许强制关闭") == .setForceClose(true))
+        #expect(parser.parse("不要强制关闭") == .setForceClose(false))
         #expect(parser.parse("换一个女生音色") == .setVoice(.feminine))
         #expect(parser.parse("换成 Milo 男声") == .setVoice(.exact("Milo")))
         #expect(parser.parse("把界面语言改成 English") == .setInterfaceLanguage(.english))
@@ -743,6 +745,10 @@ struct DurationParserTests {
         #expect(
             VoiceControlAgentDecision(command: "set_voice", value: "female", minutes: nil, confidence: 0.88)
                 .resolvedCommand(context: context) == .setVoice(.feminine)
+        )
+        #expect(
+            VoiceControlAgentDecision(command: "set_force_close", value: "true", minutes: nil, confidence: 0.88)
+                .resolvedCommand(context: context) == .setForceClose(true)
         )
         #expect(
             VoiceControlAgentDecision(command: "start_focus", value: nil, minutes: 25, confidence: 0.91)
@@ -782,6 +788,15 @@ struct DurationParserTests {
                 spoken: "25 分钟监督开始。"
             )
             .resolvedCommand(context: context) == .focus(.start(TimeInterval(25 * 60)))
+        )
+        #expect(
+            VoiceAgentDecision(
+                type: "tool_call",
+                tool: "set_force_close",
+                args: VoiceAgentToolArguments(enabled: true),
+                spoken: "已允许强制关闭。"
+            )
+            .resolvedCommand(context: context) == .setForceClose(true)
         )
         #expect(
             VoiceAgentDecision(
@@ -847,6 +862,9 @@ struct DurationParserTests {
         #expect(state.intensity == .encouraging)
 
         #expect(executor.execute(.setIntensity(.encouraging)).message == "已经是 鼓励 模式")
+
+        #expect(executor.handle("允许强制关闭"))
+        #expect(state.allowForceClose)
 
         #expect(executor.handle("换一个女生音色"))
         #expect(state.providers.voice == "冰糖")
@@ -981,7 +999,7 @@ struct DurationParserTests {
 
     @Test func roastPolicyProfanityOptInUsesStrongerTestInstruction() {
         let instruction = RoastPolicy.profanityStyleInstruction(allowProfanity: true, languageCode: "zh")
-        #expect(instruction.contains("凶狠或强制"))
+        #expect(instruction.contains("凶狠模式"))
         #expect(instruction.contains("他妈的"))
         #expect(instruction.contains("更脏"))
         #expect(instruction.contains("滚回去干活"))
@@ -1061,8 +1079,7 @@ struct DurationParserTests {
         #expect(RoastPersona.studySupervisor.label(language: .english) == "Study supervisor")
         #expect(RoastPersona.workSupervisor.label(language: .zhHans) == "工作监督")
         #expect(RoastPersona.allCases == [.studySupervisor, .workSupervisor, .custom])
-        #expect(RoastIntensity.forceful.shouldCloseMatchedTarget)
-        #expect(!RoastIntensity.fierce.shouldCloseMatchedTarget)
+        #expect(RoastIntensity.selectableCases == [.gentle, .encouraging, .serious, .fierce])
         #expect(PermissionState.allowed.label(language: .zhHans, optional: true) == "已允许")
         #expect(PermissionState.denied.label(language: .zhHans, optional: true) == "未开启")
         #expect(PermissionState.notDetermined.label(language: .english, optional: true) == "Off")
@@ -1078,6 +1095,10 @@ struct DurationParserTests {
         #expect(oldIntensity == .fierce)
         #expect(oldWorkPersona == .workSupervisor)
         #expect(oldStudyPersona == .studySupervisor)
+
+        let oldForcefulSettings = try JSONDecoder.hunter.decode(SettingsSnapshot.self, from: Data(#"{"intensity":"forceful"}"#.utf8))
+        #expect(oldForcefulSettings.intensity == .fierce)
+        #expect(oldForcefulSettings.allowForceClose)
     }
 
     @Test func personaPromptsAreSceneSpecific() {

@@ -40,7 +40,7 @@ final class IncidentController {
         }
 
         let fallback = fallbackRoast(rule: rule, context: context)
-        let shouldCloseMatchedTarget = state.intensity.shouldCloseMatchedTarget
+        let shouldForceCloseMatchedTarget = state.allowForceClose
         let targetLanguageCode = state.targetLanguageCode()
         state.currentIncident = nil
         state.voiceInteractionStatus = nil
@@ -72,7 +72,7 @@ final class IncidentController {
                     }
                     return
                 }
-                let spokenRoast = forcefulClosingLineAppended(to: roast, shouldCloseMatchedTarget: shouldCloseMatchedTarget, languageCode: targetLanguageCode)
+                let spokenRoast = forceCloseLineAppended(to: roast, shouldForceCloseMatchedTarget: shouldForceCloseMatchedTarget, languageCode: targetLanguageCode)
                 let readyIncident = pendingIncident.withInitialHunterTurn(spokenRoast)
                 await MainActor.run {
                     state.providerStatus = state.copy(
@@ -83,7 +83,7 @@ final class IncidentController {
                 let played = await synthesizeAndPlay(text: spokenRoast, target: pendingIncident.targetName, statusPrefix: state.copy("LLM", "LLM"), revealIncident: readyIncident)
                 markRepeatCooldownStarted()
                 if played {
-                    enforceMatchedTargetIfNeeded(rule: rule, context: context, shouldCloseMatchedTarget: shouldCloseMatchedTarget)
+                    enforceMatchedTargetIfNeeded(rule: rule, context: context, shouldForceCloseMatchedTarget: shouldForceCloseMatchedTarget)
                 }
             } catch {
                 guard state.isMonitoring else {
@@ -92,7 +92,7 @@ final class IncidentController {
                     }
                     return
                 }
-                let spokenFallback = forcefulClosingLineAppended(to: fallback, shouldCloseMatchedTarget: shouldCloseMatchedTarget, languageCode: targetLanguageCode)
+                let spokenFallback = forceCloseLineAppended(to: fallback, shouldForceCloseMatchedTarget: shouldForceCloseMatchedTarget, languageCode: targetLanguageCode)
                 let fallbackIncident = pendingIncident.withInitialHunterTurn(spokenFallback)
                 await MainActor.run {
                     state.providerStatus = state.copy(
@@ -103,7 +103,7 @@ final class IncidentController {
                 let played = await synthesizeAndPlay(text: spokenFallback, target: pendingIncident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"), revealIncident: fallbackIncident)
                 markRepeatCooldownStarted()
                 if played {
-                    enforceMatchedTargetIfNeeded(rule: rule, context: context, shouldCloseMatchedTarget: shouldCloseMatchedTarget)
+                    enforceMatchedTargetIfNeeded(rule: rule, context: context, shouldForceCloseMatchedTarget: shouldForceCloseMatchedTarget)
                 }
             }
         }
@@ -302,8 +302,8 @@ final class IncidentController {
         state.currentIncident == nil && !state.voiceActivity.isBusy
     }
 
-    private func enforceMatchedTargetIfNeeded(rule: BlacklistRule, context: FrontmostContext, shouldCloseMatchedTarget: Bool) {
-        guard shouldCloseMatchedTarget else { return }
+    private func enforceMatchedTargetIfNeeded(rule: BlacklistRule, context: FrontmostContext, shouldForceCloseMatchedTarget: Bool) {
+        guard shouldForceCloseMatchedTarget else { return }
         TTSDiagnostics.record("FORCEFUL_CLOSE_ATTEMPT kind=\(rule.kind.rawValue) target=\(rule.name) app=\(context.appName) url=\(context.url ?? "")")
         let result = targetCloser.close(rule: rule, context: context)
         TTSDiagnostics.record("FORCEFUL_CLOSE_RESULT action=\(result.isAction) \(result.diagnosticDescription)")
@@ -311,8 +311,8 @@ final class IncidentController {
         state.providerStatus = result.message(language: state.interfaceLanguage)
     }
 
-    private func forcefulClosingLineAppended(to text: String, shouldCloseMatchedTarget: Bool, languageCode: String) -> String {
-        guard shouldCloseMatchedTarget else { return text }
+    private func forceCloseLineAppended(to text: String, shouldForceCloseMatchedTarget: Bool, languageCode: String) -> String {
+        guard shouldForceCloseMatchedTarget else { return text }
         let closingLine = languageCode == "en"
             ? "I'm closing it now."
             : "我现在就把它关掉。"

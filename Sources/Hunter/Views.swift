@@ -43,6 +43,103 @@ enum FloatingOverlayLayout {
     }
 }
 
+struct StableMultilineTextView: NSViewRepresentable {
+    @Binding var text: String
+    var maxLength: Int?
+    var font: NSFont = .systemFont(ofSize: 13)
+    var onEditingChanged: ((Bool) -> Void)?
+    var onCommit: (() -> Void)?
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+
+        let textView = NSTextView()
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.allowsUndo = true
+        textView.drawsBackground = false
+        textView.backgroundColor = .clear
+        textView.font = font
+        textView.textContainerInset = .zero
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.textContainer?.widthTracksTextView = true
+        textView.isHorizontallyResizable = false
+        textView.isVerticallyResizable = true
+        textView.autoresizingMask = [.width]
+        textView.string = text
+
+        scrollView.documentView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        context.coordinator.parent = self
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+        textView.font = font
+        textView.textContainer?.widthTracksTextView = true
+
+        guard !context.coordinator.isEditing, !textView.hasMarkedText(), textView.string != text else {
+            return
+        }
+        textView.string = text
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: StableMultilineTextView
+        var isEditing = false
+
+        init(parent: StableMultilineTextView) {
+            self.parent = parent
+        }
+
+        func textDidBeginEditing(_ notification: Notification) {
+            isEditing = true
+            parent.onEditingChanged?(true)
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            guard !textView.hasMarkedText() else { return }
+            commit(textView)
+        }
+
+        func textDidEndEditing(_ notification: Notification) {
+            if let textView = notification.object as? NSTextView {
+                commit(textView)
+            }
+            isEditing = false
+            parent.onEditingChanged?(false)
+            parent.onCommit?()
+        }
+
+        private func commit(_ textView: NSTextView) {
+            let committed = limited(textView.string)
+            if committed != textView.string {
+                textView.string = committed
+            }
+            if parent.text != committed {
+                parent.text = committed
+            }
+        }
+
+        private func limited(_ value: String) -> String {
+            guard let maxLength = parent.maxLength, value.count > maxLength else { return value }
+            return String(value.prefix(maxLength))
+        }
+    }
+}
+
 struct FloatingOverlayView: View {
     @ObservedObject var state: AppState
     let onReplyPressChanged: (Bool) -> Void
@@ -2081,7 +2178,7 @@ struct VoicePanel: View {
     @State private var designVoiceNameValidationMessage = ""
     @State private var designPromptValidationMessage = ""
     @State private var isDesigningVoice = false
-    @FocusState private var isDesignPromptFocused: Bool
+    @State private var isDesignPromptEditing = false
     @State private var voicePreviewPlayer: SpeechPlayer?
     @State private var cloneAuthorization = false
     @State private var cloneName = ""
@@ -2099,6 +2196,7 @@ struct VoicePanel: View {
     @State private var customPersonaPersistTask: Task<Void, Never>?
     @State private var hasLoadedCustomPersonaDraft = false
     @State private var isEditingCustomPersona = false
+    @State private var isEditingBannedTerms = false
 
     var body: some View {
         PanelContainer(title: state.copy("声音", "Voice"), subtitle: state.copy("配置监督员语言、人格、音色与克隆样本。", "Configure language, persona, voice, and clone samples.")) {
@@ -2120,6 +2218,9 @@ struct VoicePanel: View {
                 state.persist()
             }
             .onChange(of: state.intensity) {
+                state.persist()
+            }
+            .onChange(of: state.allowForceClose) {
                 state.persist()
             }
             .onChange(of: state.persona) {
@@ -2159,19 +2260,13 @@ struct VoicePanel: View {
                 state.persist()
             }
             .onChange(of: designVoiceName) {
-                if !designVoiceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    designVoiceNameValidationMessage = ""
-                }
+                clearDesignVoiceNameValidationIfNeeded()
             }
             .onChange(of: designVoicePrompt) {
-                if !designVoicePrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    designPromptValidationMessage = ""
-                }
+                clearDesignPromptValidationIfNeeded()
             }
             .onChange(of: cloneName) {
-                if !cloneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    cloneNameValidationMessage = ""
-                }
+                clearCloneNameValidationIfNeeded()
             }
             .onAppear {
                 loadCustomPersonaDraftIfNeeded()
@@ -2179,9 +2274,7 @@ struct VoicePanel: View {
                 normalizeCurrentVoiceIfNeeded()
             }
             .onDisappear {
-                commitCustomPersonaDraft()
-                customPersonaPersistTask?.cancel()
-                customPersonaPersistTask = nil
+                finishVoicePanelEditing()
             }
         }
     }
@@ -2253,12 +2346,16 @@ struct VoicePanel: View {
 
                     settingsRow(state.copy("提示词", "Prompt")) {
                         VStack(alignment: .leading, spacing: 6) {
-                            TextEditor(text: customPersonaBinding)
-                                .font(.system(size: 13))
-                                .scrollContentBackground(.hidden)
-                                .onTapGesture {
-                                    isEditingCustomPersona = true
+                            StableMultilineTextView(
+                                text: customPersonaBinding,
+                                maxLength: 300,
+                                onEditingChanged: { isEditing in
+                                    isEditingCustomPersona = isEditing
+                                },
+                                onCommit: {
+                                    commitCustomPersonaDraft()
                                 }
+                            )
                                 .frame(width: controlColumnWidth)
                                 .frame(minHeight: 78)
                                 .padding(8)
@@ -2278,7 +2375,7 @@ struct VoicePanel: View {
                     HStack {
                         Spacer(minLength: 0)
                         Picker("", selection: $state.intensity) {
-                            ForEach(RoastIntensity.allCases) { intensity in
+                            ForEach(RoastIntensity.selectableCases) { intensity in
                                 Text(intensity.label(language: state.interfaceLanguage)).tag(intensity)
                             }
                         }
@@ -2287,6 +2384,16 @@ struct VoicePanel: View {
                         .fixedSize()
                     }
                     .frame(width: controlColumnWidth, alignment: .trailing)
+                }
+
+                Divider()
+
+                settingsRow(state.copy("允许强制关闭", "Force close")) {
+                    Toggle("", isOn: $state.allowForceClose)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .tint(HunterUI.accent)
+                        .environment(\.controlActiveState, .active)
                 }
 
                 Divider()
@@ -2302,9 +2409,27 @@ struct VoicePanel: View {
                 Divider()
 
                 settingsRow(state.copy("禁用词", "Banned terms")) {
-                    TextField(state.copy("用逗号或换行分隔", "Comma or newline separated"), text: $state.bannedTerms, axis: .vertical)
-                        .lineLimit(1...3)
-                        .textFieldStyle(.roundedBorder)
+                    StableMultilineTextView(
+                        text: $state.bannedTerms,
+                        onEditingChanged: { isEditing in
+                            isEditingBannedTerms = isEditing
+                        }
+                    )
+                        .frame(width: controlColumnWidth)
+                        .frame(minHeight: 44)
+                        .padding(8)
+                        .background(HunterUI.surfaceSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(HunterUI.lineSoft))
+                        .overlay(alignment: .topLeading) {
+                            if state.bannedTerms.isEmpty && !isEditingBannedTerms {
+                                Text(state.copy("用逗号或换行分隔", "Comma or newline separated"))
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(HunterUI.secondaryText.opacity(0.72))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 15)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                         .frame(width: controlColumnWidth)
                 }
             }
@@ -2651,10 +2776,12 @@ struct VoicePanel: View {
                     settingsRow(state.copy("声音描述", "Voice prompt")) {
                         VStack(alignment: .leading, spacing: 6) {
                             ZStack(alignment: .topLeading) {
-                                TextEditor(text: $designVoicePrompt)
-                                    .font(.system(size: 13))
-                                    .scrollContentBackground(.hidden)
-                                    .focused($isDesignPromptFocused)
+                                StableMultilineTextView(
+                                    text: $designVoicePrompt,
+                                    onEditingChanged: { isEditing in
+                                        isDesignPromptEditing = isEditing
+                                    }
+                                )
                                     .frame(minHeight: 92)
                                     .padding(8)
                                     .background(HunterUI.surfaceSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -2662,7 +2789,7 @@ struct VoicePanel: View {
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                                             .stroke(designPromptValidationMessage.isEmpty ? HunterUI.lineSoft : HunterUI.danger, lineWidth: designPromptValidationMessage.isEmpty ? 1 : 1.4)
                                     )
-                                if designVoicePrompt.isEmpty && !isDesignPromptFocused {
+                                if designVoicePrompt.isEmpty && !isDesignPromptEditing {
                                     Text(voiceDesignPromptPlaceholder)
                                         .font(.system(size: 13))
                                         .foregroundStyle(HunterUI.secondaryText.opacity(0.72))
@@ -3000,6 +3127,30 @@ struct VoicePanel: View {
             state.persist()
         }
         isEditingCustomPersona = false
+    }
+
+    private func finishVoicePanelEditing() {
+        commitCustomPersonaDraft()
+        customPersonaPersistTask?.cancel()
+        customPersonaPersistTask = nil
+    }
+
+    private func clearDesignPromptValidationIfNeeded() {
+        if !designVoicePrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            designPromptValidationMessage = ""
+        }
+    }
+
+    private func clearDesignVoiceNameValidationIfNeeded() {
+        if !designVoiceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            designVoiceNameValidationMessage = ""
+        }
+    }
+
+    private func clearCloneNameValidationIfNeeded() {
+        if !cloneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            cloneNameValidationMessage = ""
+        }
     }
 
     private var cloneCardSubtitle: String {

@@ -123,6 +123,8 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
+    static let selectableCases: [RoastIntensity] = [.gentle, .encouraging, .serious, .fierce]
+
     var label: String {
         switch self {
         case .gentle: "温柔"
@@ -144,10 +146,6 @@ enum RoastIntensity: String, CaseIterable, Codable, Identifiable {
         case .fierce: "Fierce"
         case .forceful: "Forceful"
         }
-    }
-
-    var shouldCloseMatchedTarget: Bool {
-        self == .forceful
     }
 
     init(from decoder: Decoder) throws {

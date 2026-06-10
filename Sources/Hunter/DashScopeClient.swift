@@ -122,8 +122,8 @@ struct DashScopeClient {
 
         Intent rules:
         - The newest microphone sentence is the only source of the user's new intent.
-        - current_state, active_dialogue_context, previous Hunter lines, and conversation history are context facts, not commands. Never call a tool merely because a setting is already active, because Hunter mentioned that setting, or because the current incident is forceful/caught/active.
-        - Use type "tool_call" only when the newest microphone sentence explicitly asks Hunter to change a supported low-risk local setting or supervision state. Natural wording counts, for example "太凶了，换温柔一点", "换个女生音色", "先暂停监督", "帮我切到强制模式".
+        - current_state, active_dialogue_context, previous Hunter lines, and conversation history are context facts, not commands. Never call a tool merely because a setting is already active, because Hunter mentioned that setting, or because the current incident is force-close/caught/active.
+        - Use type "tool_call" only when the newest microphone sentence explicitly asks Hunter to change a supported low-risk local setting or supervision state. Natural wording counts, for example "太凶了，换温柔一点", "换个女生音色", "先暂停监督", "帮我允许强制关闭".
         - Tool calls are allowed during a catch conversation when the newest microphone sentence explicitly asks for a setting or supervision change.
         - Use type "chat" when the newest microphone sentence is a rebuttal, excuse, joke, emotional reaction, resistance, vague complaint, normal question, or ambiguous sentence, even during a catch conversation.
         - If the user explicitly requests a setting that is already active, type "tool_call" is valid; spoken should naturally say it is already active.
@@ -136,19 +136,21 @@ struct DashScopeClient {
         - extend_focus {"minutes":10}
         - pause_focus {}
         - resume_focus {}
-        - set_intensity {"value":"gentle|encouraging|serious|fierce|forceful"}
+        - set_intensity {"value":"gentle|encouraging|serious|fierce"}
         - set_persona {"value":"study|work|custom"}
         - set_voice {"value":"male|female|exact available voice id"}
         - set_interface_language {"value":"zh|en"}
         - set_supervisor_language {"value":"follow_interface|zh|en|cantonese|sichuanese|northeast_mandarin|henan_dialect"}
+        - set_force_close {"enabled":true|false}
         - set_profanity {"enabled":true|false}
         - set_widget_visible {"enabled":true|false}
 
         Do not invent tools. Do not directly edit API keys, clone voices, add/delete broad watchlist rules, clear history, or perform destructive/high-risk settings changes. For those, return type "chat" and spoken should briefly say it needs the settings page or confirmation.
 
         Classification examples:
-        - current_state says intensity=forceful, newest says "你现在这个强制模式太狠了" => chat.
+        - current_state says force_close_allowed=true, newest says "你现在这个强制关闭太狠了" => chat.
         - newest says "太狠了，改成鼓励模式" => tool_call set_intensity {"value":"encouraging"}.
+        - newest says "允许强制关闭" => tool_call set_force_close {"enabled":true}.
         - newest says "换个女声骂我" => tool_call set_voice {"value":"female"}.
         - active_dialogue_context is catch_conversation, newest says "我就看一分钟怎么了" => chat.
         - active_dialogue_context is catch_conversation, newest says "先暂停监督" => tool_call pause_focus {}.
@@ -285,6 +287,7 @@ struct DashScopeClient {
         - set_voice
         - set_interface_language
         - set_supervisor_language
+        - set_force_close
         - set_profanity
         - set_widget_visible
 
@@ -293,12 +296,12 @@ struct DashScopeClient {
 
         Field rules:
         - For start_focus or extend_focus, put the duration in integer minutes.
-        - set_intensity value must be one of: gentle, encouraging, serious, fierce, forceful.
+        - set_intensity value must be one of: gentle, encouraging, serious, fierce.
         - set_persona value must be one of: study, work, custom.
         - set_voice value may be male, female, or one exact available voice id.
         - set_interface_language value must be zh or en.
         - set_supervisor_language value must be one of: follow_interface, zh, en, cantonese, sichuanese, northeast_mandarin, henan_dialect.
-        - set_profanity and set_widget_visible value must be true or false.
+        - set_force_close, set_profanity, and set_widget_visible value must be true or false.
         - If the user is chatting, arguing, joking, asking a general question, or the command is not clearly about Hunter settings, return {"command":"none","confidence":0.0}.
         - Do not invent unsupported actions such as editing API keys, cloning voices, deleting history, or adding broad watchlist rules.
         """

@@ -195,7 +195,7 @@ Acceptance Criteria:
 - TTS 只走云端 Provider，支持 Provider 模板音色和用户授权后的云端声音克隆流程；声音克隆模块必须跟随当前 TTS Provider 与模型，不在克隆模块内单独选择厂商。只有 TTS 厂商、模型和 API Key 配好后，才展示对应厂商已适配的克隆字段；克隆完成后保存 Provider 返回的授权 voice id，或保存 MiMo 这类 inline sample clone 的本机授权样本引用和 voice reference，不上传到 Hunter 自有服务。
 - API Key 进入本机 `Application Support/Hunter/.env.local` 和进程内缓存，不提交仓库、不进入日志；运行热路径不访问 Keychain，避免系统钥匙串授权弹窗。
 - 提供“测试 ASR”“测试 LLM”“测试 TTS”三类独立检查。
-- 内置本地 SenseVoice ASR、阿里云百炼 ASR/TTS/LLM、OpenAI ASR/TTS/LLM、DeepSeek LLM、Xiaomi MiMo LLM/TTS、Moonshot Kimi LLM、智谱 GLM LLM、火山方舟 Doubao LLM、腾讯混元 LLM 模板；普通用户优先通过下拉模板选择，custom HTTP provider 放入高级模式。模型建议需要跟随各厂商官方模型 ID 维护，例如 DeepSeek V4 Flash/Pro、MiMo V2.5 Pro/V2.5/ASR/TTS/VoiceDesign/VoiceClone、阿里 Qwen3.7/Qwen3.6/Qwen3.5/Paraformer/CosyVoice/Qwen3-TTS、Kimi K2.6、GLM 5.1、Doubao Seed 2.0、Hunyuan T1/TurboS/A13B 等。
+- 内置本地 SenseVoice ASR、阿里云百炼 ASR/TTS/LLM、OpenAI ASR/TTS/LLM、DeepSeek LLM、Xiaomi MiMo ASR/LLM/TTS、Moonshot Kimi LLM、智谱 GLM LLM、火山方舟 Doubao LLM、腾讯混元 LLM 模板；普通用户优先通过下拉模板选择，custom HTTP provider 放入高级模式。模型建议需要跟随各厂商官方模型 ID 维护，例如 DeepSeek V4 Flash/Pro、MiMo V2.5 Pro/V2.5/ASR/TTS/VoiceDesign/VoiceClone、阿里 Qwen3.7/Qwen3.6/Qwen3.5/Paraformer/CosyVoice/Qwen3-TTS、Kimi K2.6、GLM 5.1、Doubao Seed 2.0、Hunyuan T1/TurboS/A13B 等。
 - 开始监督、开始时长任务、麦克风对话和 ASR/LLM/TTS 测试前必须校验 ASR/LLM/TTS 配置；任一云端 Provider 缺厂商、Base URL、模型 ID、API Key 名称或实际 API Key，或本地 ASR 模型/runtime 未就绪时，弹窗列出缺失项并引导去 AI 配置，不允许进入长时间等待状态。
 
 **Story 7：中英文界面和监督语言**  

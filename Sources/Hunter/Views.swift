@@ -3951,7 +3951,7 @@ enum ProviderRole: String, CaseIterable {
     var providerPresets: [ProviderEndpoint] {
         switch self {
         case .asr:
-            [.aliyunASR, .openAIASR]
+            [.aliyunASR, .openAIASR, .xiaomiMiMoASR]
         case .llm:
             [
                 .deepSeekLLM,
@@ -3994,6 +3994,9 @@ enum ProviderRole: String, CaseIterable {
             }
             if preset == .openAIASR {
                 return "OpenAI"
+            }
+            if preset == .xiaomiMiMoASR {
+                return language == .english ? "Xiaomi MiMo" : "小米 MiMo"
             }
         case .llm:
             if preset == .deepSeekLLM {

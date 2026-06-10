@@ -575,6 +575,7 @@ struct DurationParserTests {
     @Test func providerRoleStoresDeepSeekKeySeparately() {
         #expect(ProviderRole.llm.apiKeyName(for: "DeepSeek") == "DEEPSEEK_API_KEY")
         #expect(ProviderRole.llm.apiKeyName(for: "deepseek api") == "DEEPSEEK_API_KEY")
+        #expect(ProviderRole.asr.apiKeyName(for: "小米 MiMo") == "MIMO_API_KEY")
         #expect(ProviderRole.tts.apiKeyName(for: "Xiaomi MiMo") == "MIMO_API_KEY")
         #expect(ProviderRole.tts.apiKeyName(for: "OpenAI") == "OPENAI_API_KEY")
         #expect(ProviderRole.llm.apiKeyName(for: "Moonshot Kimi") == "MOONSHOT_API_KEY")
@@ -586,16 +587,18 @@ struct DurationParserTests {
     }
 
     @Test func providerRoleExposesPresetProviderChoices() {
-        #expect(ProviderRole.asr.providerPresets.map(\.providerName) == ["Aliyun Bailian", "OpenAI"])
+        #expect(ProviderRole.asr.providerPresets.map(\.providerName) == ["Aliyun Bailian", "OpenAI", "Xiaomi MiMo"])
         #expect(ProviderRole.tts.providerPresets.map(\.providerName) == ["Xiaomi MiMo", "OpenAI", "Aliyun Bailian"])
         #expect(ProviderRole.llm.providerPresets.map(\.providerName) == ["DeepSeek", "Xiaomi MiMo", "OpenAI", "Aliyun Bailian", "Moonshot Kimi", "Zhipu GLM", "Volcengine Ark", "Tencent Hunyuan"])
         #expect(ProviderRole.llm.providerPresets.map(\.model) == ["deepseek-v4-flash", "mimo-v2.5", "gpt-4.1-mini", "qwen-turbo", "kimi-k2.5", "glm-4.7", "doubao-seed-2-0-lite-260215", "hunyuan-turbos-latest"])
+        #expect(ProviderRole.asr.providerLabel(for: .xiaomiMiMoASR, language: .zhHans) == "小米 MiMo")
+        #expect(ProviderEndpoint.xiaomiMiMoASR.model == "mimo-v2.5-asr")
         #expect(ProviderRole.llm.providerLabel(for: .xiaomiMiMoLLM, language: .zhHans) == "小米 MiMo")
         #expect(ProviderRole.tts.providerLabel(for: .openAITTS, language: .zhHans) == "OpenAI")
         #expect(ProviderEndpoint.aliyunTTS.model == "cosyvoice-v3.5-flash")
         #expect(ProviderRole.llm.modelSuggestions(for: .deepSeekLLM).contains("deepseek-v4-pro"))
         #expect(ProviderRole.llm.modelSuggestions(for: .xiaomiMiMoLLM).contains("mimo-v2.5-pro"))
-        #expect(ProviderRole.asr.modelSuggestions(for: .xiaomiMiMoLLM).contains("mimo-v2.5-asr"))
+        #expect(ProviderRole.asr.modelSuggestions(for: .xiaomiMiMoASR).contains("mimo-v2.5-asr"))
         #expect(ProviderRole.tts.modelSuggestions(for: .xiaomiMiMoTTS).contains("mimo-v2.5-tts-voiceclone"))
         #expect(ProviderRole.llm.modelSuggestions(for: .aliyunLLM).contains("qwen3.7-plus"))
         #expect(ProviderRole.llm.modelSuggestions(for: .moonshotKimiLLM).first == "kimi-k2.6")
@@ -609,9 +612,12 @@ struct DurationParserTests {
         #expect(ProviderRole.asr.modelSuggestions(for: .aliyunASR).contains("paraformer-realtime-8k-v2"))
         var editedMiMo = ProviderEndpoint.xiaomiMiMoLLM
         editedMiMo.model = "mimo-v2.6"
+        var editedMiMoASR = ProviderEndpoint.xiaomiMiMoASR
+        editedMiMoASR.model = "mimo-v2.6-asr"
         var editedAliyunTTS = ProviderEndpoint.aliyunTTS
         editedAliyunTTS.model = "cosyvoice-v3.5-flash"
         #expect(ProviderRole.llm.providerPreset(matching: editedMiMo) == .xiaomiMiMoLLM)
+        #expect(ProviderRole.asr.providerPreset(matching: editedMiMoASR) == .xiaomiMiMoASR)
         #expect(ProviderRole.tts.providerPreset(matching: editedAliyunTTS) == .aliyunTTS)
         #expect(ProviderRole.tts.providerChoiceID(for: editedAliyunTTS) == ProviderRole.tts.providerChoiceID(for: .aliyunTTS))
         #expect(ProviderRole.tts.providerLabel(for: editedAliyunTTS, language: .zhHans) == "阿里百炼")

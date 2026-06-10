@@ -28,7 +28,7 @@
 | 监督结束语音总结 | Pass | 时长任务自然结束会创建本轮完成事件，根据本轮抓包次数分为 0 次彩虹屁、1-3 次鼓励、4 次及以上吐槽；总结语音走当前云端 TTS Provider，不回退系统朗读；单测覆盖过期时长任务只统计 session 时间窗口内抓包次数 |
 | ASR 默认链路 | Partial | 默认 ASR 改为云端 API，设置页分段顺序为“云端 API / 本地模型”，并新增 `--smoke-cloud-asr` / `--smoke-cloud-voice-focus` 强制云端验收入口；本地 SenseVoice Small INT8 仍作为用户主动切换后的下载选项。本机已按本轮要求删除 LocalModels/asr，首次下载和下载后识别等待真机复验 |
 | LLM 默认链路 | Pass | 默认 LLM 模板仍保留 DeepSeek `deepseek-v4-flash`；当前本机保存运行配置已切到 Xiaomi MiMo `mimo-v2.5` / `https://api.xiaomimimo.com/v1`，复用 App Support `.env.local` 里的 `MIMO_API_KEY`，抓包和回击状态会显示实际 LLM `Provider / Model` |
-| Provider 预设 | Pass | 普通设置下拉已扩展为可运行模板：ASR 包含阿里 Paraformer 和 OpenAI Transcriptions；LLM 包含 DeepSeek、Xiaomi MiMo、OpenAI、阿里百炼、Moonshot Kimi、智谱 GLM、火山方舟、腾讯混元；TTS 包含 Xiaomi MiMo、OpenAI 和阿里 CosyVoice。MiniMax、百度千帆、腾讯/火山语音等需专用 adapter 的服务暂不放入普通下拉 |
+| Provider 预设 | Pass | 普通设置下拉已扩展为可运行模板：ASR 包含阿里 Paraformer、OpenAI Transcriptions 和 Xiaomi MiMo `mimo-v2.5-asr`；LLM 包含 DeepSeek、Xiaomi MiMo、OpenAI、阿里百炼、Moonshot Kimi、智谱 GLM、火山方舟、腾讯混元；TTS 包含 Xiaomi MiMo、OpenAI 和阿里 CosyVoice。MiniMax、百度千帆、腾讯/火山语音等需专用 adapter 的服务暂不放入普通下拉 |
 | TTS 默认链路 | Pass | TTS 回滚为云端 API only，默认 Provider 已切到 Xiaomi MiMo `mimo-v2.5-tts + 白桦`；`MIMO_API_KEY` 已写入本机 App Support `.env.local`，MiMo 鉴权和 `--smoke-llm-tts` 返回 `tts_ok=true`；OpenAI `gpt-4o-mini-tts + coral` 和阿里 `cosyvoice-v3.5-flash` 保留为可选模板 |
 | TTS 播放音量 | Pass | 播放器保持满音量；PCM16 WAV 在播放前做 `3.0x` 本地语音增益并安全削峰，覆盖 MiMo 返回的 WAV，不改写云端缓存原始音频；单测覆盖增益和削峰 |
 | MiMo 声音克隆 | Pass | 声音页支持授权确认、上传/录制 mp3/wav 样本、保存本机授权样本引用并加入音色下拉；MiMo adapter 对 `voiceclone:<id>` 自动使用 `mimo-v2.5-tts-voiceclone`，合成时把样本 data URI 放入 `audio.voice`；命令行 `--smoke-mimo-voiceclone /path/to/sample.wav` 可做真实接口验收 |

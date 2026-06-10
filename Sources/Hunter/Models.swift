@@ -427,6 +427,18 @@ struct ProviderEndpoint: Codable, Equatable {
         languageHint: "zh-CN,en-US,mixed"
     )
 
+    static let xiaomiMiMoASR = ProviderEndpoint(
+        providerName: "Xiaomi MiMo",
+        baseURL: "https://api.xiaomimimo.com/v1",
+        model: "mimo-v2.5-asr",
+        apiKeyEnvironmentName: "MIMO_API_KEY",
+        authorizationScheme: "api-key",
+        extraHeaders: "",
+        region: "cn",
+        supportsStreaming: false,
+        languageHint: "zh-CN,en-US,mixed"
+    )
+
     static let aliyunTTS = ProviderEndpoint(
         providerName: "Aliyun Bailian",
         baseURL: "https://dashscope.aliyuncs.com/api/v1",

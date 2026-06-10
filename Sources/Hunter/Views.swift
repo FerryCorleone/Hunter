@@ -2250,6 +2250,7 @@ struct VoicePanel: View {
             }
             .onChange(of: state.providers.tts) {
                 state.normalizeSupervisorLanguageForCurrentTTS()
+                normalizeCurrentVoiceIfNeeded()
                 clearPendingCloneSample(removeTemporaryFile: true)
                 clonedVoiceReadyID = nil
                 cloneNameValidationMessage = ""
@@ -2443,15 +2444,21 @@ struct VoicePanel: View {
                     HStack(spacing: 10) {
                         Picker("", selection: $state.providers.voice) {
                             if isMiMoTTSProvider {
-                                Text("mimo_default · MiMo 默认").tag("mimo_default")
-                                Text("苏打 · 中文男声").tag("苏打")
-                                Text("白桦 · 中文男声").tag("白桦")
-                                Text("冰糖 · 中文女声").tag("冰糖")
-                                Text("茉莉 · 中文女声").tag("茉莉")
-                                Text("Mia · English female").tag("Mia")
-                                Text("Milo · English male").tag("Milo")
-                                Text("Chloe · English female").tag("Chloe")
-                                Text("Dean · English male").tag("Dean")
+                                if shouldShowCurrentTTSVoicePlaceholder {
+                                    Text(state.copy("暂无可用克隆音色 · 请先设置音色", "No cloned voice yet · set up a voice first"))
+                                        .tag(state.providers.voice)
+                                }
+                                if state.providers.tts.supportsMiMoPresetVoices {
+                                    Text("mimo_default · MiMo 默认").tag("mimo_default")
+                                    Text("苏打 · 中文男声").tag("苏打")
+                                    Text("白桦 · 中文男声").tag("白桦")
+                                    Text("冰糖 · 中文女声").tag("冰糖")
+                                    Text("茉莉 · 中文女声").tag("茉莉")
+                                    Text("Mia · English female").tag("Mia")
+                                    Text("Milo · English male").tag("Milo")
+                                    Text("Chloe · English female").tag("Chloe")
+                                    Text("Dean · English male").tag("Dean")
+                                }
                                 ForEach(compatibleClonedVoices) { clonedVoice in
                                     Text(voicePickerLabel(for: clonedVoice)).tag(ProviderSettings.voiceID(for: clonedVoice))
                                 }
@@ -2467,7 +2474,7 @@ struct VoicePanel: View {
                                 Text("sage · Calm").tag("sage")
                                 Text("shimmer · Soft").tag("shimmer")
                             } else {
-                                if shouldShowAliyunCustomVoicePlaceholder {
+                                if shouldShowCurrentTTSVoicePlaceholder {
                                     Text(state.copy("暂无可用音色 · 请先设置音色", "No voice yet · set up a voice first"))
                                         .tag(state.providers.voice)
                                 }
@@ -2593,9 +2600,15 @@ struct VoicePanel: View {
 
     private var voiceCardSubtitle: String {
         if isMiMoTTSProvider {
+            if state.providers.tts.requiresMiMoInlineAuthorizedSampleForSynthesis {
+                return state.copy(
+                    "当前 TTS 使用小米 MiMo 克隆模型，只显示当前模型可用的授权样本音色。",
+                    "The current TTS model is Xiaomi MiMo voice clone, so only authorized sample voices for this model are shown."
+                )
+            }
             return state.copy(
-                "当前 TTS 使用小米 MiMo，可选择预置音色或当前 Provider 下的授权音色。",
-                "The current TTS provider is Xiaomi MiMo with preset or compatible authorized voices."
+                "当前 TTS 使用小米 MiMo 普通合成模型，可选择 MiMo 预置音色。",
+                "The current TTS model is Xiaomi MiMo standard synthesis with MiMo preset voices."
             )
         }
         if isOpenAITTSProvider {
@@ -2616,9 +2629,15 @@ struct VoicePanel: View {
 
     private var voiceCardNote: String {
         if isMiMoTTSProvider {
+            if state.providers.tts.requiresMiMoInlineAuthorizedSampleForSynthesis {
+                return state.copy(
+                    "小米 voiceclone 模型需要授权样本音色；普通预置音色只会在 mimo-v2.5-tts 模型下显示。",
+                    "Xiaomi voiceclone requires an authorized sample voice. Preset voices only appear with the mimo-v2.5-tts model."
+                )
+            }
             return state.copy(
-                "音色列表只显示当前 TTS Provider 可用的预置音色和已授权音色。",
-                "The voice list only shows preset and authorized voices compatible with the current TTS provider."
+                "音色列表只显示当前 TTS 模型可用的预置音色；切到 voiceclone 模型后会改为只显示授权样本音色。",
+                "The voice list only shows preset voices available to the current TTS model. Switching to voiceclone shows authorized sample voices only."
             )
         }
         if isOpenAITTSProvider {
@@ -2668,25 +2687,17 @@ struct VoicePanel: View {
     }
 
     private var knownVoiceIDs: Set<String> {
-        if isMiMoTTSProvider {
-            return Set(["mimo_default", "苏打", "白桦", "冰糖", "茉莉", "Mia", "Chloe", "Milo", "Dean"]
-                + compatibleClonedVoices.map { ProviderSettings.voiceID(for: $0) })
-        }
-        if isOpenAITTSProvider {
-            return Set(["coral", "alloy", "ash", "ballad", "echo", "fable", "nova", "onyx", "sage", "shimmer"])
-        }
-        let aliyunPresetVoices = isAliyunCosyVoiceCustomOnlyModel ? [] : [ProviderSettings.aliyunDefaultVoice]
-        return Set(aliyunPresetVoices + compatibleClonedVoices.map { ProviderSettings.voiceID(for: $0) })
+        Set(state.providers.availableVoiceIDsForCurrentTTS())
     }
 
-    private var shouldShowAliyunCustomVoicePlaceholder: Bool {
-        isAliyunCosyVoiceCustomOnlyModel && state.providers.selectedVoiceRequiresCustomVoiceID
+    private var shouldShowCurrentTTSVoicePlaceholder: Bool {
+        state.providers.selectedVoiceRequiresCurrentTTSSetup
     }
 
     private var shouldShowSavedCloudVoiceOption: Bool {
         let selected = state.providers.voice.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !selected.isEmpty, !knownVoiceIDs.contains(selected) else { return false }
-        return !shouldShowAliyunCustomVoicePlaceholder
+        return !shouldShowCurrentTTSVoicePlaceholder
     }
 
     private var shouldShowVoiceDesignCard: Bool {
@@ -3279,8 +3290,8 @@ struct VoicePanel: View {
 
     private func testVoice() {
         guard !isTestingVoice else { return }
-        guard !state.providers.selectedVoiceRequiresCustomVoiceID else {
-            setVoiceStatus(aliyunCustomVoiceRequiredMessage, kind: .failure)
+        guard !state.providers.selectedVoiceRequiresCurrentTTSSetup else {
+            setVoiceStatus(currentTTSVoiceRequiredMessage, kind: .failure)
             return
         }
         isTestingVoice = true
@@ -3377,8 +3388,14 @@ struct VoicePanel: View {
         }
     }
 
-    private var aliyunCustomVoiceRequiredMessage: String {
+    private var currentTTSVoiceRequiredMessage: String {
         let model = state.providers.tts.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if state.providers.tts.requiresMiMoInlineAuthorizedSampleForSynthesis {
+            return state.copy(
+                "小米 \(model) 需要授权样本音色，请先在下方声音克隆里创建并选择克隆音色。",
+                "Xiaomi \(model) needs an authorized sample voice. Create and select a cloned voice below first."
+            )
+        }
         return state.copy(
             "阿里 \(model) 没有系统音色，请先设置音色。可以在下方声音设计或声音克隆里生成并选择 voice_id。",
             "Aliyun \(model) has no system voices. Set up a voice first with Voice design or Voice clone below."
@@ -3492,19 +3509,10 @@ struct VoicePanel: View {
     }
 
     private func normalizeCurrentVoiceIfNeeded() {
-        let normalized = ProviderSettings.normalizedCloudVoice(state.providers.voice)
-        let selectedClone = state.providers.clonedVoice(matching: normalized)
-        let shouldResetClonedVoice: Bool
-        if normalized.hasPrefix(ProviderSettings.clonedVoicePrefix) {
-            shouldResetClonedVoice = selectedClone.map { !state.providers.tts.isCompatible(with: $0.reference) } ?? true
-        } else {
-            shouldResetClonedVoice = false
-        }
-        let resolved = shouldResetClonedVoice
-            ? ProviderSettings.defaultVoice(forTTSEndpoint: state.providers.tts)
-            : normalized
-        if resolved != state.providers.voice {
-            state.providers.voice = resolved
+        let before = state.providers.voice
+        state.providers.normalizeVoiceForCurrentTTS()
+        if state.providers.voice != before, state.providers.voice.isEmpty {
+            setVoiceStatus(currentTTSVoiceRequiredMessage, kind: .failure)
         }
     }
 

@@ -181,7 +181,7 @@ Xiaomi MiMo V2.5 TTS:
 - 请求形态：目标播报文本放在 `role=assistant` 的 message；`role=user` 可放自然语言风格指令。
 - 方言控制：普通话/英文以语言提示处理；粤语、四川话、东北话、河南话等方言必须同时在 `role=user` 放强约束风格说明，并在 `role=assistant` 播报文本前加官方 tag，例如 `(河南话)抓到你了`，避免只靠自然语言风格说明时回退成普通话。
 - 响应形态：非流式返回 `choices[0].message.audio.data`，内容为 base64 音频；Hunter 需本地解码后播放/缓存。
-- 预置音色：`mimo_default`、`冰糖`、`茉莉`、`苏打`、`白桦`、`Mia`、`Chloe`、`Milo`、`Dean`。
+- 预置音色仅适用于 `mimo-v2.5-tts`：`mimo_default`、`冰糖`、`茉莉`、`苏打`、`白桦`、`Mia`、`Chloe`、`Milo`、`Dean`；`mimo-v2.5-tts-voiceclone` 必须选择授权样本克隆音色，不展示普通预置音色。
 - 当前本机 smoke 中 `白桦` 的 SenseVoice 回读最稳定，因此作为 MiMo 默认音色。
 - 当前限制：V2.5 低延迟流式暂未上线；流式调用目前在所有推理完成后以兼容流格式返回一次。
 

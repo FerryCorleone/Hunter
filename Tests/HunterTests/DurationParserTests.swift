@@ -353,6 +353,8 @@ struct DurationParserTests {
     }
 
     @Test func providerSettingsKeepAuthorizedClonedVoiceReferences() throws {
+        var mimoVoiceClone = ProviderEndpoint.xiaomiMiMoTTS
+        mimoVoiceClone.model = "mimo-v2.5-tts-voiceclone"
         let clonedVoice = ClonedVoice(
             id: "clone-1",
             displayName: "My voice",
@@ -368,7 +370,7 @@ struct DurationParserTests {
             createdAt: Date(timeIntervalSince1970: 1_800_000_000)
         )
         let selectedVoice = ProviderSettings.voiceID(for: clonedVoice)
-        let encoded = try JSONEncoder.hunter.encode(ProviderSettings(voice: selectedVoice, clonedVoices: [clonedVoice]))
+        let encoded = try JSONEncoder.hunter.encode(ProviderSettings(tts: mimoVoiceClone, voice: selectedVoice, clonedVoices: [clonedVoice]))
         let decoded = try JSONDecoder.hunter.decode(ProviderSettings.self, from: encoded)
 
         #expect(decoded.voice == selectedVoice)
@@ -430,6 +432,8 @@ struct DurationParserTests {
     }
 
     @Test func providerEndpointVoiceCloneModesFollowCurrentTTS() {
+        var xiaomiMiMoVoiceClone = ProviderEndpoint.xiaomiMiMoTTS
+        xiaomiMiMoVoiceClone.model = "mimo-v2.5-tts-voiceclone"
         var aliyunQwenVoiceClone = ProviderEndpoint.aliyunTTS
         aliyunQwenVoiceClone.model = "qwen3-tts-vc-2026-01-22"
         var aliyunCosyVoiceClone = ProviderEndpoint.aliyunTTS
@@ -437,7 +441,8 @@ struct DurationParserTests {
         var aliyunQwenPlain = ProviderEndpoint.aliyunTTS
         aliyunQwenPlain.model = "qwen3-tts-flash"
 
-        #expect(ProviderEndpoint.xiaomiMiMoTTS.voiceCloneMode == .xiaomiInlineAuthorizedSample)
+        #expect(ProviderEndpoint.xiaomiMiMoTTS.voiceCloneMode == .unsupported)
+        #expect(xiaomiMiMoVoiceClone.voiceCloneMode == .xiaomiInlineAuthorizedSample)
         #expect(aliyunQwenVoiceClone.voiceCloneMode == .aliyunQwenVoiceEnrollment)
         #expect(aliyunCosyVoiceClone.voiceCloneMode == .aliyunCosyVoiceEnrollmentWithTemporaryURL)
         #expect(ProviderEndpoint.aliyunTTS.voiceCloneMode == .aliyunCosyVoiceEnrollmentWithTemporaryURL)
@@ -446,6 +451,8 @@ struct DurationParserTests {
     }
 
     @Test func providerSettingsKeepsOnlyCompatibleClonedVoicesForCurrentTTS() {
+        var mimoVoiceCloneEndpoint = ProviderEndpoint.xiaomiMiMoTTS
+        mimoVoiceCloneEndpoint.model = "mimo-v2.5-tts-voiceclone"
         let mimoVoice = ClonedVoice(
             id: "mimo-clone",
             displayName: "MiMo Clone",
@@ -485,8 +492,27 @@ struct DurationParserTests {
             voice: ProviderSettings.voiceID(for: mimoVoice),
             clonedVoices: [mimoVoice, aliyunVoice]
         )
-        #expect(mimoSettings.voice == ProviderSettings.voiceID(for: mimoVoice))
-        #expect(mimoSettings.clonedVoices(compatibleWith: .xiaomiMiMoTTS).map(\.id) == ["mimo-clone"])
+        #expect(mimoSettings.voice == ProviderSettings.mimoDefaultVoice)
+        #expect(mimoSettings.clonedVoices(compatibleWith: .xiaomiMiMoTTS).isEmpty)
+
+        let missingMiMoCloneVoice = ProviderSettings(
+            tts: mimoVoiceCloneEndpoint,
+            voice: ProviderSettings.mimoDefaultVoice,
+            clonedVoices: []
+        )
+        #expect(missingMiMoCloneVoice.voice.isEmpty)
+        #expect(missingMiMoCloneVoice.selectedVoiceRequiresMiMoInlineAuthorizedSample)
+        #expect(missingMiMoCloneVoice.configurationIssues(hasAPIKey: { _ in true }, isLocalASRReady: { _ in true }).first?.kind == .voiceSetupRequired)
+
+        let mimoCloneSettings = ProviderSettings(
+            tts: mimoVoiceCloneEndpoint,
+            voice: ProviderSettings.voiceID(for: mimoVoice),
+            clonedVoices: [mimoVoice, aliyunVoice]
+        )
+        #expect(mimoCloneSettings.voice == ProviderSettings.voiceID(for: mimoVoice))
+        #expect(mimoCloneSettings.clonedVoices(compatibleWith: mimoVoiceCloneEndpoint).map(\.id) == ["mimo-clone"])
+        #expect(ProviderSettings.presetVoiceIDs(forTTSEndpoint: .xiaomiMiMoTTS).contains("冰糖"))
+        #expect(ProviderSettings.presetVoiceIDs(forTTSEndpoint: mimoVoiceCloneEndpoint).isEmpty)
 
         let aliyunSettings = ProviderSettings(
             tts: aliyunVoiceClone,
@@ -874,6 +900,14 @@ struct DurationParserTests {
 
         #expect(executor.handle("换一个女生音色"))
         #expect(state.providers.voice == "冰糖")
+
+        var mimoVoiceClone = ProviderEndpoint.xiaomiMiMoTTS
+        mimoVoiceClone.model = "mimo-v2.5-tts-voiceclone"
+        state.providers.tts = mimoVoiceClone
+        state.providers.normalizeVoiceForCurrentTTS()
+        #expect(state.providers.voice.isEmpty)
+        #expect(!executor.handle("换一个女生音色"))
+        #expect(state.providers.voice.isEmpty)
 
         #expect(executor.handle("把监督语言改成英文"))
         #expect(state.aiLanguage == .english)

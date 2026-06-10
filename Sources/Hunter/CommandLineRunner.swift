@@ -81,7 +81,9 @@ enum CommandLineRunner {
                     createdAt: Date()
                 )
                 var settings = providerSettings(from: args)
-                settings.tts = .xiaomiMiMoTTS
+                var voiceCloneEndpoint = ProviderEndpoint.xiaomiMiMoTTS
+                voiceCloneEndpoint.model = "mimo-v2.5-tts-voiceclone"
+                settings.tts = voiceCloneEndpoint
                 settings.clonedVoices = [clonedVoice]
                 settings.voice = ProviderSettings.voiceID(for: clonedVoice)
                 printSmokeSettings(settings)

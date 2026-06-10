@@ -111,17 +111,8 @@ struct VoiceControlAgentContext: Equatable {
     }
 
     static func availableVoiceIDs(settings: ProviderSettings) -> [String] {
-        if settings.tts.matchesPreset(.xiaomiMiMoTTS) {
-            return ["mimo_default", "苏打", "白桦", "冰糖", "茉莉", "Mia", "Milo", "Chloe", "Dean"]
-                + settings.clonedVoices.map { ProviderSettings.voiceID(for: $0) }
-        }
-        if settings.tts.matchesPreset(.openAITTS) {
-            return ["coral", "alloy", "ash", "ballad", "echo", "fable", "nova", "onyx", "sage", "shimmer"]
-        }
-        if settings.tts.matchesPreset(.aliyunTTS) {
-            return [ProviderSettings.aliyunDefaultVoice]
-        }
-        return [settings.voice]
+        let available = settings.availableVoiceIDsForCurrentTTS()
+        return available.isEmpty ? [settings.voice].filter { !$0.isEmpty } : available
     }
 }
 
@@ -812,21 +803,20 @@ final class VoiceControlExecutor {
             return knownVoiceIDs().filter { $0 == voiceID }
         }
 
-        let provider = state.providers.tts.providerName.lowercased()
-        let model = state.providers.tts.model.lowercased()
         let prefersEnglish = state.targetLanguageCode() == "en"
         let wantsMasculine = preference == .masculine
 
-        if provider.contains("mimo") || model.hasPrefix("mimo-v2.5-tts") {
+        if state.providers.tts.supportsMiMoPresetVoices {
             if wantsMasculine {
                 return prefersEnglish ? ["Milo", "Dean", "白桦", "苏打"] : ["白桦", "苏打", "Milo", "Dean"]
             }
             return prefersEnglish ? ["Mia", "Chloe", "冰糖", "茉莉"] : ["冰糖", "茉莉", "Mia", "Chloe"]
         }
-        if provider.contains("openai") {
+        if state.providers.tts.isOpenAITTSProvider {
             return wantsMasculine ? ["onyx", "echo", "ash"] : ["nova", "shimmer", "coral"]
         }
-        if state.providers.tts.matchesPreset(.aliyunTTS), wantsMasculine {
+        if ProviderSettings.presetVoiceIDs(forTTSEndpoint: state.providers.tts).contains(ProviderSettings.aliyunDefaultVoice),
+           wantsMasculine {
             return [ProviderSettings.aliyunDefaultVoice]
         }
         return []

@@ -207,7 +207,7 @@ Acceptance Criteria:
 - AI 监督语言使用下拉选择：默认包含跟随界面、中文普通话、English；当当前 TTS Provider 声明支持方言/口音风格时，追加粤语/广东话、四川话、东北话、河南话等 provider 能力项。
 - ASR 语言提示由 provider/local adapter 默认处理；后续高级模式再展示自动、中文、English、中英混合。
 - LLM prompt 必须显式传入目标输出语言；方言选项的文本基础语言仍按中文处理，TTS adapter 通过 provider 风格指令和音频 tag 触发方言/口音播报。如果模型仍返回明显错误语言，Hunter 需要用目标语言兜底短句，避免用户把监督语言改成 English 后仍听到中文抓包。
-- TTS 音色以云端 Provider 的 voice id 或 voice reference 为准，例如 MiMo `白桦` / `苏打` / `mimo_default`、OpenAI `coral`，或阿里 `cosyvoice-v3-flash` / `cosyvoice-v3-plus` 的系统音色 `longanyang`。阿里 `cosyvoice-v3.5-flash` / `cosyvoice-v3.5-plus` 官方无系统音色，必须先创建并选择声音设计或声音克隆后的 `voice_id`；首次使用时若没有可用音色，开始监督、时长任务和麦克风对话都应弹窗提示“请先设置音色”，不得静默发起无效 TTS 请求。
+- TTS 音色以当前云端 Provider + 当前模型可用的 voice id 或 voice reference 为准，例如 MiMo 普通合成模型 `mimo-v2.5-tts` 才展示 `白桦` / `苏打` / `mimo_default` 等预置音色；MiMo `mimo-v2.5-tts-voiceclone` 只展示用户授权样本创建的克隆音色，不得混入普通 TTS 预置音色。OpenAI 使用 `coral` 等预置音色，阿里 `cosyvoice-v3-flash` / `cosyvoice-v3-plus` 可使用系统音色 `longanyang`。阿里 `cosyvoice-v3.5-flash` / `cosyvoice-v3.5-plus` 官方无系统音色，必须先创建并选择声音设计或声音克隆后的 `voice_id`；首次使用时若没有可用音色，开始监督、时长任务和麦克风对话都应弹窗提示“请先设置音色”，不得静默发起无效 TTS 请求。
 - 声音克隆只走云端 Provider 流程，必须要求用户确认授权，且不复刻公众人物或任何未授权第三方声音；克隆 UI 只读取当前 TTS 配置，当前已适配小米 MiMo inline 授权样本、阿里 CosyVoice `voice-enrollment` + 百炼临时 URL 创建长期 `voice_id`，以及阿里 Qwen3-TTS-VC `qwen-voice-enrollment` 本地样本直传。阿里正式推荐先选 `cosyvoice-v3.5-flash`，Hunter 上传本地样本到百炼 48 小时临时 `oss://` URL 后创建 CosyVoice `voice_id`，查询到 `OK` 后保存；该音色绑定创建时的 TTS 模型，切换模型后需重新创建。其他厂商/模型显示未适配状态，等待后续按厂商 API 规则接入。克隆表单只保留授权、样本、克隆名称、开始克隆和进度；已克隆/设计音色列表统一放在“音色”卡片中，方便用户选择当前音色时直接查看。
 
 ## 2A. Frontend Page Contract

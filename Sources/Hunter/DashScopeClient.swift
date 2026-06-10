@@ -796,6 +796,9 @@ struct DashScopeClient {
             )
             model = "mimo-v2.5-tts-voiceclone"
         } else {
+            guard endpoint.supportsMiMoPresetVoices else {
+                throw ProviderError.invalidResponse("MiMo \(endpoint.model) requires a compatible voice for this model")
+            }
             voicePayload = voice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "mimo_default"
                 : voice.trimmingCharacters(in: .whitespacesAndNewlines)

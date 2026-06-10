@@ -559,6 +559,18 @@ struct ProviderEndpoint: Codable, Equatable {
             || normalizedModel.hasPrefix("mimo-v2.5-tts")
     }
 
+    var supportsMiMoPresetVoices: Bool {
+        guard isMiMoTTSProvider else { return false }
+        let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalizedModel == "mimo-v2.5-tts"
+    }
+
+    var requiresMiMoInlineAuthorizedSampleForSynthesis: Bool {
+        guard isMiMoTTSProvider else { return false }
+        let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalizedModel == "mimo-v2.5-tts-voiceclone"
+    }
+
     var isOpenAITTSProvider: Bool {
         let provider = providerName.lowercased()
         let url = baseURL.lowercased()
@@ -586,7 +598,7 @@ struct ProviderEndpoint: Codable, Equatable {
     }
 
     var voiceCloneMode: VoiceCloneMode {
-        if isMiMoTTSProvider {
+        if requiresMiMoInlineAuthorizedSampleForSynthesis {
             return .xiaomiInlineAuthorizedSample
         }
         let normalizedModel = model.lowercased()
@@ -624,7 +636,7 @@ struct ProviderEndpoint: Codable, Equatable {
             return voiceReference.providerName.isEmpty
                 || voiceReference.providerName.caseInsensitiveCompare(providerName) == .orderedSame
         case .inlineAuthorizedSample:
-            return isMiMoTTSProvider
+            return requiresMiMoInlineAuthorizedSampleForSynthesis
                 && (voiceReference.providerName.caseInsensitiveCompare(ProviderEndpoint.xiaomiMiMoTTS.providerName) == .orderedSame
                     || voiceReference.providerName.localizedCaseInsensitiveContains("mimo")
                     || voiceReference.providerName.localizedCaseInsensitiveContains("xiaomi")
@@ -797,21 +809,14 @@ struct ProviderSettings: Codable, Equatable {
     static let aliyunDefaultVoice = "longanyang"
     static let openAIDefaultVoice = "coral"
     static let mimoDefaultVoice = "白桦"
+    static let mimoPresetVoiceIDs = ["mimo_default", "苏打", "白桦", "冰糖", "茉莉", "Mia", "Milo", "Chloe", "Dean"]
+    static let openAIPresetVoiceIDs = ["coral", "alloy", "ash", "ballad", "echo", "fable", "nova", "onyx", "sage", "shimmer"]
     static let defaultCloudVoice = mimoDefaultVoice
     static let clonedVoicePrefix = "voiceclone:"
     static let defaultOutputVolume = 1.0
     static let minimumOutputVolume = 0.5
     static let maximumOutputVolume = 2.5
     private static let legacyAliyunTTSDefaultModel = "cosyvoice-v3-flash"
-    private static let builtInVoiceIDs: Set<String> = [
-        aliyunDefaultVoice,
-        openAIDefaultVoice,
-        mimoDefaultVoice,
-        "mimo_default",
-        "苏打", "冰糖", "茉莉",
-        "Mia", "Milo", "Chloe", "Dean",
-        "alloy", "ash", "ballad", "echo", "fable", "nova", "onyx", "sage", "shimmer"
-    ]
     private static let unavailableCloudVoiceIDs: Set<String> = [
         "longwanqing",
         "Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"
@@ -939,6 +944,15 @@ struct ProviderSettings: Codable, Equatable {
                 kind: .voiceSetupRequired
             ))
         }
+        if !ttsCloudIssueAdded, selectedVoiceRequiresMiMoInlineAuthorizedSample {
+            let modelLabel = tts.model.trimmingCharacters(in: .whitespacesAndNewlines)
+            issues.append(.init(
+                role: .tts,
+                message: "小米 \(modelLabel) 需要先在声音设置里选择已授权的克隆样本音色。",
+                messageEnglish: "Xiaomi \(modelLabel) requires selecting an authorized cloned sample voice in Voice settings first.",
+                kind: .voiceSetupRequired
+            ))
+        }
         return issues
     }
 
@@ -998,6 +1012,9 @@ struct ProviderSettings: Codable, Equatable {
     }
 
     static func defaultVoice(forTTSEndpoint endpoint: ProviderEndpoint) -> String {
+        if endpoint.requiresMiMoInlineAuthorizedSampleForSynthesis {
+            return ""
+        }
         if endpoint.isAliyunProvider {
             return aliyunDefaultVoice
         }
@@ -1005,6 +1022,19 @@ struct ProviderSettings: Codable, Equatable {
             return openAIDefaultVoice
         }
         return mimoDefaultVoice
+    }
+
+    static func presetVoiceIDs(forTTSEndpoint endpoint: ProviderEndpoint) -> [String] {
+        if endpoint.supportsMiMoPresetVoices {
+            return mimoPresetVoiceIDs
+        }
+        if endpoint.isOpenAITTSProvider {
+            return openAIPresetVoiceIDs
+        }
+        if endpoint.isAliyunProvider, !endpoint.requiresCustomVoiceIDForSynthesis {
+            return [aliyunDefaultVoice]
+        }
+        return []
     }
 
     func clonedVoice(matching voiceID: String? = nil) -> ClonedVoice? {
@@ -1018,15 +1048,23 @@ struct ProviderSettings: Codable, Equatable {
         clonedVoices.filter { endpoint.isCompatible(with: $0.reference) }
     }
 
+    func availableVoiceIDsForCurrentTTS() -> [String] {
+        Self.presetVoiceIDs(forTTSEndpoint: tts)
+            + clonedVoices(compatibleWith: tts).map { Self.voiceID(for: $0) }
+    }
+
     var selectedVoiceRequiresCustomVoiceID: Bool {
         guard tts.requiresCustomVoiceIDForSynthesis else { return false }
-        let selected = voice.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !selected.isEmpty else { return true }
-        if selected.hasPrefix(Self.clonedVoicePrefix) {
-            guard let clonedVoice = clonedVoice(matching: selected) else { return true }
-            return !tts.isCompatible(with: clonedVoice.reference)
-        }
-        return Self.builtInVoiceIDs.contains(selected)
+        return !availableVoiceIDsForCurrentTTS().contains(voice.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    var selectedVoiceRequiresMiMoInlineAuthorizedSample: Bool {
+        guard tts.requiresMiMoInlineAuthorizedSampleForSynthesis else { return false }
+        return !availableVoiceIDsForCurrentTTS().contains(voice.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    var selectedVoiceRequiresCurrentTTSSetup: Bool {
+        selectedVoiceRequiresCustomVoiceID || selectedVoiceRequiresMiMoInlineAuthorizedSample
     }
 
     mutating func removeClonedVoice(id: String) {
@@ -1041,7 +1079,22 @@ struct ProviderSettings: Codable, Equatable {
         voice = ProviderSettings.defaultVoice(forTTSEndpoint: endpoint)
     }
 
+    mutating func normalizeVoiceForCurrentTTS() {
+        voice = Self.validatedVoice(Self.normalizedCloudVoice(voice), clonedVoices: clonedVoices, endpoint: tts)
+    }
+
     private static func validatedVoice(_ voice: String, clonedVoices: [ClonedVoice], endpoint: ProviderEndpoint) -> String {
+        let compatibleClonedVoiceIDs = clonedVoices
+            .filter { endpoint.isCompatible(with: $0.reference) }
+            .map { voiceID(for: $0) }
+        if endpoint.requiresMiMoInlineAuthorizedSampleForSynthesis || endpoint.requiresCustomVoiceIDForSynthesis {
+            guard voice.hasPrefix(clonedVoicePrefix) else {
+                return compatibleClonedVoiceIDs.first ?? defaultVoice(forTTSEndpoint: endpoint)
+            }
+            return compatibleClonedVoiceIDs.contains(voice)
+                ? voice
+                : (compatibleClonedVoiceIDs.first ?? defaultVoice(forTTSEndpoint: endpoint))
+        }
         guard voice.hasPrefix(clonedVoicePrefix) else { return voice }
         let id = String(voice.dropFirst(clonedVoicePrefix.count))
         guard clonedVoices.contains(where: { $0.id == id && endpoint.isCompatible(with: $0.reference) }) else {

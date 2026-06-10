@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hunter AI 监督 - 声音设置</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #F5F5F7;
+        }
+        .mac-window {
+            width: 920px;
+            height: 680px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.1);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 18px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #D1D1D6;
+            border-radius: 10px;
+        }
+        .segmented-control {
+            background: rgba(118, 118, 128, 0.12);
+            padding: 2px;
+            border-radius: 8px;
+        }
+        .segmented-item.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.06);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e2e2e4",
+                        "inverse-on-surface": "#f0f0f2",
+                        "inverse-primary": "#adc6ff",
+                        "secondary": "#006e28",
+                        "tertiary-container": "#e2241f",
+                        "on-primary-container": "#fefcff",
+                        "on-background": "#1a1c1d",
+                        "primary-fixed": "#d8e2ff",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary-container": "#6ffb85",
+                        "background": "#f9f9fb",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "on-error": "#ffffff",
+                        "outline": "#717786",
+                        "on-tertiary-fixed": "#410001",
+                        "surface-container": "#eeeef0",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2f3132",
+                        "primary": "#0058bc",
+                        "surface": "#f9f9fb",
+                        "primary-container": "#0070eb",
+                        "tertiary-fixed-dim": "#ffb4aa",
+                        "surface-container-high": "#e8e8ea",
+                        "tertiary-fixed": "#ffdad5",
+                        "on-surface-variant": "#414755",
+                        "surface-dim": "#d9dadc",
+                        "on-tertiary-fixed-variant": "#930005",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#002107",
+                        "secondary-fixed-dim": "#53e16f",
+                        "on-primary-fixed-variant": "#004493",
+                        "surface-container-low": "#f3f3f5",
+                        "on-secondary-container": "#00732a",
+                        "on-primary-fixed": "#001a41",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c1c6d7",
+                        "tertiary": "#bc000a",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e2e2e4",
+                        "on-surface": "#1a1c1d",
+                        "secondary-fixed": "#72fe88",
+                        "primary-fixed-dim": "#adc6ff",
+                        "surface-bright": "#f9f9fb",
+                        "surface-tint": "#005bc1",
+                        "error": "#ba1a1a",
+                        "apple-blue": "#007AFF"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "title-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-sm": ["17px", {"lineHeight": "22px", "fontWeight": "600"}],
+                        "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-md": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="./settings-common.css" rel="stylesheet"/>
+</head>
+<body class="hunter-prototype-body">
+<div class="hunter-settings-window">
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar -->
+<!-- Use SideNavBar from JSON as reference -->
+<aside class="hunter-sidebar">
+<div class="hunter-window-controls" aria-hidden="true">
+<span class="hunter-window-dot red"></span>
+<span class="hunter-window-dot yellow"></span>
+<span class="hunter-window-dot green"></span>
+</div>
+<div class="hunter-brand">
+<div class="hunter-brand-icon">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div>
+<div class="hunter-brand-name">Hunter</div>
+<div class="hunter-brand-subtitle">AI 监督</div>
+</div>
+</div>
+<nav class="hunter-nav">
+<a class="hunter-nav-item" href="02-settings-general.html">
+<span class="material-symbols-outlined">settings</span>
+<span>通用</span>
+</a>
+<a class="hunter-nav-item" href="03-settings-watchlist.html">
+<span class="material-symbols-outlined">visibility_off</span>
+<span>黑名单</span>
+</a>
+<a class="hunter-nav-item" href="04-settings-ai.html">
+<span class="material-symbols-outlined">smart_toy</span>
+<span>AI</span>
+</a>
+<a class="hunter-nav-item active" href="05-settings-voice.html">
+<span class="material-symbols-outlined">mic</span>
+<span>声音</span>
+</a>
+<a class="hunter-nav-item" href="06-settings-history.html">
+<span class="material-symbols-outlined">history</span>
+<span>历史</span>
+</a>
+</nav>
+</aside>
+<!-- Main Canvas -->
+<main class="hunter-main">
+<!-- Top Nav Bar -->
+<header class="hunter-topbar">
+<h1 class="hunter-page-title">声音</h1>
+<p class="hunter-page-subtitle">配置监督员的音色与个性化反馈</p>
+</header>
+<!-- Scrollable Content -->
+<div class="hunter-scroll space-y-6">
+<!-- Card: 语言 -->
+<section class="space-y-2">
+<h3 class="px-1 text-[13px] font-semibold text-on-surface-variant">语言</h3>
+<div class="bg-white rounded-xl border border-black/5 shadow-sm p-4 space-y-4">
+<div class="flex items-center justify-between">
+<label class="text-[13px] text-on-surface">界面语言</label>
+<select class="bg-[#F2F2F7] border-none rounded-md text-[13px] px-3 py-1 focus:ring-2 focus:ring-apple-blue/50 w-32">
+<option>简体中文</option>
+<option>English</option>
+</select>
+</div>
+<div class="flex items-center justify-between">
+<label class="text-[13px] text-on-surface">监督语言</label>
+<select class="bg-[#F2F2F7] border-none rounded-md text-[13px] px-3 py-1 focus:ring-2 focus:ring-apple-blue/50 w-32">
+<option>跟随界面</option>
+<option>简体中文</option>
+<option>English</option>
+</select>
+</div>
+<p class="text-[11px] text-on-surface-variant pt-1 border-t border-black/5">监督语言直接影响大语言模型的语气和语音合成(TTS)的语音提示。</p>
+</div>
+</section>
+<!-- Card: 角色与强度 -->
+<section class="space-y-2">
+<h3 class="px-1 text-[13px] font-semibold text-on-surface-variant">角色与强度</h3>
+<div class="bg-white rounded-xl border border-black/5 shadow-sm p-4 space-y-4">
+<div class="flex items-center justify-between">
+<label class="text-[13px] text-on-surface">人格设定</label>
+<div class="flex gap-2">
+<button class="px-3 py-1 text-[12px] rounded-md bg-apple-blue text-white font-medium">学习监督</button>
+<button class="px-3 py-1 text-[12px] rounded-md bg-[#F2F2F7] text-on-surface hover:bg-surface-variant transition-colors">工作监督</button>
+<button class="px-3 py-1 text-[12px] rounded-md bg-[#F2F2F7] text-on-surface hover:bg-surface-variant transition-colors">自定义</button>
+</div>
+</div>
+<div class="flex flex-col space-y-2">
+<div class="flex items-center justify-between">
+<label class="text-[13px] text-on-surface">自定义人格提示词</label>
+<span class="text-[11px] text-on-surface-variant">0 / 300</span>
+</div>
+<textarea class="w-full min-h-[72px] resize-none bg-[#F2F2F7] border-none rounded-lg text-[13px] px-3 py-2 focus:ring-2 focus:ring-apple-blue/50" maxlength="300" placeholder="例如：像嘴硬但关心我的同事，吐槽要短、狠、但不要人身攻击。"></textarea>
+<p class="text-[11px] text-on-surface-variant">这段提示词只进入 LLM 角色设定；TTS 负责用当前音色朗读生成后的文本。</p>
+</div>
+<div class="flex items-center justify-between">
+<label class="text-[13px] text-on-surface">强度分级</label>
+<div class="segmented-control flex w-64">
+<button class="segmented-item flex-1 text-[11px] py-1 text-on-surface-variant">温柔</button>
+<button class="segmented-item flex-1 active text-[11px] py-1 font-semibold text-on-surface">正经</button>
+<button class="segmented-item flex-1 text-[11px] py-1 text-on-surface-variant">凶狠</button>
+<button class="segmented-item flex-1 text-[11px] py-1 text-on-surface-variant">强制</button>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<label class="text-[13px] text-on-surface">允许粗口</label>
+<button class="w-10 h-5 bg-gray-200 rounded-full relative transition-colors duration-200 focus:outline-none" onclick="this.classList.toggle('bg-apple-blue'); this.classList.toggle('bg-gray-200'); this.children[0].classList.toggle('translate-x-5')">
+<div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm translate-x-0"></div>
+</button>
+</div>
+<div class="flex flex-col space-y-2">
+<label class="text-[13px] text-on-surface">禁用词</label>
+<input class="w-full bg-[#F2F2F7] border-none rounded-lg text-[13px] px-3 py-2 focus:ring-2 focus:ring-apple-blue/50" placeholder="输入要避开的关键词..." type="text"/>
+</div>
+</div>
+</section>
+<!-- Card: 音色 -->
+<section class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<h3 class="text-[13px] font-semibold text-on-surface-variant">音色</h3>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold">
+<span class="w-1.5 h-1.5 bg-secondary rounded-full animate-pulse"></span>
+                                已连接
+                            </span>
+</div>
+<div class="bg-white rounded-xl border border-black/5 shadow-sm p-4">
+<div class="flex items-stretch gap-2">
+<div class="relative flex-1">
+<select class="w-full bg-[#F2F2F7] border-none rounded-lg text-[13px] px-3 py-2 focus:ring-2 focus:ring-apple-blue/50 h-[34px]">
+<option>龙傲阳 - 默认男声（longanyang）</option>
+<option>温柔女声 - 默认（longwanqing）</option>
+<option>我的克隆音色（voice_hunter_custom_01）</option>
+</select>
+</div>
+<button class="px-4 py-2 bg-apple-blue text-white text-[12px] font-semibold rounded-lg hover:bg-primary-container transition-colors shadow-sm flex items-center justify-center h-[34px]">
+                                    测试音色
+                                </button>
+</div>
+<div class="flex items-start gap-2 mt-3 text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-apple-blue">info</span>
+<p>默认音色来自当前 TTS Provider 模板；连接成功后可刷新可用音色，克隆完成的音色也会出现在这里。</p>
+</div>
+</div>
+</section>
+<!-- Card: 声音克隆 -->
+<section class="space-y-2">
+<h3 class="px-1 text-[13px] font-semibold text-on-surface-variant">声音克隆</h3>
+<div class="bg-white rounded-xl border border-black/5 shadow-sm p-4 space-y-4">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded border-gray-300 text-apple-blue focus:ring-apple-blue/50 w-4 h-4" type="checkbox"/>
+<span class="text-[12px] text-on-surface-variant group-hover:text-on-surface transition-colors">我确认只上传本人或已授权声音样本</span>
+</label>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-gray-300 text-on-surface-variant hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">upload</span>
+<span class="text-[12px] font-medium">上传样本</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-gray-300 text-on-surface-variant hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">mic</span>
+<span class="text-[12px] font-medium">录制样本</span>
+</button>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between p-2.5 bg-[#F9F9FB] rounded-lg border border-black/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-apple-blue">audio_file</span>
+<div class="flex flex-col">
+<span class="text-[12px] font-medium text-on-surface">sample_01.wav</span>
+<span class="text-[10px] text-on-surface-variant">12.4s • 已就绪</span>
+</div>
+</div>
+<button class="p-1 hover:text-error transition-colors"><span class="material-symbols-outlined">delete</span></button>
+</div>
+<div class="flex items-center justify-between p-2.5 bg-[#F9F9FB] rounded-lg border border-black/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-apple-blue">audio_file</span>
+<div class="flex flex-col">
+<span class="text-[12px] font-medium text-on-surface">sample_02.wav</span>
+<span class="text-[10px] text-on-surface-variant">18.1s • 已就绪</span>
+</div>
+</div>
+<button class="p-1 hover:text-error transition-colors"><span class="material-symbols-outlined">delete</span></button>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<div class="col-span-2 space-y-1.5">
+<label class="text-[11px] font-semibold text-on-surface-variant px-1">克隆名称</label>
+<input class="w-full bg-[#F2F2F7] border-none rounded-lg text-[13px] px-3 py-2 focus:ring-2 focus:ring-apple-blue/50" type="text" value="voice_hunter_custom_01"/>
+</div>
+<div class="flex items-end">
+<button class="w-full h-[34px] border border-apple-blue text-apple-blue text-[12px] font-semibold rounded-lg hover:bg-apple-blue/5 transition-colors">
+                                        设为当前音色
+                                    </button>
+</div>
+</div>
+<div class="flex items-center gap-3 pt-2">
+<div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+<div class="bg-apple-blue h-full w-2/3 rounded-full"></div>
+</div>
+<span class="text-[11px] text-on-surface-variant font-medium">克隆中... 68%</span>
+</div>
+<button class="w-full py-2.5 bg-apple-blue text-white text-[13px] font-bold rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-apple-blue/20">
+                                开始克隆声音
+                            </button>
+<div class="rounded-xl border border-[#34C759]/20 bg-[#EAF7EE] p-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#248A3D]">check_circle</span>
+<div class="flex flex-col">
+<span class="text-[12px] font-semibold text-[#1D1D1F]">克隆完成</span>
+<span class="text-[11px] text-on-surface-variant">voice_hunter_custom_01 已加入上方音色下拉列表</span>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-white border border-[#34C759]/20 text-[#248A3D] text-[11px] font-semibold">设为当前音色</button>
+</div>
+<div class="flex items-start gap-2 pt-2 border-t border-black/5 opacity-60">
+<span class="material-symbols-outlined text-[14px]">info</span>
+<p class="text-[10px] leading-tight text-on-surface-variant">安全提示：不支持复刻公众人物或未授权第三方声音。Hunter 致力于保护语音版权，所有生成数据均受加密保护。</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</div>
+<script>
+        // Tab switching logic for segmented control
+        document.querySelectorAll('.segmented-item').forEach(item => {
+            item.addEventListener('click', function() {
+                this.parentNode.querySelectorAll('.segmented-item').forEach(btn => {
+                    btn.classList.remove('active', 'font-semibold', 'text-on-surface');
+                    btn.classList.add('text-on-surface-variant');
+                });
+                this.classList.add('active', 'font-semibold', 'text-on-surface');
+                this.classList.remove('text-on-surface-variant');
+            });
+        });
+
+        // Persona picker buttons
+        document.querySelectorAll('.bg-apple-blue, .bg-\\[\\#F2F2F7\\]').forEach(btn => {
+            if(btn.closest('.flex.gap-2')) {
+                btn.addEventListener('click', function() {
+                    this.parentNode.querySelectorAll('button').forEach(b => {
+                        b.className = 'px-3 py-1 text-[12px] rounded-md bg-[#F2F2F7] text-on-surface hover:bg-surface-variant transition-colors';
+                    });
+                    this.className = 'px-3 py-1 text-[12px] rounded-md bg-apple-blue text-white font-medium';
+                });
+            }
+        });
+    </script>
+</body></html>

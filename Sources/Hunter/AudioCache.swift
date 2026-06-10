@@ -6,6 +6,7 @@ struct AudioCache {
         var model: String
         var voice: String
         var languageCode: String
+        var styleKey: String = ""
         var text: String
     }
 
@@ -41,7 +42,7 @@ struct AudioCache {
     }
 
     private func hash(_ key: Key) -> String {
-        let raw = "\(key.model)\n\(key.voice)\n\(key.languageCode)\n\(key.text)"
+        let raw = "\(key.model)\n\(key.voice)\n\(key.languageCode)\n\(key.styleKey)\n\(key.text)"
         let digest = SHA256.hash(data: Data(raw.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }

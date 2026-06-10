@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hunter AI 监督 - 历史</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#007AFF",
+                    "surface-container-low": "#F3F3F5",
+                    "surface": "#F5F5F7",
+                    "on-surface": "#1A1C1D",
+                    "on-surface-variant": "#414755",
+                    "outline-variant": "#C1C6D7",
+                    "error": "#FF3B30",
+                    "error-container": "#FFDAD6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "body": ["Inter", "SF Pro Text", "system-ui", "sans-serif"],
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f5f5f7;
+            font-family: 'Inter', 'SF Pro Text', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .mac-window {
+            width: 920px;
+            height: 680px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+            display: flex;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            vertical-align: middle;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d1d6;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+    </style>
+<link href="./settings-common.css" rel="stylesheet"/>
+</head>
+<body class="hunter-prototype-body">
+<!-- Main Application Window -->
+<div class="hunter-settings-window">
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar -->
+<aside class="hunter-sidebar">
+<div class="hunter-window-controls" aria-hidden="true">
+<span class="hunter-window-dot red"></span>
+<span class="hunter-window-dot yellow"></span>
+<span class="hunter-window-dot green"></span>
+</div>
+<div class="hunter-brand">
+<div class="hunter-brand-icon">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div>
+<div class="hunter-brand-name">Hunter</div>
+<div class="hunter-brand-subtitle">AI 监督</div>
+</div>
+</div>
+<nav class="hunter-nav">
+<a class="hunter-nav-item" href="02-settings-general.html">
+<span class="material-symbols-outlined">settings</span>
+<span>通用</span>
+</a>
+<a class="hunter-nav-item" href="03-settings-watchlist.html">
+<span class="material-symbols-outlined">visibility_off</span>
+<span>黑名单</span>
+</a>
+<a class="hunter-nav-item" href="04-settings-ai.html">
+<span class="material-symbols-outlined">smart_toy</span>
+<span>AI</span>
+</a>
+<a class="hunter-nav-item" href="05-settings-voice.html">
+<span class="material-symbols-outlined">mic</span>
+<span>声音</span>
+</a>
+<a class="hunter-nav-item active" href="06-settings-history.html">
+<span class="material-symbols-outlined">history</span>
+<span>历史</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="hunter-main">
+<!-- Top Header -->
+<header class="hunter-topbar">
+<h1 class="hunter-page-title">历史</h1>
+<p class="hunter-page-subtitle">查看本地监督日志与统计</p>
+</header>
+<div class="hunter-scroll space-y-6">
+<!-- 1. 今日摘要 -->
+<section>
+<h3 class="text-[13px] font-semibold text-on-surface mb-3">今日摘要</h3>
+<div class="grid grid-cols-3 gap-4">
+<div class="bg-white border border-black/5 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+<span class="text-[11px] text-on-surface-variant/60 font-medium">抓包次数</span>
+<div class="flex items-baseline gap-1">
+<span class="text-[20px] font-bold text-on-surface">3</span>
+<span class="text-[11px] text-error font-medium">次</span>
+</div>
+</div>
+<div class="bg-white border border-black/5 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+<span class="text-[11px] text-on-surface-variant/60 font-medium">最常命中</span>
+<div class="flex items-baseline gap-1">
+<span class="text-[20px] font-bold text-on-surface">YouTube</span>
+</div>
+</div>
+<div class="bg-white border border-black/5 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+<span class="text-[11px] text-on-surface-variant/60 font-medium">最近一次抓包</span>
+<div class="flex items-baseline gap-1">
+<span class="text-[20px] font-bold text-on-surface">10:21 AM</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. 抓包记录 -->
+<section>
+<h3 class="text-[13px] font-semibold text-on-surface mb-3">抓包记录</h3>
+<div class="bg-white border border-black/5 rounded-xl overflow-hidden shadow-sm">
+<!-- Table Header -->
+<div class="flex items-center px-4 py-2 border-b border-black/5 bg-black/[0.02] text-[11px] font-bold text-on-surface-variant/60 uppercase tracking-wider">
+<span class="w-24">时间</span>
+<span class="w-32">命中对象</span>
+<span class="w-32">匹配规则</span>
+<span class="flex-1">AI 评价</span>
+</div>
+<!-- Rows -->
+<div class="divide-y divide-black/5">
+<div class="flex items-center px-4 py-3 hover:bg-black/[0.01] transition-colors text-[13px]">
+<span class="w-24 text-on-surface-variant/70">10:21 AM</span>
+<span class="w-32 font-medium">YouTube</span>
+<span class="w-32"><span class="px-1.5 py-0.5 rounded bg-black/5 text-[11px] text-on-surface-variant">域名匹配</span></span>
+<span class="flex-1 italic text-on-surface-variant/80">"又在刷视频？请保持专注。"</span>
+</div>
+<div class="flex items-center px-4 py-3 hover:bg-black/[0.01] transition-colors text-[13px]">
+<span class="w-24 text-on-surface-variant/70">02:05 PM</span>
+<span class="w-32 font-medium">Steam</span>
+<span class="w-32"><span class="px-1.5 py-0.5 rounded bg-black/5 text-[11px] text-on-surface-variant">应用匹配</span></span>
+<span class="flex-1 italic text-on-surface-variant/80">"监督中玩游戏？你的进度落后了。"</span>
+</div>
+<div class="flex items-center px-4 py-3 hover:bg-black/[0.01] transition-colors text-[13px]">
+<span class="w-24 text-on-surface-variant/70">04:44 PM</span>
+<span class="w-32 font-medium">Bilibili</span>
+<span class="w-32"><span class="px-1.5 py-0.5 rounded bg-black/5 text-[11px] text-on-surface-variant">关键词匹配</span></span>
+<span class="flex-1 italic text-on-surface-variant/80">"停止摸鱼，距离下班还有任务未完成。"</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. 空状态 -->
+<section class="mt-4">
+<div class="flex items-center justify-center border border-dashed border-black/10 rounded-xl p-8 bg-black/[0.01]">
+<div class="flex flex-col items-center gap-2 opacity-40">
+<span class="material-symbols-outlined text-[32px]">task_alt</span>
+<p class="text-[13px] font-medium">今天还没抓到你</p>
+</div>
+</div>
+</section>
+<!-- 4. 清除日志 -->
+<section class="pt-4 border-t border-black/5">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="text-[13px] font-semibold text-on-surface">清理数据</h3>
+<p class="text-[11px] text-on-surface-variant/60">管理您的本地历史记录</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 border border-black/10 rounded-lg text-[12px] font-medium text-on-surface hover:bg-black/5 transition-colors">
+                                清除今日
+                            </button>
+<button class="px-3 py-1.5 border border-error/20 rounded-lg text-[12px] font-medium text-error hover:bg-error/5 transition-colors">
+                                清除全部本地日志
+                            </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</div>
+<script>
+    // Interaction states
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mousedown', () => {
+            btn.style.transform = 'scale(0.98)';
+        });
+        btn.addEventListener('mouseup', () => {
+            btn.style.transform = 'scale(1)';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.transform = 'scale(1)';
+        });
+    });
+</script>
+</body></html>

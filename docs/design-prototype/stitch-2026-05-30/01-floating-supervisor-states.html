@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hunter 悬浮监督状态</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary": "#ffffff",
+                        "primary": "#0058bc",
+                        "apple-blue": "#007AFF",
+                        "system-green": "#34C759",
+                        "system-red": "#FF3B30",
+                        "on-secondary": "#ffffff",
+                        "background": "#F5F5F7",
+                        "surface": "#ffffff",
+                        "surface-container-low": "#f3f3f5",
+                        "on-surface": "#1a1c1d",
+                        "on-surface-variant": "#414755",
+                        "outline": "#E5E5E7",
+                        "surface-variant": "#e2e2e4",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.625rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "display-lg": ["Inter", "sans-serif"],
+                        "title-sm": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-sm": ["Inter", "sans-serif"],
+                        "label-caps": ["Inter", "sans-serif"],
+                    },
+                    fontSize: {
+                        "display-lg": ["34px", { lineHeight: "41px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "title-sm": ["17px", { lineHeight: "22px", fontWeight: "600" }],
+                        "body-md": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+                        "headline-md": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "body-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }],
+                        "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #F5F5F7;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1a1c1d;
+        }
+        .mac-shadow {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        .orb-pulse {
+            animation: pulse-green 2s infinite ease-in-out;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 199, 89, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
+        }
+        .waveform-bar {
+            width: 3px;
+            background-color: #007AFF;
+            border-radius: 10px;
+            animation: wave 1s infinite ease-in-out;
+        }
+        @keyframes wave {
+            0%, 100% { height: 4px; }
+            50% { height: 12px; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-12 overflow-x-hidden">
+<header class="mb-16">
+<h1 class="font-display-lg text-display-lg text-on-surface">Hunter 悬浮监督状态</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 opacity-60">Mac 桌面小组件交互设计</p>
+</header>
+<main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 items-start">
+<!-- Component 1 & 2 & 3: The Orbs -->
+<section class="flex flex-col gap-12">
+<div class="flex flex-col gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">待机 / 专注状态</span>
+<div class="relative w-[72px] h-[72px]">
+<svg class="absolute inset-0 w-full h-full -rotate-90">
+<circle cx="36" cy="36" fill="none" r="33" stroke="#E5E5E7" stroke-width="3"></circle>
+<circle cx="36" cy="36" fill="none" r="33" stroke="#007AFF" stroke-dasharray="207" stroke-dashoffset="60" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<img class="w-[60px] h-[60px] rounded-full object-cover" data-alt="A clean, minimalist 3D render of a stylized eye with sleek sunglasses in a high-key studio environment. The aesthetic is monochromatic white and grey with a focus on smooth textures and soft Apple-style lighting. The character represents a focused, calm AI supervisor assistant for a professional macOS productivity application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0LTFysFLaJpj69bzh5ORge4TwAdZrfguNMBiSq4tHM0WwlyoxpHwGj3jQyJDwzhBk3HMHsnpHw0Rc_zRbFgMbaMWIP9HoxEpSauAt78ZhcBX7ahVSYI1boLIoe1a-s6hAsIShMo20joRDzgWiK_TJ8NDR3DxGCTs66j04yI88H9baL5vPSqgf9qiyLFxVq1mr57vlhcx7a8Su_7eh5jh-xYhTw6ae7Tyygdbs2IYOdESPb5buikWH8aU9Yl-MS6w0bkEktrLRvWk"/>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">收音状态</span>
+<div class="relative w-[72px] h-[72px] orb-pulse rounded-full">
+<div class="absolute inset-0 rounded-full border-[3px] border-system-green"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<img class="w-[60px] h-[60px] rounded-full object-cover" data-alt="A clean, minimalist 3D render of a stylized eye with sleek sunglasses in a high-key studio environment. The aesthetic is monochromatic white and grey with a focus on smooth textures and soft Apple-style lighting. The character represents a focused, calm AI supervisor assistant for a professional macOS productivity application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8VRjoaowE1lDdOuQeAFmK5OKVdMfpaf9GeVxgw8iGPZxOdDYnInaVMberD4Ucu9tPxmE_mOyASIuUPdoQaRNmjU3jhKqaALTpfXQjug3xwIUFcshagMKefRnT6hQmi8YG6BY0RMqVnNat-LutEvNjX-MzN4wEk8W8ho33I3lQ04cTIT_6VuVf3uGivBRfs_uzSt7Exw2q7nevlT8N9KjsdT13iJTQdGN-NCLPNg4Xd-zHqV9n1b5-fIQp8LOBxJkzOCVDHIsQze4"/>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">播报状态</span>
+<div class="relative w-[72px] h-[72px]">
+<div class="absolute inset-0 rounded-full border-[3px] border-apple-blue opacity-20"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<img class="w-[60px] h-[60px] rounded-full object-cover grayscale opacity-80" data-alt="A clean, minimalist 3D render of a stylized eye with sleek sunglasses in a high-key studio environment. The aesthetic is monochromatic white and grey with a focus on smooth textures and soft Apple-style lighting. The character represents a focused, calm AI supervisor assistant for a professional macOS productivity application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAO6NzKXYTmH4hRzWhLx4YUEq6xxdvpwoBB3hS1Z6MbyeTxBFPV7jcIAvBKMQvHE6agp4uC72mqbMI3DGYrwwcnRmI0bjm7epIJzy4q5Ib2QkgUqAObqdHJA7lK0MPqhitKSnCg95C0Zu4Fhl4PKkPA3n38lKyWtTw1SGIt7XW76yq11-fGq7Z3ZxOMLPvQtFUy1kgNqtgqwLN3oxGVwrMP60ODunb0oU8wbeZ9vb3ajnjGQmg0YD5uoCTBvdj8UhoEZDQe009XCQo"/>
+<div class="absolute bottom-2 flex gap-[2px] items-end h-4">
+<div class="waveform-bar" style="animation-delay: 0.1s"></div>
+<div class="waveform-bar" style="animation-delay: 0.3s"></div>
+<div class="waveform-bar" style="animation-delay: 0.2s"></div>
+<div class="waveform-bar" style="animation-delay: 0.4s"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Component 4: Quick Control Popover -->
+<section class="flex flex-col gap-8">
+<div class="flex flex-col gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">快捷控制</span>
+<div class="w-[320px] bg-white rounded-xl mac-shadow p-5 border border-outline flex flex-col gap-5">
+<div class="flex justify-between items-center">
+<h2 class="font-title-sm text-title-sm text-on-surface">时长监督</h2>
+<span class="font-body-md text-apple-blue font-semibold">34:12</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-apple-blue w-2/3 rounded-full"></div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container-low hover:bg-surface-variant text-on-surface text-[12px] font-medium py-1.5 rounded-lg transition-colors">15</button>
+<button class="flex-1 bg-surface-container-low hover:bg-surface-variant text-on-surface text-[12px] font-medium py-1.5 rounded-lg transition-colors">25</button>
+<button class="flex-1 bg-apple-blue text-white text-[12px] font-medium py-1.5 rounded-lg transition-colors">40</button>
+</div>
+<div class="flex gap-2 pt-1">
+<button class="flex-1 bg-surface-container-low hover:bg-surface-variant text-on-surface font-body-md py-2 rounded-lg transition-colors">暂停</button>
+<button class="flex-1 bg-surface-container-low hover:bg-surface-variant text-on-surface font-body-md py-2 rounded-lg transition-colors">取消</button>
+</div>
+<div class="flex items-center justify-center gap-1.5 opacity-40">
+<span class="material-symbols-outlined text-[14px]">keyboard_command_key</span>
+<p class="font-body-sm text-body-sm">按住 Option + Space 对话</p>
+</div>
+</div>
+</div>
+<!-- Component 6: Focus Toasts -->
+<div class="flex flex-col gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">系统提示</span>
+<div class="flex flex-col gap-3">
+<div class="w-[280px] bg-white/90 backdrop-blur-md rounded-lg mac-shadow px-4 py-3 border border-outline flex items-center gap-3">
+<span class="material-symbols-outlined text-system-green text-[20px]">check_circle</span>
+<p class="font-body-md text-body-md">40 分钟监督已开始</p>
+</div>
+<div class="w-[280px] bg-white/90 backdrop-blur-md rounded-lg mac-shadow px-4 py-3 border border-outline flex items-center gap-3">
+<span class="material-symbols-outlined text-apple-blue text-[20px]">task_alt</span>
+<p class="font-body-md text-body-md">监督任务已完成</p>
+</div>
+<div class="w-[280px] bg-white/90 backdrop-blur-md rounded-lg mac-shadow px-4 py-3 border border-outline flex items-center gap-3">
+<span class="material-symbols-outlined text-system-red text-[20px]">warning</span>
+<p class="font-body-md text-body-md">没听清监督时长</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Component 5: Catch Popover -->
+<section class="flex flex-col gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">抓包展开态</span>
+<div class="w-[340px] bg-white rounded-xl mac-shadow border border-outline overflow-hidden">
+<div class="h-1 bg-system-red w-full"></div>
+<div class="p-6 flex flex-col gap-5">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="font-title-sm text-title-sm text-system-red mb-1">抓到你在看 YouTube</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                又打开 YouTube？离截止时间更近了，你倒是挺稳。
+                            </p>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center shrink-0">
+<div class="flex gap-[2px] items-center h-3">
+<div class="w-[2px] bg-system-red h-2 rounded-full"></div>
+<div class="w-[2px] bg-system-red h-4 rounded-full"></div>
+<div class="w-[2px] bg-system-red h-3 rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="w-full bg-apple-blue text-white font-body-md py-2.5 rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">mic</span>
+                            按住 Option + Space 反驳
+                        </button>
+<button class="w-full border border-outline text-on-surface font-body-md py-2.5 rounded-lg hover:bg-surface-container-low transition-colors">
+                            暂停监督
+                        </button>
+</div>
+</div>
+</div>
+<div class="w-[340px] bg-white rounded-xl mac-shadow border border-outline overflow-hidden">
+<div class="p-5 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant">用户回复转写态</span>
+<span class="flex items-center gap-1 text-system-green font-body-sm">
+<span class="w-2 h-2 rounded-full bg-system-green animate-pulse"></span>
+正在收音
+</span>
+</div>
+<div class="rounded-xl bg-surface-container-low border border-outline p-4">
+<p class="font-body-sm text-on-surface-variant mb-1">用户说</p>
+<p class="font-body-md text-on-surface leading-relaxed">我只是查一个教程，马上就回去写代码。</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex gap-[3px] items-end h-6">
+<div class="waveform-bar bg-system-green" style="animation-delay: 0.1s"></div>
+<div class="waveform-bar bg-system-green" style="animation-delay: 0.25s"></div>
+<div class="waveform-bar bg-system-green" style="animation-delay: 0.05s"></div>
+<div class="waveform-bar bg-system-green" style="animation-delay: 0.35s"></div>
+<div class="waveform-bar bg-system-green" style="animation-delay: 0.2s"></div>
+</div>
+<span class="font-body-sm text-on-surface-variant">松开发送给 Hunter 反击</span>
+</div>
+</div>
+</div>
+<!-- Context Hint Card -->
+<div class="mt-8 p-6 bg-surface-container-low rounded-xl border border-outline max-w-[340px]">
+<h3 class="font-title-sm text-title-sm mb-2">设计原则</h3>
+<p class="font-body-sm text-on-surface-variant leading-relaxed">
+                    以低打扰的 Mac 桌面层为核心：未命中黑名单时保持克制，抓包或用户主动开启时长任务时才展开。所有元素使用接近 macOS 的圆角、留白和中性色。
+                </p>
+</div>
+</section>
+</main>
+<script>
+        // Simple micro-interaction for buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mousedown', () => {
+                button.style.transform = 'scale(0.98)';
+                button.style.transition = 'transform 0.1s ease';
+            });
+            button.addEventListener('mouseup', () => {
+                button.style.transform = 'scale(1)';
+            });
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body></html>

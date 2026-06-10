@@ -3,7 +3,9 @@ import Foundation
 extension URLRequest {
     mutating func applyProviderHeaders(endpoint: ProviderEndpoint, apiKey: String) {
         let scheme = endpoint.authorizationScheme.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !scheme.isEmpty, scheme.lowercased() != "none" {
+        if scheme.lowercased() == "api-key" {
+            setValue(apiKey, forHTTPHeaderField: "api-key")
+        } else if !scheme.isEmpty, scheme.lowercased() != "none" {
             setValue("\(scheme) \(apiKey)", forHTTPHeaderField: "Authorization")
         }
 

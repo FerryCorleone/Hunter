@@ -96,6 +96,15 @@ private struct LocalASROutput: Decodable {
 }
 
 struct LocalSpeechRuntime {
+    func isASRRuntimeReady() -> Bool {
+        guard let root = try? runtimeRoot() else { return false }
+        let venv = root.appendingPathComponent("venv-asr", isDirectory: true)
+        let python = venv.appendingPathComponent("bin/python")
+        let stamp = venv.appendingPathComponent(".hunter-runtime-ready")
+        return FileManager.default.fileExists(atPath: python.path)
+            && FileManager.default.fileExists(atPath: stamp.path)
+    }
+
     func ensureASRRuntime(progress: @escaping @MainActor (String) -> Void) async throws -> URL {
         try await ensureVenv(
             name: "asr",

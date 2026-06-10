@@ -16,7 +16,7 @@ final class MonitorService {
     private var hasActiveApplication = false
     private var lastBrowserURL: String?
     private var lastBrowserTitle: String?
-    private let browserURLPollInterval: TimeInterval = 1.5
+    private let browserURLPollInterval: TimeInterval = 0.8
     private let lifecycleInterval: TimeInterval = 2
 
     init(state: AppState, incidents: IncidentController) {
@@ -170,8 +170,6 @@ final class MonitorService {
         guard state.isMonitoring, shouldMonitorNow else { return }
         guard activeBundleID == bundleID else { return }
         guard let tab, !tab.url.isEmpty else { return }
-        guard tab.url != lastBrowserURL || tab.title != lastBrowserTitle else { return }
-
         lastBrowserURL = tab.url
         lastBrowserTitle = tab.title
         evaluateContext(appName: appName, bundleID: bundleID, url: tab.url, pageTitle: tab.title)
@@ -195,6 +193,6 @@ final class MonitorService {
             }
             return true
         }
-        return state.workSchedule.contains()
+        return true
     }
 }

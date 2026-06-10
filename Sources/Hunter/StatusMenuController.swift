@@ -6,6 +6,7 @@ final class StatusMenuController {
     private let statusItem: NSStatusItem
     private let state: AppState
     private let showSettings: () -> Void
+    private let startMonitoring: () -> Bool
     private let startFocus: () -> Void
     private let recordVoiceCommand: () -> Void
     private let demoCatch: () -> Void
@@ -14,18 +15,19 @@ final class StatusMenuController {
     init(
         state: AppState,
         showSettings: @escaping () -> Void,
+        startMonitoring: @escaping () -> Bool,
         startFocus: @escaping () -> Void,
         recordVoiceCommand: @escaping () -> Void,
         demoCatch: @escaping () -> Void
     ) {
         self.state = state
         self.showSettings = showSettings
+        self.startMonitoring = startMonitoring
         self.startFocus = startFocus
         self.recordVoiceCommand = recordVoiceCommand
         self.demoCatch = demoCatch
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "H"
-        statusItem.button?.font = .systemFont(ofSize: 15, weight: .bold)
+        configureStatusButton()
         rebuildMenu()
 
         state.$isMonitoring
@@ -77,8 +79,25 @@ final class StatusMenuController {
         statusItem.menu = menu
     }
 
+    private func configureStatusButton() {
+        guard let button = statusItem.button else { return }
+        if let image = StatusMenuIcon.image() {
+            button.title = ""
+            button.image = image
+            button.imagePosition = .imageOnly
+            button.toolTip = "Hunter"
+        } else {
+            button.title = "H"
+            button.font = .systemFont(ofSize: 15, weight: .bold)
+        }
+    }
+
     @objc private func toggleMonitoring() {
-        state.isMonitoring ? state.stopMonitoring() : state.startMonitoring()
+        if state.isMonitoring {
+            state.stopMonitoring()
+        } else {
+            _ = startMonitoring()
+        }
         rebuildMenu()
     }
 
@@ -120,5 +139,25 @@ final class StatusMenuController {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+}
+
+private enum StatusMenuIcon {
+    static func image() -> NSImage? {
+        let filename = "hunter-status-icon"
+        let candidateURLs: [URL?] = [
+            Bundle.module.url(forResource: filename, withExtension: "png"),
+            Bundle.main.resourceURL?.appendingPathComponent("Hunter_Hunter.bundle/\(filename).png"),
+            Bundle.main.bundleURL.appendingPathComponent("Hunter_Hunter.bundle/\(filename).png")
+        ]
+
+        for url in candidateURLs.compactMap({ $0 }) {
+            if let image = NSImage(contentsOf: url) {
+                image.size = NSSize(width: 18, height: 18)
+                image.isTemplate = true
+                return image
+            }
+        }
+        return nil
     }
 }

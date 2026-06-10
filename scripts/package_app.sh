@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-CONFIGURATION="${CONFIGURATION:-debug}"
+CONFIGURATION="${CONFIGURATION:-release}"
 APP_NAME="Hunter"
 BUILD_DIR="$ROOT_DIR/.build/${CONFIGURATION}"
 APP_DIR="$ROOT_DIR/build/${APP_NAME}.app"
@@ -23,6 +23,29 @@ for resource_path in \
     cp -R "$resource_path" "$APP_DIR/Contents/Resources/"
   fi
 done
+
+ICON_SOURCE="$ROOT_DIR/Sources/Hunter/Resources/hunter-sunglasses-icon.png"
+if [[ -f "$ICON_SOURCE" ]] && command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
+  ICONSET_DIR="$APP_DIR/Contents/Resources/AppIcon.iconset"
+  TMP_ICON_DIR="$(mktemp -d)"
+  rm -rf "$ICONSET_DIR"
+  mkdir -p "$ICONSET_DIR"
+  for size in 16 32 128 256 512; do
+    for scale in 1 2; do
+      pixels=$((size * scale))
+      scaled="$TMP_ICON_DIR/icon-${pixels}.png"
+      if [[ "$scale" -eq 1 ]]; then
+        output="$ICONSET_DIR/icon_${size}x${size}.png"
+      else
+        output="$ICONSET_DIR/icon_${size}x${size}@2x.png"
+      fi
+      sips -Z "$pixels" "$ICON_SOURCE" --out "$scaled" >/dev/null 2>&1
+      sips --padToHeightWidth "$pixels" "$pixels" --padColor FFFFFF "$scaled" --out "$output" >/dev/null 2>&1
+    done
+  done
+  iconutil -c icns "$ICONSET_DIR" -o "$APP_DIR/Contents/Resources/AppIcon.icns"
+  rm -rf "$ICONSET_DIR" "$TMP_ICON_DIR"
+fi
 
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -45,10 +68,10 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <string>0.1.0</string>
   <key>CFBundleVersion</key>
   <string>1</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
-  <key>LSUIElement</key>
-  <true/>
   <key>NSAppleEventsUsageDescription</key>
   <string>Hunter needs browser automation permission to read the active Chrome or Safari URL for user-configured blacklist rules.</string>
   <key>NSMicrophoneUsageDescription</key>
@@ -58,7 +81,16 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 PLIST
 
 if command -v codesign >/dev/null 2>&1; then
-  codesign --force --deep --sign - "$APP_DIR" >/dev/null
+  CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
+  if [[ -z "$CODESIGN_IDENTITY" ]] && command -v security >/dev/null 2>&1; then
+    CODESIGN_IDENTITY="$(
+      security find-identity -v -p codesigning 2>/dev/null \
+        | sed -n 's/.*"\(Apple Development:[^"]*\)".*/\1/p' \
+        | head -n 1
+    )"
+  fi
+  CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+  codesign --force --deep --sign "$CODESIGN_IDENTITY" "$APP_DIR" >/dev/null
 fi
 
 echo "$APP_DIR"

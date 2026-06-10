@@ -11,15 +11,23 @@ final class FloatingWindowController {
     private var lastHasToast = false
     private var lastHasIncident = false
     private var lastHasQuickMenu = false
-    private var dragStartOrigin: NSPoint?
+    private var isDraggingOrb = false
+    private var dragMouseOffset: NSSize?
+    private var dragScreen: NSScreen?
 
-    init(state: AppState, onReplyPressChanged: @escaping (Bool) -> Void, onPause: @escaping () -> Void) {
+    init(
+        state: AppState,
+        onReplyPressChanged: @escaping (Bool) -> Void,
+        onStartFocus: @escaping (Int, String) -> Bool,
+        onPause: @escaping () -> Void
+    ) {
         self.state = state
         var layoutHandler: ((Bool, Bool, Bool) -> Void)?
         var dragHandler: ((OrbDragPhase) -> Void)?
         let view = FloatingOverlayView(
             state: state,
             onReplyPressChanged: onReplyPressChanged,
+            onStartFocus: onStartFocus,
             onPause: onPause,
             onOrbDrag: { phase in
                 dragHandler?(phase)
@@ -50,7 +58,7 @@ final class FloatingWindowController {
         window.isReleasedWhenClosed = false
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.ignoresMouseEvents = false
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.isOpaque = false
@@ -104,6 +112,7 @@ final class FloatingWindowController {
         lastHasToast = hasToast
         lastHasIncident = hasIncident
         lastHasQuickMenu = hasQuickMenu
+        guard !isDraggingOrb else { return }
 
         guard let screen = screenForCurrentWindow(preferMouseLocation: hasQuickMenu) ?? NSScreen.main else { return }
         let visible = screen.visibleFrame
@@ -156,37 +165,56 @@ final class FloatingWindowController {
     }
 
     private func contentSize(hasToast: Bool, hasIncident: Bool, hasQuickMenu: Bool) -> NSSize {
-        if hasQuickMenu {
-            return hasIncident
-                ? NSSize(width: 382, height: 574)
-                : NSSize(width: 382, height: 214)
-        }
-
-        switch (hasToast, hasIncident) {
-        case (false, false):
-            return NSSize(width: 72, height: 72)
-        case (true, false):
-            return NSSize(width: 382, height: 84)
-        case (false, true):
-            return NSSize(width: 360, height: 352)
-        case (true, true):
-            return NSSize(width: 382, height: 436)
-        }
+        let size = FloatingOverlayLayout.size(
+            hasToast: hasToast,
+            hasIncident: hasIncident,
+            hasQuickMenu: hasQuickMenu
+        )
+        return NSSize(width: size.width, height: size.height)
     }
 
     private func handleOrbDrag(_ phase: OrbDragPhase) {
-        guard let screen = screenForCurrentWindow(preferMouseLocation: true) ?? NSScreen.main else { return }
         switch phase {
-        case .changed(let translation):
-            if dragStartOrigin == nil {
-                dragStartOrigin = window.frame.origin
+        case .began(let mouseLocation):
+            beginOrbDrag(at: mouseLocation)
+        case .changed(let mouseLocation):
+            if dragMouseOffset == nil {
+                beginOrbDrag(at: mouseLocation)
             }
-            guard let start = dragStartOrigin else { return }
-            let proposed = NSPoint(x: start.x + translation.width, y: start.y - translation.height)
-            window.setFrameOrigin(clampedOrigin(proposed, size: window.frame.size, visibleFrame: screen.visibleFrame))
+            guard let offset = dragMouseOffset else { return }
+            if let currentScreen = screenForPoint(mouseLocation) {
+                dragScreen = currentScreen
+            }
+            let visibleFrame = dragScreen?.visibleFrame
+                ?? screenForCurrentWindow(preferMouseLocation: true)?.visibleFrame
+                ?? NSScreen.main?.visibleFrame
+                ?? window.frame
+            let proposed = NSPoint(
+                x: mouseLocation.x - offset.width,
+                y: mouseLocation.y - offset.height
+            )
+            window.setFrameOrigin(clampedOrigin(proposed, size: window.frame.size, visibleFrame: visibleFrame))
         case .ended:
-            dragStartOrigin = nil
+            isDraggingOrb = false
+            dragMouseOffset = nil
+            dragScreen = nil
+            updateFrame()
         }
+    }
+
+    private func beginOrbDrag(at mouseLocation: NSPoint) {
+        isDraggingOrb = true
+        dragMouseOffset = NSSize(
+            width: mouseLocation.x - window.frame.minX,
+            height: mouseLocation.y - window.frame.minY
+        )
+        dragScreen = screenForPoint(mouseLocation)
+            ?? screenForCurrentWindow(preferMouseLocation: true)
+            ?? NSScreen.main
+    }
+
+    private func screenForPoint(_ point: NSPoint) -> NSScreen? {
+        NSScreen.screens.first { $0.frame.contains(point) }
     }
 }
 

@@ -1519,29 +1519,16 @@
                     <div class="provider-actions"><span>API key is masked after saving.</span><button class="secondary-btn">测试 LLM</button></div>
                   </article>
 
-                  <div class="two-column">
-                    <article class="provider-card">
-                      <div class="provider-head"><div><h3>TTS Provider</h3><p>仅云端 Provider，无本地 TTS。</p></div><span class="pill green">Saved</span></div>
-                      <div class="provider-fields">
-                        <div class="field-group"><label>Provider</label><input class="field" value="QianWen / CosyVoice" /></div>
-                        <div class="field-group"><label>Base URL</label><input class="field" value="https://api.qianwenai.com" /></div>
-                        <div class="field-group"><label>Model</label><input class="field" value="cosyvoice-v3-flash" /></div>
-                        <div class="field-group"><label>API Key</label><input class="field" value="qw-************************" /></div>
-                      </div>
-                      <div class="provider-actions"><span>Voice id handled in Voice page.</span><button class="secondary-btn">测试 TTS</button></div>
-                    </article>
-
-                    <article class="provider-card">
-                      <div class="provider-head"><div><h3>Search Provider</h3><p>可选联网搜索增强。</p></div><span class="pill orange">Optional</span></div>
-                      <div class="provider-fields">
-                        <div class="field-group"><label>Provider</label><input class="field" value="Brave Search" /></div>
-                        <div class="field-group"><label>Base URL</label><input class="field" value="https://api.search.brave.com" /></div>
-                        <div class="field-group"><label>Model</label><input class="field" value="web-search" /></div>
-                        <div class="field-group"><label>API Key</label><input class="field" placeholder="Not configured" /></div>
-                      </div>
-                      <div class="provider-actions"><span>Only hit target context is sent.</span><button class="secondary-btn">测试搜索</button></div>
-                    </article>
-                  </div>
+                  <article class="provider-card">
+                    <div class="provider-head"><div><h3>TTS Provider</h3><p>仅云端 Provider，无本地 TTS。</p></div><span class="pill green">Saved</span></div>
+                    <div class="provider-fields">
+                      <div class="field-group"><label>Provider</label><input class="field" value="QianWen / CosyVoice" /></div>
+                      <div class="field-group"><label>Base URL</label><input class="field" value="https://api.qianwenai.com" /></div>
+                      <div class="field-group"><label>Model</label><input class="field" value="cosyvoice-v3-flash" /></div>
+                      <div class="field-group"><label>API Key</label><input class="field" value="qw-************************" /></div>
+                    </div>
+                    <div class="provider-actions"><span>Voice id handled in Voice page.</span><button class="secondary-btn">测试 TTS</button></div>
+                  </article>
 
                   <article class="settings-row">
                     <div class="row-info"><span class="row-icon">E</span><div><h3>端到端测试</h3><p>ASR -> LLM -> TTS 完整链路检查。</p></div></div>
@@ -1569,7 +1556,7 @@
                     <div class="row-info"><span class="row-icon">P</span><div><h3>角色与强度</h3><p>粗口必须由用户主动开启，禁止攻击受保护属性。</p></div></div>
                     <div class="row-control stack">
                       <div class="field-grid">
-                        <select><option>老板附体</option><option>阴阳怪气</option><option>温柔提醒</option><option>破防模式</option></select>
+                        <select><option>学习监督</option><option>工作监督</option><option>自定义</option></select>
                         <select><option>强度：高</option><option>中</option><option>低</option></select>
                         <input class="field" value="允许粗口：开启" />
                         <input class="field" placeholder="禁用词，逗号分隔" />

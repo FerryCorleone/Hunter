@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hunter AI 监督 - AI 配置</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c1c6d7",
+                    "surface-container-low": "#f3f3f5",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#0070eb",
+                    "on-surface-variant": "#414755",
+                    "tertiary": "#bc000a",
+                    "on-primary-fixed-variant": "#004493",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#72fe88",
+                    "inverse-primary": "#adc6ff",
+                    "tertiary-container": "#e2241f",
+                    "on-surface": "#1a1c1d",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-dim": "#d9dadc",
+                    "surface-container-highest": "#e2e2e4",
+                    "primary-fixed": "#d8e2ff",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#fefcff",
+                    "surface": "#f9f9fb",
+                    "on-tertiary-fixed": "#410001",
+                    "surface-container": "#eeeef0",
+                    "secondary": "#006e28",
+                    "on-secondary-fixed-variant": "#00531c",
+                    "inverse-surface": "#2f3132",
+                    "inverse-on-surface": "#f0f0f2",
+                    "on-error": "#ffffff",
+                    "primary-fixed-dim": "#adc6ff",
+                    "on-primary-fixed": "#001a41",
+                    "secondary-fixed-dim": "#53e16f",
+                    "on-background": "#1a1c1d",
+                    "secondary-container": "#6ffb85",
+                    "on-tertiary-fixed-variant": "#930005",
+                    "primary": "#0058bc",
+                    "surface-tint": "#005bc1",
+                    "tertiary-fixed": "#ffdad5",
+                    "surface-variant": "#e2241f",
+                    "surface-bright": "#f9f9fb",
+                    "outline": "#717786",
+                    "on-secondary-container": "#00732a",
+                    "on-secondary-fixed": "#002107",
+                    "background": "#f9f9fb",
+                    "on-tertiary-container": "#fffbff",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb4aa",
+                    "error": "#ba1a1a",
+                    "error-container": "#ffdad6",
+                    "apple-blue": "#007AFF"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "margin-page": "24px",
+                    "stack-md": "20px",
+                    "sidebar-width": "196px",
+                    "gutter": "16px",
+                    "stack-lg": "32px"
+            },
+            "fontFamily": {
+                    "title-sm": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "title-sm": ["17px", {"lineHeight": "22px", "fontWeight": "600"}],
+                    "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "headline-md": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #F5F5F7;
+        }
+        .mac-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E5E7;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            vertical-align: middle;
+            font-size: 18px;
+        }
+        .apple-toggle {
+            transition: background-color 0.2s ease;
+        }
+.apple-toggle div {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .test-status {
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 11px;
+            line-height: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D1D1D6;
+            border-radius: 10px;
+            border: 2px solid #F5F5F7;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A1A1A6;
+        }
+    </style>
+<link href="./settings-common.css" rel="stylesheet"/>
+</head>
+<body class="hunter-prototype-body">
+<!-- macOS Style Window Container -->
+<div class="hunter-settings-window">
+<!-- Sidebar -->
+<aside class="hunter-sidebar">
+<div class="hunter-window-controls" aria-hidden="true">
+<span class="hunter-window-dot red"></span>
+<span class="hunter-window-dot yellow"></span>
+<span class="hunter-window-dot green"></span>
+</div>
+<div class="hunter-brand">
+<div class="hunter-brand-icon">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div>
+<div class="hunter-brand-name">Hunter</div>
+<div class="hunter-brand-subtitle">AI 监督</div>
+</div>
+</div>
+<nav class="hunter-nav">
+<a class="hunter-nav-item" href="02-settings-general.html">
+<span class="material-symbols-outlined">settings</span>
+<span>通用</span>
+</a>
+<a class="hunter-nav-item" href="03-settings-watchlist.html">
+<span class="material-symbols-outlined">visibility_off</span>
+<span>黑名单</span>
+</a>
+<a class="hunter-nav-item active" href="04-settings-ai.html">
+<span class="material-symbols-outlined">smart_toy</span>
+<span>AI</span>
+</a>
+<a class="hunter-nav-item" href="05-settings-voice.html">
+<span class="material-symbols-outlined">mic</span>
+<span>声音</span>
+</a>
+<a class="hunter-nav-item" href="06-settings-history.html">
+<span class="material-symbols-outlined">history</span>
+<span>历史</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="hunter-main">
+<!-- Top Header (Fixed Height) -->
+<header class="hunter-topbar">
+<h1 class="hunter-page-title">AI 配置</h1>
+<p class="hunter-page-subtitle">管理本地与云端推理引擎</p>
+</header>
+<!-- Scrollable Content -->
+<div class="hunter-scroll space-y-8">
+<!-- 1. ASR Provider Card -->
+<section class="space-y-3">
+<div class="flex justify-between items-end">
+<div>
+<h4 class="font-title-sm text-[13px] text-[#1D1D1F]">语音识别 (ASR)</h4>
+<p class="text-[12px] text-[#8E8E93]">实时将语音转换为结构化文本</p>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-[#E5F5E9] text-[#248A3D] text-[11px] font-semibold flex items-center">
+<span class="w-1.5 h-1.5 rounded-full bg-[#34C759] mr-1.5"></span>
+                            本地运行中
+                        </span>
+</div>
+<div class="mac-card p-5 space-y-4">
+<div class="flex justify-center">
+<div class="inline-flex bg-[#EFEFEF] rounded-lg p-0.5 w-64">
+<button class="flex-1 py-1 text-[11px] font-medium bg-white rounded shadow-sm text-[#1D1D1F]">本地模型</button>
+<button class="flex-1 py-1 text-[11px] font-medium text-[#8E8E93] hover:text-[#1D1D1F] transition-colors">云端 API</button>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">模型名称</label>
+<div class="text-[12px] p-2 bg-[#F9F9FB] rounded border border-[#E5E5E7] text-[#1D1D1F]">SenseVoice Small INT8</div>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">状态</label>
+<div class="text-[12px] p-2 text-[#34C759] flex items-center font-medium">
+<span class="material-symbols-outlined text-[16px] mr-1.5">check_circle</span>
+                                    已下载 (2.4GB)
+                                </div>
+</div>
+<div class="col-span-2 space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">本地路径</label>
+<div class="text-[12px] p-2 bg-[#F9F9FB] rounded border border-[#E5E5E7] text-[#8E8E93] italic truncate">/Users/hunter/models/sensevoice_v1_int8.bin</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center text-[11px] text-[#8E8E93]">
+<span class="material-symbols-outlined text-[16px] mr-1.5 text-apple-blue">verified_user</span>
+                                语音数据仅在本地处理，不上传云端
+                            </div>
+<button class="px-4 py-1.5 rounded-lg border border-[#D1D1D6] text-[11px] font-medium hover:bg-[#F5F5F7] transition-colors">测试 ASR</button>
+</div>
+</div>
+</section>
+<!-- 2. LLM Provider Card -->
+<section class="space-y-3">
+<div class="flex justify-between items-end">
+<div>
+<h4 class="font-title-sm text-[13px] text-[#1D1D1F]">大语言模型 (LLM)</h4>
+<p class="text-[12px] text-[#8E8E93]">用于逻辑分析与监控判断的核心引擎</p>
+</div>
+</div>
+<div class="mac-card p-5 grid grid-cols-2 gap-x-6 gap-y-4">
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">提供商</label>
+<select class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] focus:ring-2 focus:ring-apple-blue/20 outline-none">
+<option>DeepSeek</option>
+<option>OpenAI</option>
+<option>Anthropic</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">模型 ID</label>
+<input class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] focus:ring-2 focus:ring-apple-blue/20 outline-none" type="text" value="deepseek-v4-flash"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">Base URL</label>
+<input class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] focus:ring-2 focus:ring-apple-blue/20 outline-none" type="text" value="https://api.deepseek.com"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">API Key</label>
+<input class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] focus:ring-2 focus:ring-apple-blue/20 outline-none" type="password" value="sk-••••••••••••••••"/>
+</div>
+<div class="col-span-2 flex justify-end pt-2">
+<button class="px-4 py-1.5 rounded-lg border border-[#D1D1D6] text-[11px] font-medium hover:bg-[#F5F5F7] transition-colors">测试 LLM 连接</button>
+</div>
+<div class="col-span-2 grid grid-cols-2 gap-3">
+<div class="test-status bg-[#EAF7EE] text-[#248A3D] border border-[#34C759]/20">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>连接成功，延迟 482ms，模型返回中文正常。</span>
+</div>
+<div class="test-status bg-[#FFF1F0] text-[#B42318] border border-[#FF3B30]/20">
+<span class="material-symbols-outlined text-[16px]">error</span>
+<span>连接失败，API Key 无效或 Base URL 不可用。</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. TTS Provider Card (New) -->
+<section class="space-y-3">
+<div class="flex justify-between items-end">
+<div>
+<h4 class="font-title-sm text-[13px] text-[#1D1D1F]">语音合成 (TTS)</h4>
+<p class="text-[12px] text-[#8E8E93]">将 AI 回复转换为自然的人声（仅限云端）</p>
+</div>
+</div>
+<div class="mac-card p-5 grid grid-cols-2 gap-x-6 gap-y-4">
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">提供商</label>
+<select class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] outline-none">
+<option>CosyVoice</option>
+<option>Fish Audio</option>
+<option>Azure Speech</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">模型 ID</label>
+<input class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] outline-none" type="text" value="cosyvoice-v3-flash"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">Base URL</label>
+<input class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] outline-none" type="text" value="https://api.cosyvoice.com"/>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-[#8E8E93] uppercase tracking-tight">API Key</label>
+<input class="w-full text-[12px] p-2 bg-white rounded border border-[#E5E5E7] outline-none" type="password" value="sk-••••••••••••••••"/>
+</div>
+<div class="col-span-2 flex items-center justify-between pt-2">
+<p class="text-[11px] text-[#8E8E93]">音色选择在“声音”页统一管理，连接成功后会同步默认音色列表。</p>
+<button class="px-4 py-1.5 rounded-lg border border-[#D1D1D6] text-[11px] font-medium hover:bg-[#F5F5F7] transition-colors">测试 TTS</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

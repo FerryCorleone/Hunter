@@ -10,6 +10,17 @@ struct BrowserURLReader {
         canReadBrowserAutomation(bundleID: bundleID, askUserIfNeeded: askUserIfNeeded)
     }
 
+    static func automationApplicationName(for bundleID: String?) -> String? {
+        switch browserKind(for: bundleID) {
+        case .chromium(let applicationName):
+            return applicationName
+        case .safari:
+            return "Safari"
+        case nil:
+            return nil
+        }
+    }
+
     func currentURL(for bundleID: String?) -> String? {
         currentTabInfo(for: bundleID)?.url
     }

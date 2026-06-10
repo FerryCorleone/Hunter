@@ -1,0 +1,234 @@
+html,
+body {
+  min-height: 100%;
+}
+
+.hunter-prototype-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #f2f2f4;
+  color: #1d1d1f;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.hunter-settings-window {
+  width: 920px;
+  height: 680px;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  background: #f5f5f7;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.12);
+}
+
+.hunter-sidebar {
+  width: 196px;
+  height: 100%;
+  flex: 0 0 196px;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  background: rgba(235, 235, 237, 0.86);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.hunter-window-controls {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px 2px;
+}
+
+.hunter-window-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.hunter-window-dot.red {
+  background: #ff5f57;
+}
+
+.hunter-window-dot.yellow {
+  background: #febc2e;
+}
+
+.hunter-window-dot.green {
+  background: #28c840;
+}
+
+.hunter-brand {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  margin-bottom: 18px;
+}
+
+.hunter-brand-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, #007aff 0%, #4bb4ff 100%);
+  box-shadow: 0 2px 7px rgba(0, 122, 255, 0.25);
+}
+
+.hunter-brand-icon .material-symbols-outlined {
+  font-size: 17px;
+  font-variation-settings: "FILL" 1;
+}
+
+.hunter-brand-name {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  color: #1d1d1f;
+}
+
+.hunter-brand-subtitle {
+  margin-top: 1px;
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 500;
+  color: #86868b;
+}
+
+.hunter-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hunter-nav-item {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: #414755;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.hunter-nav-item:hover {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+.hunter-nav-item.active {
+  color: #006ee6;
+  background: rgba(0, 122, 255, 0.12);
+  font-weight: 650;
+}
+
+.hunter-nav-item .material-symbols-outlined {
+  width: 18px;
+  font-size: 18px;
+}
+
+.hunter-nav-item.active .material-symbols-outlined {
+  font-variation-settings: "FILL" 1;
+}
+
+.hunter-main {
+  min-width: 0;
+  height: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f5f5f7;
+}
+
+.hunter-topbar {
+  height: 56px;
+  flex: 0 0 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 32px;
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 10;
+}
+
+.hunter-page-title {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.hunter-page-subtitle {
+  margin-top: 2px;
+  color: #86868b;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.hunter-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 24px 32px 32px;
+}
+
+.hunter-scroll::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hunter-scroll::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hunter-scroll::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d1d6;
+  border: 2px solid #f5f5f7;
+  border-radius: 999px;
+}
+
+.hunter-settings-window .bg-white.rounded-xl,
+.hunter-settings-window .bg-white.rounded-lg,
+.hunter-settings-window .mac-card {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035);
+}
+
+.hunter-settings-window .bg-white.rounded-xl.border.shadow-sm.space-y-4 > :not([hidden]) ~ :not([hidden]),
+.hunter-settings-window .bg-white.rounded-xl.border.border-black\/5.shadow-sm.space-y-4 > :not([hidden]) ~ :not([hidden]),
+.hunter-settings-window .bg-white.rounded-xl.p-5.border.shadow-sm.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-top: 12px;
+}
+
+.hunter-settings-window .mac-card > .grid + .flex,
+.hunter-settings-window .mac-card > .grid + .bg-\[\#F2F2F7\],
+.hunter-settings-window .mac-card > .bg-\[\#F2F2F7\] + details,
+.hunter-settings-window .mac-card > details + .flex {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-top: 12px;
+}

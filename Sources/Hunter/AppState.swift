@@ -12,6 +12,10 @@ enum VoiceActivity: Equatable {
         self == .listening || self == .speaking
     }
 
+    var showsProcessingRing: Bool {
+        self == .transcribing || self == .thinking
+    }
+
     var isBusy: Bool {
         self != .idle
     }
@@ -19,14 +23,18 @@ enum VoiceActivity: Equatable {
 
 @MainActor
 final class AppState: ObservableObject {
+    private static let aliyunTTS35FlashMigrationID = "aliyun-tts-v35-flash-default"
+    private static let cloudASRDefaultMigrationID = "asr-cloud-api-default"
+
     @Published var isMonitoring: Bool = false
     @Published var isWidgetVisible: Bool = true
     @Published var launchAtLogin: Bool = false
     @Published var workSchedule: WorkSchedule = .default
     @Published var interfaceLanguage: AppLanguage = .zhHans
-    @Published var aiLanguage: AppLanguage = .zhHans
-    @Published var intensity: RoastIntensity = .sarcastic
-    @Published var persona: RoastPersona = .officeBoss
+    @Published var aiLanguage: SupervisorLanguage = .zhHans
+    @Published var intensity: RoastIntensity = .serious
+    @Published var persona: RoastPersona = .workSupervisor
+    @Published var customPersonaPrompt: String = ""
     @Published var allowProfanity: Bool = false
     @Published var bannedTerms: String = ""
     @Published var floatingAvatarPath: String?
@@ -35,6 +43,7 @@ final class AppState: ObservableObject {
     @Published var providers: ProviderSettings = ProviderSettings()
     @Published var focusSession: FocusSession?
     @Published var currentIncident: Incident?
+    @Published var voiceConversation: [IncidentConversationTurn] = []
     @Published var toastMessage: String?
     @Published var voiceInteractionStatus: String?
     @Published var voiceActivity: VoiceActivity = .idle
@@ -54,7 +63,20 @@ final class AppState: ObservableObject {
 
     func load() {
         let snapshot = store.load()
-        isMonitoring = snapshot.isMonitoring
+        var restoredProviders = snapshot.providers
+        if !store.hasAppliedMigration(Self.cloudASRDefaultMigrationID) {
+            restoredProviders.asrMode = .cloudAPI
+            restoredProviders.localASRInstallPath = nil
+            store.markMigrationApplied(Self.cloudASRDefaultMigrationID)
+        } else {
+            restoredProviders.normalizeMissingLocalASRToCloud()
+        }
+        if !store.hasAppliedMigration(Self.aliyunTTS35FlashMigrationID) {
+            _ = restoredProviders.migrateLegacyAliyunTTSDefaultModel()
+            store.markMigrationApplied(Self.aliyunTTS35FlashMigrationID)
+        }
+        let restoredFocusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
+        isMonitoring = restoredFocusSession != nil
         isWidgetVisible = snapshot.isWidgetVisible
         launchAtLogin = snapshot.launchAtLogin
         workSchedule = snapshot.workSchedule
@@ -62,14 +84,24 @@ final class AppState: ObservableObject {
         aiLanguage = snapshot.aiLanguage
         intensity = snapshot.intensity
         persona = snapshot.persona
+        customPersonaPrompt = snapshot.customPersonaPrompt
         allowProfanity = snapshot.allowProfanity
         bannedTerms = snapshot.bannedTerms
         floatingAvatarPath = snapshot.floatingAvatarPath
         replyShortcut = snapshot.replyShortcut
         rules = snapshot.rules
-        providers = snapshot.providers
-        focusSession = snapshot.focusSession?.isActive == true ? snapshot.focusSession : nil
+        providers = restoredProviders
+        let loadedAILanguage = aiLanguage
+        normalizeSupervisorLanguageForCurrentTTS()
+        focusSession = restoredFocusSession
         events = snapshot.events
+        if restoredProviders != snapshot.providers || aiLanguage != loadedAILanguage {
+            persist()
+        }
+    }
+
+    func providerConfigurationIssues() -> [ProviderConfigurationIssue] {
+        providers.configurationIssues()
     }
 
     func persist() {
@@ -82,6 +114,7 @@ final class AppState: ObservableObject {
             aiLanguage: aiLanguage,
             intensity: intensity,
             persona: persona,
+            customPersonaPrompt: customPersonaPrompt,
             allowProfanity: allowProfanity,
             bannedTerms: bannedTerms,
             floatingAvatarPath: floatingAvatarPath,
@@ -137,6 +170,7 @@ final class AppState: ObservableObject {
                 catchCount: catchCount(in: session, completedAt: completedAt)
             )
             focusSession = nil
+            isMonitoring = false
             toastMessage = interfaceLanguage == .english ? "Focus session ended" : "监督时长已结束"
             voiceActivity = .idle
             pendingFocusCompletion = completion
@@ -209,18 +243,47 @@ final class AppState: ObservableObject {
         persist()
     }
 
+    func appendVoiceConversation(userText: String, hunterText: String, at turnDate: Date = Date()) {
+        var turns = voiceConversation
+        let normalizedUserText = normalizedVoiceConversationText(userText)
+        let normalizedHunterText = normalizedVoiceConversationText(hunterText)
+        if !normalizedUserText.isEmpty {
+            turns.append(IncidentConversationTurn(date: turnDate, speaker: .user, text: normalizedUserText))
+        }
+        if !normalizedHunterText.isEmpty {
+            turns.append(IncidentConversationTurn(date: turnDate, speaker: .hunter, text: normalizedHunterText))
+        }
+        voiceConversation = Array(turns.suffix(24))
+    }
+
+    func voiceConversationForPrompt(maxTurns: Int = 12) -> [IncidentConversationTurn] {
+        let normalizedTurns = voiceConversation
+            .map { turn in
+                var copy = turn
+                copy.text = normalizedVoiceConversationText(turn.text)
+                return copy
+            }
+            .filter { !$0.text.isEmpty }
+        guard maxTurns > 0, normalizedTurns.count > maxTurns else { return normalizedTurns }
+        return Array(normalizedTurns.suffix(maxTurns))
+    }
+
     func setFloatingAvatar(from sourceURL: URL) throws {
         let directory = try applicationSupportDirectory()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let fileExtension = sourceURL.pathExtension.isEmpty ? "png" : sourceURL.pathExtension.lowercased()
-        let destination = directory.appendingPathComponent("floating-avatar.\(fileExtension)")
+        let destination = directory.appendingPathComponent("floating-avatar-\(UUID().uuidString).\(fileExtension)")
+        let imageData = try Data(contentsOf: sourceURL)
 
         if let existing = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
             for url in existing where url.lastPathComponent.hasPrefix("floating-avatar.") {
                 try? FileManager.default.removeItem(at: url)
             }
+            for url in existing where url.lastPathComponent.hasPrefix("floating-avatar-") {
+                try? FileManager.default.removeItem(at: url)
+            }
         }
-        try FileManager.default.copyItem(at: sourceURL, to: destination)
+        try imageData.write(to: destination, options: .atomic)
         floatingAvatarPath = destination.path
         persist()
     }
@@ -230,6 +293,196 @@ final class AppState: ObservableObject {
             try? FileManager.default.removeItem(atPath: floatingAvatarPath)
         }
         floatingAvatarPath = nil
+        persist()
+    }
+
+    @discardableResult
+    func importVoiceCloneSample(from sourceURL: URL, displayName: String, consentConfirmed: Bool, selectAsCurrent: Bool = true) throws -> ClonedVoice {
+        guard consentConfirmed else {
+            throw VoiceCloneSampleError.missingConsent
+        }
+        let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            throw VoiceCloneSampleError.invalidDisplayName
+        }
+
+        let metadata = try VoiceCloneSamplePolicy.validateSample(at: sourceURL)
+        let directory = try applicationSupportDirectory().appendingPathComponent("VoiceSamples", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let id = UUID().uuidString
+        let fileExtension = sourceURL.pathExtension.lowercased()
+        let destination = directory.appendingPathComponent(id).appendingPathExtension(fileExtension)
+        try FileManager.default.copyItem(at: sourceURL, to: destination)
+
+        let clonedVoice = ClonedVoice(
+            id: id,
+            displayName: name,
+            reference: VoiceReference(
+                kind: .inlineAuthorizedSample,
+                providerName: ProviderEndpoint.xiaomiMiMoTTS.providerName,
+                value: destination.path,
+                mimeType: metadata.mimeType,
+                consentConfirmed: true,
+                sampleByteCount: metadata.byteCount,
+                sourceDescription: sourceURL.lastPathComponent
+            ),
+            createdAt: Date()
+        )
+        providers.clonedVoices.append(clonedVoice)
+        if selectAsCurrent {
+            providers.voice = ProviderSettings.voiceID(for: clonedVoice)
+        }
+        persist()
+        return clonedVoice
+    }
+
+    @discardableResult
+    func createVoiceClone(from sourceURL: URL, displayName: String, consentConfirmed: Bool, selectAsCurrent: Bool = true) async throws -> ClonedVoice {
+        let endpoint = providers.tts
+        switch endpoint.voiceCloneMode {
+        case .xiaomiInlineAuthorizedSample:
+            return try importVoiceCloneSample(
+                from: sourceURL,
+                displayName: displayName,
+                consentConfirmed: consentConfirmed,
+                selectAsCurrent: selectAsCurrent
+            )
+        case .aliyunQwenVoiceEnrollment:
+            guard consentConfirmed else {
+                throw VoiceCloneSampleError.missingConsent
+            }
+            let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else {
+                throw VoiceCloneSampleError.invalidDisplayName
+            }
+            let metadata = try VoiceCloneSamplePolicy.validateSample(at: sourceURL)
+            let enrolled = try await DashScopeClient().createQwenVoiceClone(
+                sampleURL: sourceURL,
+                displayName: name,
+                endpoint: endpoint
+            )
+            let clonedVoice = ClonedVoice(
+                id: UUID().uuidString,
+                displayName: name,
+                reference: VoiceReference(
+                    kind: .providerVoiceID,
+                    providerName: endpoint.providerName,
+                    value: enrolled.voice,
+                    mimeType: metadata.mimeType,
+                    consentConfirmed: true,
+                    sampleByteCount: metadata.byteCount,
+                    sourceDescription: "\(sourceURL.lastPathComponent) · \(enrolled.targetModel)",
+                    targetModel: enrolled.targetModel
+                ),
+                createdAt: Date()
+            )
+            providers.clonedVoices.append(clonedVoice)
+            if selectAsCurrent, providers.tts.isCompatible(with: clonedVoice.reference) {
+                providers.voice = ProviderSettings.voiceID(for: clonedVoice)
+            }
+            persist()
+            return clonedVoice
+        case .aliyunCosyVoiceEnrollmentWithTemporaryURL:
+            guard consentConfirmed else {
+                throw VoiceCloneSampleError.missingConsent
+            }
+            let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else {
+                throw VoiceCloneSampleError.invalidDisplayName
+            }
+            let metadata = try VoiceCloneSamplePolicy.validateSample(at: sourceURL, enforceBase64Limit: false)
+            let enrolled = try await DashScopeClient().createCosyVoiceClone(
+                sampleURL: sourceURL,
+                displayName: name,
+                endpoint: endpoint,
+                languageHint: targetTTSLanguageCode()
+            )
+            let clonedVoice = ClonedVoice(
+                id: UUID().uuidString,
+                displayName: name,
+                reference: VoiceReference(
+                    kind: .providerVoiceID,
+                    providerName: endpoint.providerName,
+                    value: enrolled.voiceID,
+                    mimeType: metadata.mimeType,
+                    consentConfirmed: true,
+                    sampleByteCount: metadata.byteCount,
+                    sourceDescription: "\(sourceURL.lastPathComponent) · \(enrolled.targetModel)",
+                    targetModel: enrolled.targetModel
+                ),
+                createdAt: Date()
+            )
+            providers.clonedVoices.append(clonedVoice)
+            if selectAsCurrent, providers.tts.isCompatible(with: clonedVoice.reference) {
+                providers.voice = ProviderSettings.voiceID(for: clonedVoice)
+            }
+            persist()
+            return clonedVoice
+        case .unsupported:
+            throw VoiceCloneSampleError.unsupportedProvider
+        }
+    }
+
+    @discardableResult
+    func createDesignedVoice(
+        displayName: String,
+        voicePrompt: String,
+        previewText: String,
+        selectAsCurrent: Bool = true
+    ) async throws -> ClonedVoice {
+        let endpoint = providers.tts
+        let prompt = voicePrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else {
+            throw VoiceCloneSampleError.invalidVoicePrompt
+        }
+        let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? copy("设计音色", "Designed voice")
+            : displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let designed = try await DashScopeClient().createCosyVoiceDesignedVoice(
+            displayName: name,
+            voicePrompt: voiceDesignPromptForGeneration(prompt),
+            previewText: previewText,
+            languageHint: targetTTSLanguageCode(),
+            endpoint: endpoint
+        )
+        let clonedVoice = ClonedVoice(
+            id: UUID().uuidString,
+            displayName: name,
+            reference: VoiceReference(
+                kind: .promptDesignedVoice,
+                providerName: endpoint.providerName,
+                value: designed.voiceID,
+                mimeType: "voice/prompt",
+                consentConfirmed: true,
+                sampleByteCount: nil,
+                sourceDescription: "声音设计 · \(prompt)",
+                targetModel: designed.targetModel
+            ),
+            createdAt: Date()
+        )
+        providers.clonedVoices.append(clonedVoice)
+        if selectAsCurrent, providers.tts.isCompatible(with: clonedVoice.reference) {
+            providers.voice = ProviderSettings.voiceID(for: clonedVoice)
+        }
+        persist()
+        return clonedVoice
+    }
+
+    private func voiceDesignPromptForGeneration(_ prompt: String) -> String {
+        let qualityInstruction = "声音要求：近距离清晰人声，口齿清楚，音色干净自然；不要加入背景音、环境音、音效、混响或夸张表演。"
+        let normalized = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let alreadyMentionsQuality = normalized.contains("底噪")
+            || normalized.contains("杂音")
+            || normalized.localizedCaseInsensitiveContains("noise")
+        let combined = alreadyMentionsQuality ? normalized : "\(normalized)\n\(qualityInstruction)"
+        return String(combined.prefix(500))
+    }
+
+    func deleteClonedVoice(_ clonedVoice: ClonedVoice) {
+        if clonedVoice.reference.kind == .inlineAuthorizedSample {
+            try? FileManager.default.removeItem(atPath: clonedVoice.reference.value)
+        }
+        providers.removeClonedVoice(id: clonedVoice.id)
         persist()
     }
 
@@ -244,8 +497,34 @@ final class AppState: ObservableObject {
     }
 
     func targetLanguageCode() -> String {
-        let resolved = aiLanguage == .followInterface ? interfaceLanguage : aiLanguage
-        return resolved == .english ? "en" : "zh"
+        resolvedSupervisorLanguage().textLanguageCode(interfaceLanguage: interfaceLanguage)
+    }
+
+    func targetTTSLanguageCode() -> String {
+        resolvedSupervisorLanguage().ttsLanguageCode(interfaceLanguage: interfaceLanguage)
+    }
+
+    func targetTTSStyleInstruction() -> String? {
+        resolvedSupervisorLanguage().ttsStyleInstruction(interfaceLanguage: interfaceLanguage)
+    }
+
+    func targetTTSAudioTag() -> String? {
+        resolvedSupervisorLanguage().ttsAudioTag(interfaceLanguage: interfaceLanguage)
+    }
+
+    func supervisorLanguageOptions() -> [SupervisorLanguage] {
+        SupervisorLanguage.supportedOptions(for: providers.tts)
+    }
+
+    func normalizeSupervisorLanguageForCurrentTTS() {
+        guard !supervisorLanguageOptions().contains(aiLanguage) else { return }
+        aiLanguage = .zhHans
+    }
+
+    private func resolvedSupervisorLanguage() -> SupervisorLanguage {
+        let options = supervisorLanguageOptions()
+        let selected = options.contains(aiLanguage) ? aiLanguage : .zhHans
+        return selected.resolved(interfaceLanguage: interfaceLanguage)
     }
 
     func copy(_ zhHans: String, _ english: String) -> String {
@@ -265,6 +544,10 @@ final class AppState: ObservableObject {
         return events.filter { event in
             event.date >= session.startedAt && event.date <= endedAt
         }.count
+    }
+
+    private func normalizedVoiceConversationText(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func applicationSupportDirectory() throws -> URL {

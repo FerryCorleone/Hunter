@@ -6,9 +6,10 @@ struct SettingsSnapshot: Codable {
     var launchAtLogin: Bool
     var workSchedule: WorkSchedule
     var interfaceLanguage: AppLanguage
-    var aiLanguage: AppLanguage
+    var aiLanguage: SupervisorLanguage
     var intensity: RoastIntensity
     var persona: RoastPersona
+    var customPersonaPrompt: String
     var allowProfanity: Bool
     var bannedTerms: String
     var floatingAvatarPath: String?
@@ -25,8 +26,9 @@ struct SettingsSnapshot: Codable {
         workSchedule: .default,
         interfaceLanguage: .zhHans,
         aiLanguage: .zhHans,
-        intensity: .sarcastic,
-        persona: .officeBoss,
+        intensity: .serious,
+        persona: .workSupervisor,
+        customPersonaPrompt: "",
         allowProfanity: false,
         bannedTerms: "",
         floatingAvatarPath: nil,
@@ -46,6 +48,7 @@ struct SettingsSnapshot: Codable {
         case aiLanguage
         case intensity
         case persona
+        case customPersonaPrompt
         case allowProfanity
         case bannedTerms
         case floatingAvatarPath
@@ -62,9 +65,10 @@ struct SettingsSnapshot: Codable {
         launchAtLogin: Bool,
         workSchedule: WorkSchedule,
         interfaceLanguage: AppLanguage,
-        aiLanguage: AppLanguage,
+        aiLanguage: SupervisorLanguage,
         intensity: RoastIntensity,
         persona: RoastPersona,
+        customPersonaPrompt: String,
         allowProfanity: Bool,
         bannedTerms: String,
         floatingAvatarPath: String?,
@@ -82,6 +86,7 @@ struct SettingsSnapshot: Codable {
         self.aiLanguage = aiLanguage
         self.intensity = intensity
         self.persona = persona
+        self.customPersonaPrompt = customPersonaPrompt
         self.allowProfanity = allowProfanity
         self.bannedTerms = bannedTerms
         self.floatingAvatarPath = floatingAvatarPath
@@ -99,9 +104,10 @@ struct SettingsSnapshot: Codable {
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         workSchedule = try container.decodeIfPresent(WorkSchedule.self, forKey: .workSchedule) ?? .default
         interfaceLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .interfaceLanguage) ?? .zhHans
-        aiLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .aiLanguage) ?? .zhHans
-        intensity = try container.decodeIfPresent(RoastIntensity.self, forKey: .intensity) ?? .sarcastic
-        persona = try container.decodeIfPresent(RoastPersona.self, forKey: .persona) ?? .officeBoss
+        aiLanguage = try container.decodeIfPresent(SupervisorLanguage.self, forKey: .aiLanguage) ?? .zhHans
+        intensity = try container.decodeIfPresent(RoastIntensity.self, forKey: .intensity) ?? .serious
+        persona = try container.decodeIfPresent(RoastPersona.self, forKey: .persona) ?? .workSupervisor
+        customPersonaPrompt = try container.decodeIfPresent(String.self, forKey: .customPersonaPrompt) ?? ""
         allowProfanity = try container.decodeIfPresent(Bool.self, forKey: .allowProfanity) ?? false
         bannedTerms = try container.decodeIfPresent(String.self, forKey: .bannedTerms) ?? ""
         floatingAvatarPath = try container.decodeIfPresent(String.self, forKey: .floatingAvatarPath)
@@ -116,6 +122,7 @@ struct SettingsSnapshot: Codable {
 final class SettingsStore {
     private let defaults: UserDefaults
     private let key = "hunter.settings.snapshot.v1"
+    private let migrationPrefix = "hunter.settings.migration."
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -139,6 +146,14 @@ final class SettingsStore {
         } catch {
             assertionFailure("Failed to persist Hunter settings: \(error)")
         }
+    }
+
+    func hasAppliedMigration(_ id: String) -> Bool {
+        defaults.bool(forKey: migrationPrefix + id)
+    }
+
+    func markMigrationApplied(_ id: String) {
+        defaults.set(true, forKey: migrationPrefix + id)
     }
 }
 

@@ -3,26 +3,35 @@ import Foundation
 enum RoastPolicy {
     static func safetyBoundary(allowProfanity: Bool, bannedTerms: String) -> String {
         let profanity = allowProfanity
-            ? "The user explicitly opted in to strong profanity for this self-supervision app. Normal swear words are allowed and encouraged when they make the line sharper; never use hateful slurs."
+            ? "The user explicitly opted in to profanity for this self-supervision app. Strong profanity and harsh behavior-directed insults are allowed for fierce or forceful intensity; never use hateful slurs."
             : "Do not use profanity."
         let banned = parsedBannedTerms(from: bannedTerms)
         let bannedInstruction = banned.isEmpty
             ? ""
             : "Do not use these banned terms: \(banned.joined(separator: ", "))."
-        return "\(profanity) No protected-class insults, real threats, self-harm content, or slurs. \(bannedInstruction)"
+        return "\(profanity) Hard boundaries only: no protected-class attacks, hateful slurs, real-world threats, sexual violence, or self-harm encouragement. Keep abuse aimed at the slacking behavior, excuse, or current choice. \(bannedInstruction)"
     }
 
-    static func profanityStyleInstruction(allowProfanity: Bool, languageCode: String) -> String {
+    static func profanityStyleInstruction(allowProfanity: Bool, languageCode: String, intensity: RoastIntensity? = nil) -> String {
         guard allowProfanity else {
             return languageCode == "en" ? "Do not use profanity." : "不要使用脏话。"
         }
-        if languageCode == "en" {
-            return "For this test build, include one natural swear word such as damn, shit, fuck, or ass. Keep it comedic and directed at the slacking behavior, not identity."
+        if let intensity, [.gentle, .encouraging, .serious].contains(intensity) {
+            return languageCode == "en"
+                ? "Profanity is allowed in settings, but this intensity should avoid profanity and stay controlled."
+                : "用户已允许粗口，但当前强度不应主动使用脏话，保持克制。"
         }
-        return "当前是测试阶段，用户已明确允许粗口；必须自然带一句常见中文脏话，例如“他妈的”“妈的”“操”“靠”，骂摸鱼行为，不骂身份。"
+        if languageCode == "en" {
+            return "For fierce or forceful mode, the user wants harsher profanity. Use one or two strong swear words naturally, e.g. fuck, shit, bullshit, or ass, and make the command rough and memorable. Aim the abuse at the slacking behavior, excuse, or current choice, not identity."
+        }
+        return "凶狠或强制模式下，用户已明确允许粗口；可以更脏、更难听，短句里自然带一到两个强脏话，例如“他妈的”“妈的”“操”“靠”，也可以用粗暴命令句如“别他妈刷了，滚回去干活”。骂摸鱼行为、拖延借口和当下选择，不攻击身份。"
     }
 
-    static func sanitize(_ text: String, bannedTerms: String, fallback: String = "赶紧干活。") -> String {
+    static func sanitize(
+        _ text: String,
+        bannedTerms: String,
+        fallback: String = "赶紧干活。"
+    ) -> String {
         var sanitized = text
         sanitized = removeUnspokenArtifacts(from: sanitized)
         sanitized = firstNonEmptyLine(from: sanitized)

@@ -4,26 +4,47 @@ import Foundation
 final class IncidentController {
     private let state: AppState
     private let dashScope = DashScopeClient()
-    private let webSearch = WebSearchClient()
     private let speechPlayer = SpeechPlayer()
     private let notifications = NotificationController()
-    private var lastIncidentByRule: [UUID: Date] = [:]
-    private let cooldown: TimeInterval = 45
+    private let targetCloser = MatchedTargetCloser()
+    private var nextIncidentAllowedAt: Date?
+    private var playbackToken = UUID()
+    nonisolated static let repeatCatchCooldown: TimeInterval = 18
 
     init(state: AppState) {
         self.state = state
     }
 
     func handle(rule: BlacklistRule, context: FrontmostContext) {
-        let now = Date()
-        if let last = lastIncidentByRule[rule.id], now.timeIntervalSince(last) < cooldown {
+        guard state.isMonitoring else { return }
+        guard canStartNewIncident else {
+            let message = state.copy(
+                "已延后新抓包：正在处理当前语音对话",
+                "New catch deferred: voice interaction in progress"
+            )
+            if state.providerStatus != message {
+                state.providerStatus = message
+            }
             return
         }
-        lastIncidentByRule[rule.id] = now
+        let now = Date()
+        if let nextIncidentAllowedAt, now < nextIncidentAllowedAt {
+            let message = state.copy(
+                "已延后新抓包：刚完成一次抓包播报",
+                "New catch deferred: recent catch cooldown"
+            )
+            if state.providerStatus != message {
+                state.providerStatus = message
+            }
+            return
+        }
 
         let fallback = fallbackRoast(rule: rule, context: context)
+        let shouldCloseMatchedTarget = state.intensity.shouldCloseMatchedTarget
+        let targetLanguageCode = state.targetLanguageCode()
         state.currentIncident = nil
         state.voiceInteractionStatus = nil
+        state.voiceActivity = .thinking
 
         let pendingIncident = Incident(
             targetName: rule.name,
@@ -35,42 +56,55 @@ final class IncidentController {
 
         Task {
             do {
-                let searchContext = await enrichWithSearch(context: context)
                 let roast = try await dashScope.generateRoast(
                     context: context,
                     settings: state.providers,
                     intensity: state.intensity,
                     persona: state.persona,
+                    customPersonaPrompt: state.customPersonaPrompt,
                     allowProfanity: state.allowProfanity,
                     bannedTerms: state.bannedTerms,
-                    languageCode: state.targetLanguageCode(),
-                    pageContext: searchContext
+                    languageCode: state.targetLanguageCode()
                 )
-                let readyIncident = Incident(
-                    id: pendingIncident.id,
-                    date: pendingIncident.date,
-                    targetName: pendingIncident.targetName,
-                    appName: pendingIncident.appName,
-                    url: pendingIncident.url,
-                    pageTitle: pendingIncident.pageTitle,
-                    roast: roast
-                )
+                guard state.isMonitoring else {
+                    if state.voiceActivity == .thinking {
+                        state.voiceActivity = .idle
+                    }
+                    return
+                }
+                let spokenRoast = forcefulClosingLineAppended(to: roast, shouldCloseMatchedTarget: shouldCloseMatchedTarget, languageCode: targetLanguageCode)
+                let readyIncident = pendingIncident.withInitialHunterTurn(spokenRoast)
                 await MainActor.run {
-                    let searchLabel = searchContext == nil ? "" : state.copy("，已结合搜索上下文", ", with search context")
                     state.providerStatus = state.copy(
-                        "LLM 正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)\(searchLabel)，等待 TTS",
-                        "LLM OK: \(state.providers.llm.providerName) / \(state.providers.llm.model)\(searchLabel), TTS pending"
+                        "LLM 正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)，等待 TTS",
+                        "LLM OK: \(state.providers.llm.providerName) / \(state.providers.llm.model), TTS pending"
                     )
                 }
-                await synthesizeAndPlay(text: roast, target: pendingIncident.targetName, statusPrefix: state.copy("LLM", "LLM"), revealIncident: readyIncident)
+                let played = await synthesizeAndPlay(text: spokenRoast, target: pendingIncident.targetName, statusPrefix: state.copy("LLM", "LLM"), revealIncident: readyIncident)
+                markRepeatCooldownStarted()
+                if played {
+                    enforceMatchedTargetIfNeeded(rule: rule, context: context, shouldCloseMatchedTarget: shouldCloseMatchedTarget)
+                }
             } catch {
+                guard state.isMonitoring else {
+                    if state.voiceActivity == .thinking {
+                        state.voiceActivity = .idle
+                    }
+                    return
+                }
+                let spokenFallback = forcefulClosingLineAppended(to: fallback, shouldCloseMatchedTarget: shouldCloseMatchedTarget, languageCode: targetLanguageCode)
+                let fallbackIncident = pendingIncident.withInitialHunterTurn(spokenFallback)
                 await MainActor.run {
                     state.providerStatus = state.copy(
                         "LLM 降级：\(state.providers.llm.providerName) / \(state.providers.llm.model)：\(error.localizedDescription)",
                         "LLM fallback: \(state.providers.llm.providerName) / \(state.providers.llm.model): \(error.localizedDescription)"
                     )
                 }
-                await synthesizeAndPlay(text: fallback, target: pendingIncident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"), revealIncident: pendingIncident)
+                let played = await synthesizeAndPlay(text: spokenFallback, target: pendingIncident.targetName, statusPrefix: state.copy("LLM 降级", "LLM fallback"), revealIncident: fallbackIncident)
+                markRepeatCooldownStarted()
+                if played {
+                    enforceMatchedTargetIfNeeded(rule: rule, context: context, shouldCloseMatchedTarget: shouldCloseMatchedTarget)
+                }
             }
         }
     }
@@ -84,55 +118,77 @@ final class IncidentController {
 
     func handleFocusSessionCompleted(_ completion: FocusSessionCompletion) {
         let text = focusCompletionMessage(catchCount: completion.catchCount)
-        state.toastMessage = text
+        state.toastMessage = nil
         state.voiceInteractionStatus = nil
         Task {
             await synthesizeAndPlay(
                 text: text,
                 target: state.copy("监督总结", "Focus summary"),
                 statusPrefix: state.copy("监督总结", "Focus summary"),
+                revealToast: text,
+                clearToastWhenPlaybackEnds: true,
                 notify: false
             )
         }
     }
 
     @discardableResult
-    func handleUserReply(_ transcript: String) async -> Bool {
-        guard let incident = state.currentIncident else {
-            state.toastMessage = transcript
-            state.voiceActivity = .idle
-            return false
+    func handleVoiceAgentChatMessage(transcript: String, reply: String) async -> Bool {
+        state.voiceActivity = .thinking
+
+        if let incident = state.currentIncident {
+            let responseIncident = incident.appendingReply(userText: transcript, hunterText: reply)
+            state.providerStatus = state.copy(
+                "语音 Agent 回应正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)，等待 TTS",
+                "Voice agent reply OK: \(state.providers.llm.providerName) / \(state.providers.llm.model), TTS pending"
+            )
+            return await synthesizeAndPlay(
+                text: reply,
+                target: responseIncident.targetName,
+                statusPrefix: state.copy("语音 Agent", "Voice agent"),
+                revealIncident: responseIncident,
+                notify: false
+            )
         }
 
-        state.toastMessage = state.copy("你：\(transcript)", "You: \(transcript)")
-        state.voiceActivity = .thinking
-        do {
-            let reply = try await dashScope.generateReply(
-                userText: transcript,
-                incident: incident,
-                settings: state.providers,
-                intensity: state.intensity,
-                persona: state.persona,
-                allowProfanity: state.allowProfanity,
-                bannedTerms: state.bannedTerms,
-                languageCode: state.targetLanguageCode()
-            )
-            let responseIncident = Incident(
-                targetName: incident.targetName,
-                appName: incident.appName,
-                url: incident.url,
-                pageTitle: incident.pageTitle,
-                roast: reply
-            )
-            state.providerStatus = state.copy(
-                "ASR + LLM 回击正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)，等待 TTS",
-                "ASR + LLM reply OK: \(state.providers.llm.providerName) / \(state.providers.llm.model), TTS pending"
-            )
-            return await synthesizeAndPlay(text: reply, target: responseIncident.targetName, statusPrefix: state.copy("ASR + LLM", "ASR + LLM"), revealIncident: responseIncident)
-        } catch {
-            state.providerStatus = state.copy("语音回击失败：\(error.localizedDescription)", "Voice reply failed: \(error.localizedDescription)")
+        state.appendVoiceConversation(userText: transcript, hunterText: reply)
+        state.providerStatus = state.copy(
+            "语音 Agent 对话正常：\(state.providers.llm.providerName) / \(state.providers.llm.model)，等待 TTS",
+            "Voice agent chat OK: \(state.providers.llm.providerName) / \(state.providers.llm.model), TTS pending"
+        )
+        return await synthesizeAndPlay(
+            text: reply,
+            target: state.copy("语音对话", "Voice chat"),
+            statusPrefix: state.copy("语音 Agent", "Voice agent"),
+            revealToast: reply,
+            clearToastWhenPlaybackEnds: true,
+            notify: false
+        )
+    }
+
+    @discardableResult
+    func speakVoiceAgentToolResult(spokenText: String?, fallback: String) async -> Bool {
+        let trimmed = spokenText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = (trimmed?.isEmpty == false ? trimmed : nil) ?? fallback
+        state.providerStatus = state.copy(
+            "语音 Agent 已执行工具：\(state.providers.llm.providerName) / \(state.providers.llm.model)，等待 TTS",
+            "Voice agent tool executed: \(state.providers.llm.providerName) / \(state.providers.llm.model), TTS pending"
+        )
+        return await synthesizeAndPlay(
+            text: text,
+            target: state.copy("语音设置", "Voice setting"),
+            statusPrefix: state.copy("语音设置", "Voice setting"),
+            revealToast: text,
+            clearToastWhenPlaybackEnds: true,
+            notify: false
+        )
+    }
+
+    func stopCurrentSpeechForUserReply() {
+        playbackToken = UUID()
+        speechPlayer.stop()
+        if state.voiceActivity == .speaking {
             state.voiceActivity = .idle
-            return false
         }
     }
 
@@ -142,46 +198,67 @@ final class IncidentController {
         target: String,
         statusPrefix: String,
         revealIncident: Incident? = nil,
+        revealToast: String? = nil,
+        clearToastWhenPlaybackEnds: Bool = false,
         notify: Bool = true
     ) async -> Bool {
-        TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=cloud target=\(target) provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
+        let token = UUID()
+        playbackToken = token
+        let ttsModelLabel = "\(state.providers.tts.providerName) / \(state.providers.tts.model)"
+        let ttsLanguage = state.targetTTSLanguageCode()
+        let ttsAudioTag = state.targetTTSAudioTag() ?? ""
+        TTSDiagnostics.record("INCIDENT_TTS_REQUEST mode=cloudAPI target=\(target) model=\(ttsModelLabel) voice=\(state.providers.voice) language=\(ttsLanguage) audioTag=\(ttsAudioTag)")
         do {
-            TTSDiagnostics.record("CLOUD_TTS_START provider=\(state.providers.tts.providerName) model=\(state.providers.tts.model) voice=\(state.providers.voice)")
+            TTSDiagnostics.record("TTS_START mode=cloudAPI model=\(ttsModelLabel) voice=\(state.providers.voice) language=\(ttsLanguage) audioTag=\(ttsAudioTag)")
+            if state.voiceActivity != .listening && state.voiceActivity != .transcribing {
+                state.voiceActivity = .thinking
+            }
             state.providerStatus = state.copy("\(statusPrefix) + 云端 TTS 合成中", "\(statusPrefix) + cloud TTS synthesizing")
             let startedAt = Date()
             let audio = try await dashScope.synthesizeSpeech(
                 text: text,
                 settings: state.providers,
-                languageCode: state.targetLanguageCode()
+                languageCode: ttsLanguage,
+                styleInstruction: state.targetTTSStyleInstruction(),
+                audioTag: state.targetTTSAudioTag()
             )
             let elapsed = Date().timeIntervalSince(startedAt)
             state.providerStatus = state.copy(
                 "\(statusPrefix) + 云端 TTS 完成 \(formatSeconds(elapsed))，正在播放",
                 "\(statusPrefix) + cloud TTS ready in \(formatSeconds(elapsed)), playing"
             )
-            TTSDiagnostics.record("CLOUD_TTS_SUCCESS bytes=\(audio.count)")
-            if let revealIncident {
-                state.recordIncident(revealIncident)
-            }
-            if notify {
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
-                }
-            }
+            TTSDiagnostics.record("TTS_SUCCESS mode=cloudAPI bytes=\(audio.count)")
             do {
+                let duration = try speechPlayer.play(audioData: audio, outputVolume: state.providers.outputVolume)
                 state.voiceActivity = .speaking
-                let duration = try speechPlayer.play(audioData: audio)
-                await waitForPlayback(duration)
-                if state.voiceActivity == .speaking {
+                if let revealIncident {
+                    state.recordIncident(revealIncident)
+                }
+                if let revealToast {
+                    state.toastMessage = revealToast
+                }
+                if notify {
+                    Task {
+                        await notifications.notifyCatch(target: target, roast: text)
+                    }
+                }
+                let completed = await waitForPlayback(duration, token: token)
+                if completed, playbackToken == token, state.voiceActivity == .speaking {
+                    if clearToastWhenPlaybackEnds, let revealToast, state.toastMessage == revealToast {
+                        state.toastMessage = nil
+                    }
                     state.voiceActivity = .idle
                 }
-                return true
+                return completed
             } catch {
                 state.providerStatus = state.copy(
                     "云端 TTS 播放失败：\(error.localizedDescription)。未使用系统朗读。",
                     "Cloud TTS audio playback failed: \(error.localizedDescription). System speech was not used."
                 )
-                if state.voiceActivity == .speaking || state.voiceActivity == .thinking {
+                if playbackToken == token, state.voiceActivity == .speaking || state.voiceActivity == .thinking {
+                    if clearToastWhenPlaybackEnds, let revealToast, state.toastMessage == revealToast {
+                        state.toastMessage = nil
+                    }
                     state.voiceActivity = .idle
                 }
                 return false
@@ -191,10 +268,13 @@ final class IncidentController {
                 "云端 TTS 失败：\(error.localizedDescription)。未使用系统朗读。",
                 "Cloud TTS failed: \(error.localizedDescription). System speech was not used."
             )
-            if state.voiceActivity == .speaking || state.voiceActivity == .thinking {
+            if playbackToken == token, state.voiceActivity == .speaking || state.voiceActivity == .thinking {
+                if clearToastWhenPlaybackEnds, let revealToast, state.toastMessage == revealToast {
+                    state.toastMessage = nil
+                }
                 state.voiceActivity = .idle
             }
-            TTSDiagnostics.record("CLOUD_TTS_FAILED error=\(error.localizedDescription) fallback=none")
+            TTSDiagnostics.record("TTS_FAILED mode=cloudAPI error=\(error.localizedDescription) fallback=none")
             if notify {
                 Task {
                     await notifications.notifyCatch(target: target, roast: text)
@@ -204,49 +284,78 @@ final class IncidentController {
         }
     }
 
-    private func waitForPlayback(_ duration: TimeInterval) async {
+    private func waitForPlayback(_ duration: TimeInterval, token: UUID) async -> Bool {
         let delay = UInt64(max(duration + 0.2, 0.5) * 1_000_000_000)
         try? await Task.sleep(nanoseconds: delay)
+        return playbackToken == token
+    }
+
+    private func markRepeatCooldownStarted() {
+        nextIncidentAllowedAt = Date().addingTimeInterval(Self.repeatCatchCooldown)
     }
 
     private func formatSeconds(_ value: TimeInterval) -> String {
         String(format: "%.1fs", value)
     }
 
-    private func enrichWithSearch(context: FrontmostContext) async -> PageSearchContext? {
-        guard state.providers.webSearchEnabled else { return nil }
-        do {
-            let result = try await webSearch.search(
-                context: context,
-                settings: state.providers,
-                languageCode: state.targetLanguageCode()
-            )
-            if let result, !result.results.isEmpty {
-                await MainActor.run {
-                    state.providerStatus = state.copy("已获取页面搜索上下文", "Search context ready")
-                }
-                return result
-            }
-            return nil
-        } catch {
-            await MainActor.run {
-                state.providerStatus = state.copy("搜索增强跳过：\(error.localizedDescription)", "Search enrichment skipped: \(error.localizedDescription)")
-            }
-            return nil
+    private var canStartNewIncident: Bool {
+        state.currentIncident == nil && !state.voiceActivity.isBusy
+    }
+
+    private func enforceMatchedTargetIfNeeded(rule: BlacklistRule, context: FrontmostContext, shouldCloseMatchedTarget: Bool) {
+        guard shouldCloseMatchedTarget else { return }
+        TTSDiagnostics.record("FORCEFUL_CLOSE_ATTEMPT kind=\(rule.kind.rawValue) target=\(rule.name) app=\(context.appName) url=\(context.url ?? "")")
+        let result = targetCloser.close(rule: rule, context: context)
+        TTSDiagnostics.record("FORCEFUL_CLOSE_RESULT action=\(result.isAction) \(result.diagnosticDescription)")
+        state.toastMessage = result.message(language: state.interfaceLanguage)
+        state.providerStatus = result.message(language: state.interfaceLanguage)
+    }
+
+    private func forcefulClosingLineAppended(to text: String, shouldCloseMatchedTarget: Bool, languageCode: String) -> String {
+        guard shouldCloseMatchedTarget else { return text }
+        let closingLine = languageCode == "en"
+            ? "I'm closing it now."
+            : "我现在就把它关掉。"
+        if text.localizedCaseInsensitiveContains(closingLine) {
+            return text
         }
+        if languageCode == "en" {
+            return "\(text) \(closingLine)"
+        }
+        return "\(text)\(closingLine)"
     }
 
     private func fallbackRoast(rule: BlacklistRule, context: FrontmostContext) -> String {
         if state.targetLanguageCode() == "en" {
-            if state.allowProfanity {
-                return "\(context.displayTarget) again? Get your ass back to work."
+            switch state.persona {
+            case .studySupervisor:
+                return "\(context.displayTarget) again? Back to studying."
+            case .workSupervisor:
+                if state.allowProfanity {
+                    return "\(context.displayTarget) again? Get your ass back to work."
+                }
+                return "Caught on \(context.displayTarget). Back to work."
+            case .custom:
+                return "Caught on \(context.displayTarget). Back to the task."
             }
-            return "Caught on \(context.displayTarget). Back to work."
         }
-        if state.allowProfanity {
-            return "又他妈在 \(context.displayTarget)，活是会自己干吗？"
+        switch state.persona {
+        case .studySupervisor:
+            if state.allowProfanity {
+                return "又他妈在 \(context.displayTarget)，进度会自己涨吗？"
+            }
+            return "抓到你在 \(context.displayTarget)。回去学习。"
+        case .workSupervisor:
+            if state.allowProfanity {
+                return "又他妈在 \(context.displayTarget)，活是会自己干吗？"
+            }
+            return "抓到你在 \(context.displayTarget)。还干不干活了？"
+        case .custom:
+            if state.allowProfanity {
+                return "又他妈在 \(context.displayTarget)，正事不要了？"
+            }
+            return "抓到你在 \(context.displayTarget)。回到正事。"
         }
-        return "抓到你在 \(context.displayTarget)。还干不干活了？"
     }
 
     private func focusCompletionMessage(catchCount: Int) -> String {

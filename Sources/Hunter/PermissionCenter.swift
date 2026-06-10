@@ -1,5 +1,4 @@
 import AppKit
-import ApplicationServices
 import AVFoundation
 import Foundation
 import UserNotifications
@@ -13,7 +12,7 @@ enum PermissionState: String, Codable, Equatable {
     func label(language: AppLanguage, optional: Bool = false) -> String {
         let english = language == .english
         if optional, self != .allowed {
-            return english ? "Optional" : "可选"
+            return english ? "Off" : "未开启"
         }
         return switch self {
         case .allowed: english ? "Allowed" : "已允许"
@@ -25,7 +24,6 @@ enum PermissionState: String, Codable, Equatable {
 }
 
 struct PermissionSnapshot: Codable, Equatable {
-    var accessibility: PermissionState = .unknown
     var microphone: PermissionState = .unknown
     var notifications: PermissionState = .unknown
     var browserAutomation: PermissionState = .unknown
@@ -34,11 +32,10 @@ struct PermissionSnapshot: Codable, Equatable {
 @MainActor
 struct PermissionCenter {
     func snapshot() async -> PermissionSnapshot {
-        let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
+        let notificationSettings = await notificationSettingsIfAvailable()
         return PermissionSnapshot(
-            accessibility: accessibilityState,
             microphone: microphoneState,
-            notifications: notificationState(from: notificationSettings.authorizationStatus),
+            notifications: notificationSettings.map { notificationState(from: $0.authorizationStatus) } ?? .unknown,
             browserAutomation: browserAutomationState()
         )
     }
@@ -52,6 +49,9 @@ struct PermissionCenter {
     }
 
     func requestNotifications() async -> Bool {
+        guard isRunningFromAppBundle else {
+            return false
+        }
         do {
             return try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         } catch {
@@ -63,10 +63,6 @@ struct PermissionCenter {
     func requestBrowserAutomationPermission() -> Bool {
         let targetBundleID = preferredBrowserBundleID()
         return BrowserURLReader().requestAutomationPermission(for: targetBundleID)
-    }
-
-    func openAccessibilitySettings() {
-        openSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
     }
 
     func openMicrophoneSettings() {
@@ -84,13 +80,6 @@ struct PermissionCenter {
         case .denied, .restricted: .denied
         @unknown default: .unknown
         }
-    }
-
-    private var accessibilityState: PermissionState {
-        let trusted = AXIsProcessTrustedWithOptions([
-            "AXTrustedCheckOptionPrompt": false
-        ] as CFDictionary)
-        return trusted ? .allowed : .denied
     }
 
     private func notificationState(from status: UNAuthorizationStatus) -> PermissionState {
@@ -122,6 +111,17 @@ struct PermissionCenter {
             return runningBrowser
         }
         return "com.google.Chrome"
+    }
+
+    private var isRunningFromAppBundle: Bool {
+        Bundle.main.bundleURL.pathExtension == "app"
+    }
+
+    private func notificationSettingsIfAvailable() async -> UNNotificationSettings? {
+        guard isRunningFromAppBundle else {
+            return nil
+        }
+        return await UNUserNotificationCenter.current().notificationSettings()
     }
 
     private func openSettings(_ urlString: String) {

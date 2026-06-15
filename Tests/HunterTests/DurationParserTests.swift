@@ -113,6 +113,34 @@ struct DurationParserTests {
         #expect(!BrowserURLReader.isSupportedBrowser(bundleID: nil))
     }
 
+    @Test func monitoringStartupFallsBackFromHunterToRememberedExternalContext() {
+        let remembered = FrontmostContext(appName: "Google Chrome", bundleID: "com.google.Chrome", url: nil)
+        let hunter = FrontmostContext(appName: "Hunter", bundleID: "com.hunter.focus", url: nil)
+
+        #expect(MonitorService.startupEvaluationContext(current: hunter, rememberedExternal: remembered) == remembered)
+    }
+
+    @Test func monitoringStartupFallsBackFromMenuBarControlSurface() {
+        let remembered = FrontmostContext(appName: "Steam", bundleID: "com.valvesoftware.steam", url: nil)
+        let menuBar = FrontmostContext(appName: "SystemUIServer", bundleID: "com.apple.systemuiserver", url: nil)
+
+        #expect(MonitorService.startupEvaluationContext(current: menuBar, rememberedExternal: remembered) == remembered)
+    }
+
+    @Test func monitoringStartupUsesCurrentExternalContextWhenAvailable() {
+        let current = FrontmostContext(appName: "Google Chrome", bundleID: "com.google.Chrome", url: nil)
+        let remembered = FrontmostContext(appName: "Steam", bundleID: "com.valvesoftware.steam", url: nil)
+
+        #expect(MonitorService.startupEvaluationContext(current: current, rememberedExternal: remembered) == current)
+    }
+
+    @Test func hunterControlSurfaceDetectionIncludesPackagedAndSystemMenuContexts() {
+        #expect(MonitorService.isForegroundControlSurface(appName: "Hunter", bundleID: nil))
+        #expect(MonitorService.isForegroundControlSurface(appName: "Hunter", bundleID: "com.hunter.focus"))
+        #expect(MonitorService.isForegroundControlSurface(appName: "SystemUIServer", bundleID: "com.apple.systemuiserver"))
+        #expect(!MonitorService.isForegroundControlSurface(appName: "Google Chrome", bundleID: "com.google.Chrome"))
+    }
+
     @Test func browserContextKeepsFullTitleForLLM() {
         let title = "【完整回放】这个超长视频标题包含一大串副标题和分集说明，可以用来判断用户具体在看什么 - 哔哩哔哩_bilibili"
         let context = FrontmostContext(

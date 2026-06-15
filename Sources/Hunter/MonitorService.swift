@@ -11,9 +11,11 @@ final class MonitorService {
     private var browserURLTimer: Timer?
     private var browserURLTask: Task<Void, Never>?
     private var monitoringCancellable: AnyCancellable?
+    private var startupRecheckTask: Task<Void, Never>?
     private var activeAppName = "Unknown App"
     private var activeBundleID: String?
     private var hasActiveApplication = false
+    private var lastExternalContext: FrontmostContext?
     private var lastBrowserURL: String?
     private var lastBrowserTitle: String?
     private let browserURLPollInterval: TimeInterval = 0.8
@@ -48,6 +50,8 @@ final class MonitorService {
                 }
             }
 
+        rememberCurrentFrontmostApplicationIfExternal()
+
         lifecycleTimer = Timer.scheduledTimer(withTimeInterval: lifecycleInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.refreshMonitoringLifecycle()
@@ -65,6 +69,7 @@ final class MonitorService {
         lifecycleTimer = nil
         monitoringCancellable?.cancel()
         monitoringCancellable = nil
+        cancelStartupRechecks()
         stopBrowserURLWatcher()
     }
 
@@ -85,22 +90,49 @@ final class MonitorService {
     private func handleMonitoringChange(_ isMonitoring: Bool) {
         if isMonitoring {
             refreshMonitoringLifecycle()
+            scheduleStartupRechecks()
         } else {
+            cancelStartupRechecks()
             stopBrowserURLWatcher()
             lastBrowserURL = nil
             lastBrowserTitle = nil
         }
     }
 
+    private func rememberCurrentFrontmostApplicationIfExternal() {
+        let app = NSWorkspace.shared.frontmostApplication
+        let context = FrontmostContext(
+            appName: app?.localizedName ?? "Unknown App",
+            bundleID: app?.bundleIdentifier,
+            url: nil,
+            pageTitle: nil
+        )
+        rememberExternalContextIfNeeded(context)
+    }
+
     private func handleCurrentFrontmostApplication() {
         let app = NSWorkspace.shared.frontmostApplication
-        handleApplication(
+        let currentContext = FrontmostContext(
             appName: app?.localizedName ?? "Unknown App",
-            bundleID: app?.bundleIdentifier
+            bundleID: app?.bundleIdentifier,
+            url: nil,
+            pageTitle: nil
         )
+        handleApplication(appName: currentContext.appName, bundleID: currentContext.bundleID)
+
+        let startupContext = Self.startupEvaluationContext(
+            current: currentContext,
+            rememberedExternal: lastExternalContext
+        )
+        if startupContext != currentContext {
+            evaluateRememberedExternalContext(startupContext)
+        }
     }
 
     private func handleApplication(appName: String, bundleID: String?) {
+        let context = FrontmostContext(appName: appName, bundleID: bundleID, url: nil, pageTitle: nil)
+        rememberExternalContextIfNeeded(context)
+
         let appChanged = !hasActiveApplication || activeAppName != appName || activeBundleID != bundleID
         hasActiveApplication = true
         activeAppName = appName
@@ -125,6 +157,21 @@ final class MonitorService {
         }
     }
 
+    private func rememberExternalContextIfNeeded(_ context: FrontmostContext) {
+        guard !Self.isForegroundControlSurface(appName: context.appName, bundleID: context.bundleID) else {
+            return
+        }
+        lastExternalContext = context
+    }
+
+    private func evaluateRememberedExternalContext(_ context: FrontmostContext) {
+        guard state.isMonitoring, shouldMonitorNow else { return }
+        evaluateContext(appName: context.appName, bundleID: context.bundleID, url: nil, pageTitle: nil)
+        if BrowserURLReader.isSupportedBrowser(bundleID: context.bundleID) {
+            readBrowserURL(appName: context.appName, bundleID: context.bundleID, requiresActiveBundleMatch: false)
+        }
+    }
+
     private func startBrowserURLWatcher() {
         guard browserURLTimer == nil else { return }
         browserURLTimer = Timer.scheduledTimer(withTimeInterval: browserURLPollInterval, repeats: true) { [weak self] _ in
@@ -142,33 +189,52 @@ final class MonitorService {
     }
 
     private func readActiveBrowserURL() {
+        readBrowserURL(appName: activeAppName, bundleID: activeBundleID, requiresActiveBundleMatch: true)
+    }
+
+    private func readBrowserURL(appName: String, bundleID: String?, requiresActiveBundleMatch: Bool) {
         guard state.isMonitoring, shouldMonitorNow else {
             stopBrowserURLWatcher()
             return
         }
-        guard BrowserURLReader.isSupportedBrowser(bundleID: activeBundleID) else {
-            stopBrowserURLWatcher()
+        guard BrowserURLReader.isSupportedBrowser(bundleID: bundleID) else {
+            if requiresActiveBundleMatch {
+                stopBrowserURLWatcher()
+            }
             return
         }
         guard browserURLTask == nil else { return }
 
-        let appName = activeAppName
-        let bundleID = activeBundleID
-        browserURLTask = Task { [weak self, appName, bundleID] in
+        browserURLTask = Task { [weak self, appName, bundleID, requiresActiveBundleMatch] in
             let tabTask = Task.detached(priority: .utility) {
                 BrowserURLReader().currentTabInfo(for: bundleID)
             }
             let tab = await tabTask.value
 
             guard !Task.isCancelled else { return }
-            self?.completeBrowserURLRead(appName: appName, bundleID: bundleID, tab: tab)
+            self?.completeBrowserURLRead(
+                appName: appName,
+                bundleID: bundleID,
+                tab: tab,
+                requiresActiveBundleMatch: requiresActiveBundleMatch
+            )
         }
     }
 
-    private func completeBrowserURLRead(appName: String, bundleID: String?, tab: BrowserTabInfo?) {
+    private func completeBrowserURLRead(
+        appName: String,
+        bundleID: String?,
+        tab: BrowserTabInfo?,
+        requiresActiveBundleMatch: Bool
+    ) {
         browserURLTask = nil
         guard state.isMonitoring, shouldMonitorNow else { return }
-        guard activeBundleID == bundleID else { return }
+        if requiresActiveBundleMatch {
+            guard activeBundleID == bundleID else { return }
+        } else if !Self.isForegroundControlSurface(appName: activeAppName, bundleID: activeBundleID),
+                  activeBundleID != bundleID {
+            return
+        }
         guard let tab, !tab.url.isEmpty else { return }
         lastBrowserURL = tab.url
         lastBrowserTitle = tab.title
@@ -194,5 +260,50 @@ final class MonitorService {
             return true
         }
         return true
+    }
+
+    private func scheduleStartupRechecks() {
+        cancelStartupRechecks()
+        startupRecheckTask = Task { [weak self] in
+            for delay in [250_000_000, 900_000_000] as [UInt64] {
+                try? await Task.sleep(nanoseconds: delay)
+                guard !Task.isCancelled else { return }
+                self?.refreshMonitoringLifecycle()
+            }
+        }
+    }
+
+    private func cancelStartupRechecks() {
+        startupRecheckTask?.cancel()
+        startupRecheckTask = nil
+    }
+
+    nonisolated static func startupEvaluationContext(
+        current: FrontmostContext,
+        rememberedExternal: FrontmostContext?
+    ) -> FrontmostContext {
+        guard isForegroundControlSurface(appName: current.appName, bundleID: current.bundleID),
+              let rememberedExternal else {
+            return current
+        }
+        return rememberedExternal
+    }
+
+    nonisolated static func isForegroundControlSurface(appName: String, bundleID: String?) -> Bool {
+        let normalizedName = appName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalizedName == "hunter" {
+            return true
+        }
+
+        let controlBundleIDs: Set<String> = [
+            "com.hunter.focus",
+            Bundle.main.bundleIdentifier?.lowercased() ?? "",
+            "com.apple.systemuiserver",
+            "com.apple.dock"
+        ]
+        guard let normalizedBundleID = bundleID?.lowercased(), !normalizedBundleID.isEmpty else {
+            return false
+        }
+        return controlBundleIDs.contains(normalizedBundleID)
     }
 }

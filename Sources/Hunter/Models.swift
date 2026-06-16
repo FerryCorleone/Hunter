@@ -1,5 +1,9 @@
 import Foundation
 
+enum AppBrand {
+    static let displayName = "监管者"
+}
+
 enum AppLanguage: String, CaseIterable, Codable, Identifiable {
     case zhHans
     case english
@@ -759,7 +763,7 @@ enum VoiceCloneSampleError: LocalizedError, Equatable {
         case .invalidVoicePrompt:
             "Voice design prompt cannot be empty"
         case .unsupportedProvider:
-            "Current TTS provider or model does not support Hunter voice cloning"
+            "Current TTS provider or model does not support \(AppBrand.displayName) voice cloning"
         }
     }
 }

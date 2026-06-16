@@ -51,8 +51,8 @@ final class StatusMenuController {
 
         let stateItem = NSMenuItem(
             title: state.isMonitoring
-                ? state.copy("Hunter 正在监督", "Hunter is monitoring")
-                : state.copy("Hunter 已暂停", "Hunter is paused"),
+                ? state.copy("\(AppBrand.displayName) 正在监督", "\(AppBrand.displayName) is monitoring")
+                : state.copy("\(AppBrand.displayName) 已暂停", "\(AppBrand.displayName) is paused"),
             action: nil,
             keyEquivalent: ""
         )
@@ -71,7 +71,7 @@ final class StatusMenuController {
         menu.addItem(NSMenuItem(title: state.copy("演示抓包", "Demo Catch"), action: #selector(triggerDemoCatch), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: state.copy("设置...", "Settings..."), action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: state.copy("退出 Hunter", "Quit Hunter"), action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: state.copy("退出\(AppBrand.displayName)", "Quit \(AppBrand.displayName)"), action: #selector(quit), keyEquivalent: "q"))
 
         for item in menu.items {
             item.target = self
@@ -85,9 +85,9 @@ final class StatusMenuController {
             button.title = ""
             button.image = image
             button.imagePosition = .imageOnly
-            button.toolTip = "Hunter"
+            button.toolTip = AppBrand.displayName
         } else {
-            button.title = "H"
+            button.title = "监"
             button.font = .systemFont(ofSize: 15, weight: .bold)
         }
     }

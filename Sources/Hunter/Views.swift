@@ -234,7 +234,7 @@ struct FloatingOverlayView: View {
             .clipShape(Circle())
         }
         .help(state.copy("打开快捷监督菜单，可拖动位置", "Open quick controls, drag to move"))
-        .accessibilityLabel(state.copy("Hunter 悬浮小组件", "Hunter floating widget"))
+        .accessibilityLabel(state.copy("\(AppBrand.displayName) 悬浮小组件", "\(AppBrand.displayName) floating widget"))
     }
 
     private var overlaySize: CGSize {
@@ -987,7 +987,7 @@ struct SettingsView: View {
                 .shadow(color: HunterUI.accent.opacity(0.18), radius: 7, y: 3)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Hunter")
+                    Text(AppBrand.displayName)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(HunterUI.text)
                     Text("AI 监督")
@@ -1091,7 +1091,7 @@ struct GeneralPanel: View {
                                 Text(state.copy("显示悬浮组件", "Show floating widget"))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(HunterUI.text)
-                                Text(state.copy("关闭后只保留菜单栏入口，不影响已配置的监督规则。", "When off, Hunter keeps the menu bar entry and your rules."))
+                                Text(state.copy("关闭后只保留菜单栏入口，不影响已配置的监督规则。", "When off, \(AppBrand.displayName) keeps the menu bar entry and your rules."))
                                     .font(.system(size: 12))
                                     .foregroundStyle(HunterUI.secondaryText)
                             }
@@ -1258,12 +1258,12 @@ struct GeneralPanel: View {
                     }
                 }
 
-                SettingCard(icon: "person", title: state.copy("登录时启动", "Launch at login"), subtitle: state.copy("登录 macOS 后自动运行 Hunter。", "Automatically run Hunter when you log in.")) {
+                SettingCard(icon: "person", title: state.copy("登录时启动", "Launch at login"), subtitle: state.copy("登录 macOS 后自动运行\(AppBrand.displayName)。", "Automatically run \(AppBrand.displayName) when you log in.")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack(spacing: 8) {
-                                    Text(state.copy("允许登录 macOS 后自动运行", "Allow Hunter to run after macOS login"))
+                                    Text(state.copy("允许登录 macOS 后自动运行", "Allow \(AppBrand.displayName) to run after macOS login"))
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(HunterUI.text)
                                     Text(state.launchAtLogin ? state.copy("已开启", "Enabled") : state.copy("已关闭", "Disabled"))
@@ -1487,7 +1487,7 @@ struct GeneralPanel: View {
         state.refreshPermissions()
         permissionMessage = granted
             ? state.copy("浏览器自动化已允许", "Browser automation allowed")
-            : state.copy("请在弹窗中允许 Hunter 读取当前浏览器标签页", "Allow Hunter to read the current browser tab in the system prompt")
+            : state.copy("请在弹窗中允许\(AppBrand.displayName)读取当前浏览器标签页", "Allow \(AppBrand.displayName) to read the current browser tab in the system prompt")
     }
 
     private func compactSwitch(title: String, isOn: Binding<Bool>) -> some View {
@@ -1616,7 +1616,7 @@ struct WatchlistPanel: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(state.copy("本机 App", "Installed apps"))
                         .font(.system(size: 13, weight: .semibold))
-                    Text(state.copy("搜索应用名称或 Bundle ID，找到后添加到黑名单。", "Search app name or bundle ID, then add it to the watchlist."))
+                    Text(state.copy("搜索应用名称或 Bundle ID；已添加过的会显示为已添加。", "Search app name or bundle ID; already added apps stay visible as added."))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -1647,11 +1647,11 @@ struct WatchlistPanel: View {
                         .foregroundStyle(.secondary)
                 }
             } else if appSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(state.copy("输入关键词后会显示可添加的本机 App。", "Type to show matching apps you can add."))
+                Text(state.copy("输入关键词后会显示匹配的本机 App。", "Type to show matching installed apps."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else if filteredInstalledApps.isEmpty {
-                Text(state.copy("没有可添加的匹配 App", "No addable matching apps"))
+                Text(state.copy("没有匹配 App", "No matching apps"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -1679,10 +1679,7 @@ struct WatchlistPanel: View {
             return []
         }
         return installedApps.filter { app in
-            !installedAppExists(app) && (
-                app.name.lowercased().contains(query)
-                || (app.bundleIdentifier?.lowercased().contains(query) ?? false)
-            )
+            app.matchesSearchQuery(query)
         }
     }
 
@@ -2738,8 +2735,8 @@ struct VoicePanel: View {
 
     private var voiceDesignPreviewText: String {
         state.targetTTSLanguageCode() == "en"
-            ? "Hunter voice preview. Back to focus."
-            : "Hunter 音色试听，回到正事。"
+            ? "\(AppBrand.displayName) voice preview. Back to focus."
+            : "\(AppBrand.displayName)音色试听，回到正事。"
     }
 
     private var voiceDesignCard: some View {
@@ -3216,8 +3213,8 @@ struct VoicePanel: View {
         }
         if isOpenAITTSProvider {
             return state.copy(
-                "OpenAI TTS 当前没有接入 Hunter 声音克隆流程。",
-                "OpenAI TTS is not connected to Hunter voice cloning yet."
+                "OpenAI TTS 当前没有接入\(AppBrand.displayName)声音克隆流程。",
+                "OpenAI TTS is not connected to \(AppBrand.displayName) voice cloning yet."
             )
         }
         return state.copy(
@@ -3284,8 +3281,8 @@ struct VoicePanel: View {
 
     private var voicePreviewText: String {
         state.targetLanguageCode() == "en"
-            ? "Hunter voice preview. Back to focus."
-            : "Hunter 音色试听，回到正事。"
+            ? "\(AppBrand.displayName) voice preview. Back to focus."
+            : "\(AppBrand.displayName)音色试听，回到正事。"
     }
 
     private func testVoice() {
@@ -4539,7 +4536,7 @@ struct ProviderEditor: View {
             try SecretStore().saveAPIKey(apiKey, environmentName: storageName)
             apiKey = ""
             hasSavedAPIKey = true
-            saveMessage = copy("已保存，本机运行会直接读取。", "Saved. Hunter will use it automatically.")
+            saveMessage = copy("已保存，本机运行会直接读取。", "Saved. \(AppBrand.displayName) will use it automatically.")
             onApplyConfiguration?(role, provider, true)
         } catch {
             saveMessage = copy("密钥保存失败：\(error.localizedDescription)", "Secret save failed: \(error.localizedDescription)")
@@ -4680,8 +4677,8 @@ struct ProviderEditor: View {
             return "\(role.customProtocolHint(language: language)) \(copy("厂商名、Base URL、模型和 API Key 由你填写；密钥仍只保存到本机。", "Provider name, Base URL, model, and API key are user-defined; the key still stays local."))"
         }
         return copy(
-            "Hunter 按厂商预设 Base URL、鉴权头、region 和语言提示；模型 ID 可按该厂商支持情况修改：\(provider.baseURL) · \(authLabel)。",
-            "Hunter presets Base URL, auth headers, region, and language hints for this provider; the model ID remains editable: \(provider.baseURL) · \(authLabel)."
+            "\(AppBrand.displayName)按厂商预设 Base URL、鉴权头、region 和语言提示；模型 ID 可按该厂商支持情况修改：\(provider.baseURL) · \(authLabel)。",
+            "\(AppBrand.displayName) presets Base URL, auth headers, region, and language hints for this provider; the model ID remains editable: \(provider.baseURL) · \(authLabel)."
         )
     }
 
@@ -4789,7 +4786,7 @@ struct ProviderEditor: View {
             let name = URL(fileURLWithPath: path).lastPathComponent
             return copy("本机模型：\(name)", "Local model: \(name)")
         }
-        return copy("未下载。下载后模型会保存在 Hunter 的本机应用支持目录。", "Not downloaded. Models are stored in Hunter's local Application Support folder.")
+        return copy("未下载。下载后模型会保存在\(AppBrand.displayName)的本机应用支持目录。", "Not downloaded. Models are stored in \(AppBrand.displayName)'s local Application Support folder.")
     }
 
     private func effectiveLocalInstallPath(for descriptor: LocalModelDescriptor) -> String? {

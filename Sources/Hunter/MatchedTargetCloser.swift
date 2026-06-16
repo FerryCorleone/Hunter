@@ -108,7 +108,7 @@ struct MatchedTargetCloser {
             return .failed("frontmost app was not found")
         }
         guard !isProtectedApplication(app) else {
-            return .skipped("protected system or Hunter app")
+            return .skipped("protected system or \(AppBrand.displayName) app")
         }
         let name = app.localizedName ?? context.appName
         return app.terminate()
@@ -129,7 +129,7 @@ struct MatchedTargetCloser {
     }
 
     private func isProtectedApplication(_ app: NSRunningApplication) -> Bool {
-        if app.localizedName == "Hunter" {
+        if app.localizedName == "Hunter" || app.localizedName == AppBrand.displayName {
             return true
         }
         let protectedBundleIDs: Set<String> = [

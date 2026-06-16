@@ -9,7 +9,7 @@ struct NotificationController {
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "Hunter caught \(target)"
+        content.title = "\(AppBrand.displayName)抓到你在 \(target)"
         content.body = roast
         content.sound = nil
 

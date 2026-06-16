@@ -291,7 +291,7 @@ final class MonitorService {
 
     nonisolated static func isForegroundControlSurface(appName: String, bundleID: String?) -> Bool {
         let normalizedName = appName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if normalizedName == "hunter" {
+        if normalizedName == "hunter" || appName.trimmingCharacters(in: .whitespacesAndNewlines) == AppBrand.displayName {
             return true
         }
 

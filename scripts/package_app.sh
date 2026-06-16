@@ -61,7 +61,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Hunter</string>
+  <string>监管者</string>
+  <key>CFBundleDisplayName</key>
+  <string>监管者</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -73,9 +75,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
   <key>NSAppleEventsUsageDescription</key>
-  <string>Hunter needs browser automation permission to read the active Chrome or Safari URL for user-configured blacklist rules.</string>
+  <string>监管者需要浏览器自动化权限，用于读取当前 Chrome 或 Safari 标签页 URL 并匹配用户配置的黑名单规则。</string>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Hunter needs microphone access for push-to-talk voice commands and replies.</string>
+  <string>监管者需要麦克风权限，用于按键说话、语音命令和语音回击。</string>
 </dict>
 </plist>
 PLIST

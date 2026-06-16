@@ -15,7 +15,7 @@ final class VoiceCommandController {
         var errorDescription: String? {
             switch self {
             case .busy:
-                "Hunter is already processing voice. Try again after it finishes."
+                "\(AppBrand.displayName) is already processing voice. Try again after it finishes."
             case .microphoneUnavailable:
                 "Microphone permission is required."
             case .silentInput:
@@ -86,7 +86,7 @@ final class VoiceCommandController {
             return
         }
         guard !isRecording, !state.voiceActivity.isBusy else {
-            let message = state.copy("Hunter 正在处理当前语音，稍后再试。", "Hunter is already processing voice. Try again shortly.")
+            let message = state.copy("\(AppBrand.displayName)正在处理当前语音，稍后再试。", "\(AppBrand.displayName) is already processing voice. Try again shortly.")
             status(message)
             completion(.failure(VoiceCommandError.busy))
             return
@@ -94,7 +94,7 @@ final class VoiceCommandController {
 
         Task {
             do {
-                let listenMessage = state.copy("正在测试 ASR：请说一句话，\(Int(seconds)) 秒后自动转录。", "Testing ASR: say one sentence. Hunter will transcribe in \(Int(seconds)) seconds.")
+                let listenMessage = state.copy("正在测试 ASR：请说一句话，\(Int(seconds)) 秒后自动转录。", "Testing ASR: say one sentence. \(AppBrand.displayName) will transcribe in \(Int(seconds)) seconds.")
                 status(state.copy("正在准备麦克风...", "Preparing microphone..."))
                 try await beginRecordingAsync()
                 guard isRecording else {
@@ -368,7 +368,7 @@ final class VoiceCommandController {
         let hadIncident = activeIncident != nil
         ASRDiagnostics.record("TRANSCRIPT_RECEIVED activeIncident=\(hadIncident) chars=\(transcript.count) text=\(diagnosticSnippet(transcript))")
 
-        state.voiceInteractionStatus = state.copy("Hunter 正在判断要回应还是执行命令...", "Hunter is deciding whether to reply or run a command...")
+        state.voiceInteractionStatus = state.copy("\(AppBrand.displayName)正在判断要回应还是执行命令...", "\(AppBrand.displayName) is deciding whether to reply or run a command...")
         state.voiceActivity = .thinking
 
         do {

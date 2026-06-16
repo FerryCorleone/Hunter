@@ -7,7 +7,7 @@ struct DashScopeClient {
 
         var errorDescription: String? {
             switch self {
-            case .missingAPIKey: "Missing provider API key or the saved key needs to be re-saved in Hunter"
+            case .missingAPIKey: "Missing provider API key or the saved key needs to be re-saved in \(AppBrand.displayName)"
             case .invalidResponse(let detail): "Provider returned an invalid response: \(detail)"
             }
         }
@@ -667,7 +667,7 @@ struct DashScopeClient {
             throw VoiceCloneSampleError.invalidVoicePrompt
         }
         let preview = previewText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? "Hunter 音色试听，回到正事。"
+            ? "\(AppBrand.displayName)音色试听，回到正事。"
             : previewText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let body: [String: Any] = [

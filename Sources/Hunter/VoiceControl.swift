@@ -625,7 +625,10 @@ final class VoiceControlExecutor {
         }
 
         state.voiceActivity = .thinking
-        state.voiceInteractionStatus = state.copy("Hunter 正在理解你的设置指令...", "Hunter is interpreting your command...")
+        state.voiceInteractionStatus = state.copy(
+            "\(AppBrand.displayName)正在理解你的设置指令...",
+            "\(AppBrand.displayName) is interpreting your command..."
+        )
         do {
             let context = VoiceControlAgentContext(state: state)
             guard let decision = try await client.generateVoiceControlDecision(

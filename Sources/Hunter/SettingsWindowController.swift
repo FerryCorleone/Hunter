@@ -45,7 +45,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             )
             let controller = NSHostingController(rootView: view)
             let newWindow = NSWindow(contentViewController: controller)
-            newWindow.title = "Hunter"
+            newWindow.title = AppBrand.displayName
             newWindow.setContentSize(NSSize(width: 920, height: 680))
             newWindow.minSize = NSSize(width: 920, height: 680)
             newWindow.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]

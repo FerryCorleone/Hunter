@@ -136,6 +136,7 @@ struct DurationParserTests {
 
     @Test func hunterControlSurfaceDetectionIncludesPackagedAndSystemMenuContexts() {
         #expect(MonitorService.isForegroundControlSurface(appName: "Hunter", bundleID: nil))
+        #expect(MonitorService.isForegroundControlSurface(appName: AppBrand.displayName, bundleID: nil))
         #expect(MonitorService.isForegroundControlSurface(appName: "Hunter", bundleID: "com.hunter.focus"))
         #expect(MonitorService.isForegroundControlSurface(appName: "SystemUIServer", bundleID: "com.apple.systemuiserver"))
         #expect(!MonitorService.isForegroundControlSurface(appName: "Google Chrome", bundleID: "com.google.Chrome"))
@@ -365,6 +366,23 @@ struct DurationParserTests {
         #expect(apps.count == 1)
         #expect(apps.first?.name == "Arc")
         #expect(apps.first?.matchPattern == "company.thebrowser.Browser")
+    }
+
+    @Test func installedAppSearchMatchesNameOrBundleID() {
+        let app = InstalledApplication(
+            name: "Steam",
+            bundleIdentifier: "com.valvesoftware.steam",
+            path: "/Applications/Steam.app"
+        )
+
+        #expect(app.matchesSearchQuery("steam"))
+        #expect(app.matchesSearchQuery("ValveSoftware"))
+        #expect(app.matchesSearchQuery(" com.valvesoftware "))
+        #expect(!app.matchesSearchQuery("xcode"))
+    }
+
+    @Test func appBrandDisplayNameUsesChineseProductName() {
+        #expect(AppBrand.displayName == "监管者")
     }
 
     @Test func providerSettingsDecodeMigratesRetiredVoiceToCloudDefault() throws {

@@ -12,6 +12,13 @@ struct InstalledApplication: Identifiable, Equatable, Sendable {
     var matchPattern: String {
         bundleIdentifier?.isEmpty == false ? bundleIdentifier! : name
     }
+
+    func matchesSearchQuery(_ query: String) -> Bool {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalizedQuery.isEmpty else { return false }
+        return name.lowercased().contains(normalizedQuery)
+            || (bundleIdentifier?.lowercased().contains(normalizedQuery) ?? false)
+    }
 }
 
 struct InstalledAppScanner {

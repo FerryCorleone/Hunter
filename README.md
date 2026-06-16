@@ -1,94 +1,90 @@
-# Hunter
+# 监管者（Hunter）
 
-Mac 端 AI 摸鱼监工工具。用户设定工作时间和摸鱼黑名单后，Hunter 会检测当前前台 App 或浏览器 URL；一旦抓到摸鱼行为，就用 AI 语音当场吐槽，并允许用户语音反驳，形成“人类摸鱼 vs AI 监工”的整活互动。
+一个 Mac 端 AI 摸鱼监工。你主动开启监督后，它会盯着你当前打开的 App 和网站；一旦发现你进了黑名单，就会当场弹出悬浮小组件，用 AI 语音吐槽你。你还可以按住快捷键语音反驳，和它继续对喷。
 
-## Current Stage
+它不是老板监控员工的软件，也不会偷偷上传你的浏览历史。它更像一个自愿开启的桌面整活工具：好玩、有点压力、适合录屏，也适合给自己来一点“别刷了”的外部刺激。
 
-当前仓库已进入原生 macOS 可用版本打磨阶段，包含产品文档、HTML 审稿原型和可编译、可打包的 SwiftUI/AppKit 应用：
+## 下载
 
-- [PRD](docs/PRD.md)
-- [设计稿](docs/DESIGN.md)
-- [模型/API 技术评估](docs/TECHNICAL_EVALUATION.md)
-- [实现状态](docs/IMPLEMENTATION_STATUS.md)
-- [MVP 验收清单](docs/ACCEPTANCE.md)
-- [HTML 设计稿](docs/design-prototype/index.html)
-- [设计稿预览图](docs/design-prototype/hunter-preview.png)
-- [图像生成参考稿](docs/design-prototype/generated-ui-reference.png)
+目前只支持 **macOS 14 Sonoma 及以上**，并且只提供 Mac 版 DMG 安装包。
 
-说明：HTML 设计稿里的 macOS 壁纸、Dock、系统菜单栏只作为审稿展示背景，不属于 Hunter 要开发的产品 UI。开发范围是悬浮球、小组件、时长任务 toast、设置窗口和菜单栏状态入口。
+- 下载最新版：[Hunter.dmg](https://github.com/FerryCorleone/Hunter/releases/latest/download/Hunter.dmg)
+- 查看发布页：[GitHub Releases](https://github.com/FerryCorleone/Hunter/releases/latest)
 
-## MVP Target
+暂不支持 Windows、iPhone、iPad、Android，也没有浏览器插件版。
 
-第一版目标是跑通节目效果闭环：
+## 安装
 
-1. 工作时间配置
-2. App 与网站黑名单
-3. 桌面悬浮球/小组件监督
-4. 语音快速创建时长监督任务，例如“监督我接下来的 40 分钟”
-5. 前台 App/浏览器 URL 检测
-6. 黑名单命中后的 AI 吐槽生成
-7. 云端 TTS 语音播报
-8. 用户按键语音反驳，走 `ASR -> LLM -> TTS`
-9. 本地抓包日志
-10. 用户可配置 ASR/LLM/TTS Provider
-11. 中英文界面与中英文监督语言
+1. 下载 `Hunter.dmg`。
+2. 双击打开 DMG。
+3. 把里面的 `监管者.app` 拖到 `Applications`。
+4. 第一次打开时，如果 macOS 提示“无法验证开发者”，可以在 Finder 里右键 `监管者.app`，选择“打开”。
+5. 按提示允许麦克风、浏览器自动化和通知权限。
 
-## Preferred Tech Direction
+浏览器自动化权限只用于读取当前 Chrome / Safari 等浏览器的当前标签页 URL，用来判断有没有命中你自己设置的黑名单。
 
-- macOS 原生菜单栏应用：SwiftUI + AppKit
-- 前台 App 检测：`NSWorkspace`
-- Chrome/Safari URL 检测：AppleScript/ScriptingBridge 起步
-- 语音链路：`ASR -> LLM -> TTS`，ASR 支持本地模型或云端 API，TTS 统一走云端 Provider
-- 默认测试模板：本地 SenseVoice ASR + DeepSeek `deepseek-v4-flash` + 阿里 CosyVoice `cosyvoice-v3.5-flash`
-- 云端模板：阿里云百炼 `paraformer-realtime-v2 -> qwen-turbo -> cosyvoice-v3.5-flash`
-- 本地存储：SQLite 或 SwiftData
-- 密钥存储：macOS Keychain
+## 它好玩在哪
 
-## Local Build
+- **当场抓包**：你刚切到 B 站、YouTube、Steam 或其他黑名单 App，它就会弹出来。
+- **AI 语音吐槽**：不是冷冰冰的通知，而是会说话的 AI 监工。
+- **可以语音反驳**：按住快捷键说一句，它会听、会回、会继续怼。
+- **时长监督**：可以说“监督我接下来的 40 分钟”，它会直接开始倒计时。
+- **网站和 App 都能管**：网页、浏览器标签页、本机 App 都可以加黑名单。
+- **适合录屏整活**：看视频来的朋友可以直接拿它做“AI 监督挑战”。
+
+## 三分钟上手
+
+1. 打开 `监管者`。
+2. 进入“黑名单”，添加你最容易摸鱼的网站或 App。
+3. 进入“AI”，填好 ASR、LLM、TTS 的 API Key。
+4. 进入“声音”，选择监督语言、吐槽强度和音色。
+5. 打开监督，或者点悬浮球选择 15 / 25 / 40 分钟。
+6. 故意打开一个黑名单网站，听听它怎么抓你。
+
+## 模型配置怎么理解
+
+监管者需要三类 AI 能力，理解成“耳朵、大脑、嘴巴”就行：
+
+- **ASR 语音识别**：听懂你说了什么。
+- **LLM 语言模型**：生成吐槽和回击。
+- **TTS 语音合成**：把吐槽念出来。
+
+设置页里每一块都可以选厂商、选模型、填 API Key。普通用户不用理解 Base URL、鉴权头这些东西，内置厂商会自动处理。你只需要：
+
+1. 选择一个厂商。
+2. 选择推荐模型，或者保持默认。
+3. 粘贴自己的 API Key。
+4. 点击 API Key 输入框后面的“保存/更新”。
+5. 点“测试 ASR / LLM / TTS”确认能跑通。
+
+如果你暂时不想用云端 ASR，也可以在 ASR 里切到本地模型，下载 SenseVoice 到本机识别短语音。TTS 目前只支持云端。
+
+## 隐私边界
+
+- 黑名单、历史记录、设置和 API Key 默认保存在本机。
+- 浏览器 URL 和 App 使用记录不会被 Hunter 批量上传。
+- 只有命中黑名单、需要 AI 生成吐槽时，才会把最小必要上下文发给你选择的模型服务。
+- 如果你使用云端 ASR/TTS，你的语音片段或合成文本会发送给对应模型厂商；如果切换本地 ASR，短语音识别会在本机完成。
+- 监管者是自愿开启的个人工具，不做隐身监控、远程上报或不可关闭的管控。
+
+## 当前版本
+
+当前把最新版整理为第一版发布：`v1.0.0`。
+
+- 面向普通用户的项目报告：[docs/REPORT.md](docs/REPORT.md)
+- 第一版更新记录：[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
+- 产品需求文档：[docs/PRD.md](docs/PRD.md)
+- 设计说明：[docs/DESIGN.md](docs/DESIGN.md)
+
+## 开发者
+
+本项目是原生 macOS 应用，主要使用 SwiftUI + AppKit。
 
 ```bash
-swift build
 swift test
 ./scripts/package_app.sh
 ./scripts/package_dmg.sh
 open build/Hunter.app
 ```
 
-本地开发密钥放在 `.env.local` 或 macOS Keychain，不要提交。
-
-## Provider Smoke Tests
-
-在已配置 `DEEPSEEK_API_KEY` 和云端 ASR Key 后，可以用命令行入口验证默认 LLM 和云端 ASR 链路：
-
-```bash
-./.build/debug/Hunter --smoke-llm
-say -v Tingting -o /tmp/hunter-asr.aiff "监督我接下来的四十分钟"
-afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/hunter-asr.aiff /tmp/hunter-asr.wav
-./.build/debug/Hunter --smoke-cloud-asr /tmp/hunter-asr.wav
-./.build/debug/Hunter --smoke-cloud-voice-focus /tmp/hunter-asr.wav
-```
-
-如果用户切换到本地 ASR，可以再验证 SenseVoice 下载和本机识别：
-
-```bash
-./.build/debug/Hunter --install-local-asr
-./.build/debug/Hunter --smoke-local-asr /tmp/hunter-asr.wav
-./.build/debug/Hunter --smoke-local-voice-focus /tmp/hunter-asr.wav
-```
-
-如果用户选择云端 ASR/TTS，并配置了 `DASHSCOPE_API_KEY`，可以继续验证阿里链路：
-
-```bash
-./.build/debug/Hunter --smoke-llm-tts
-./.build/debug/Hunter --smoke-cloud-asr /tmp/hunter-asr.wav
-./.build/debug/Hunter --smoke-cloud-voice-focus /tmp/hunter-asr.wav
-./.build/debug/Hunter --smoke-current-context
-```
-
-ASR / LLM / TTS 的 provider 名称、base URL、model 和 API Key 可以在设置页编辑，并提供 LLM/TTS/ASR/端到端测试入口。当前内置 adapter 覆盖云端阿里/OpenAI-compatible ASR、本地 SenseVoice ASR、DeepSeek/OpenAI-compatible LLM、云端 TTS；TTS 本地模型方案已移除，接入完全不同协议的供应商时，需要新增 adapter。
-
-时长任务支持开始、暂停、恢复、延长 10 分钟和结束，也支持语音指令控制，例如“暂停监督”“恢复监督”“延长 10 分钟”“结束监督”。
-
-吐槽语气支持学习监督、工作监督和自定义角色，强度支持温柔、鼓励、正经、凶狠、强制；禁用词会同时约束 LLM prompt，并在本地对输出做一次过滤后再播报。强制档只在用户主动开启监督后，对当前命中的浏览器标签页或前台 App 执行本地关闭/退出请求。
-
-设置页的“录制测试”按钮可用于验证麦克风权限和语音指令识别；悬浮球/快捷键保留短录音体验，设置页测试入口使用更长录音窗口，方便验收“监督我接下来的 40 分钟”这类时长任务。
+本地开发密钥放在 `.env.local` 或 Hunter 的 Application Support 目录，不要提交到仓库。

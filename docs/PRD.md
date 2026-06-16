@@ -1,8 +1,8 @@
 # Hunter PRD
 
-版本：v0.11
-日期：2026-06-01
-状态：页面结构契约锁定，TTS 回滚为云端 API only
+版本：v1.0.0
+日期：2026-06-16
+状态：第一版公开发布，TTS 只走云端 API
 
 ## 0. Discovery Notes
 
@@ -189,7 +189,7 @@ As a user, I want to configure my own ASR, LLM, and TTS providers so that I can 
 Acceptance Criteria:
 
 - ASR、LLM、TTS Provider 可独立配置和启用。
-- 云端 Provider 的 MVP UI 展示厂商下拉、可编辑模型 ID 下拉和 API Key；内置厂商自动填 Base URL、鉴权 scheme、headers、region、语言提示和流式能力。模型字段默认给出当前厂商官方文档中的常用和较新模型建议，但允许用户直接输入自定义模型名；用户输入或选择不同模型后，“更新配置”必须变为可点击，点击后持久化当前 Provider 设置并用 toast/状态文本反馈成功或失败。选择“自定义厂商”时展示厂商名、Base URL、模型 ID 和 API Key，自定义 LLM/ASR/TTS 当前分别按 OpenAI-compatible `/chat/completions`、`/audio/transcriptions`、`/audio/speech` 协议调用。
+- 云端 Provider 的 MVP UI 展示厂商下拉、可编辑模型 ID 下拉和 API Key；内置厂商自动填 Base URL、鉴权 scheme、headers、region、语言提示和流式能力。模型字段默认给出当前厂商官方文档中的常用和较新模型建议，但允许用户直接输入自定义模型名。厂商和模型选择应直接写入本机配置草稿或在 API Key 保存/更新时一并持久化；每类 API Key 使用输入框后的保存/更新按钮单独提交并反馈成功或失败。AI 页面不得再出现跨卡片的“更新配置”按钮。选择“自定义厂商”时展示厂商名、Base URL、模型 ID 和 API Key，自定义 LLM/ASR/TTS 当前分别按 OpenAI-compatible `/chat/completions`、`/audio/transcriptions`、`/audio/speech` 协议调用。
 - ASR 额外支持“本地模型 / 云端 API”模式切换；选择本地模型时展示推荐模型、来源、下载按钮和本地路径状态。
 - 本地 ASR 使用 SenseVoice Small INT8，下载后可在本机完成短音频识别，不上传用户录音。
 - TTS 只走云端 Provider，支持 Provider 模板音色和用户授权后的云端声音克隆流程；声音克隆模块必须跟随当前 TTS Provider 与模型，不在克隆模块内单独选择厂商。只有 TTS 厂商、模型和 API Key 配好后，才展示对应厂商已适配的克隆字段；克隆完成后保存 Provider 返回的授权 voice id，或保存 MiMo 这类 inline sample clone 的本机授权样本引用和 voice reference，不上传到 Hunter 自有服务。
@@ -247,7 +247,7 @@ Acceptance Criteria:
 | SettingsSection | 标题、说明在卡片外上方；下方是一张白色/系统 surface 卡片，卡片内承载该设置的控件、列表或表单；不得把标题说明和控件做成左右分栏 | default, disabled, error, saved/unsaved |
 | SettingsCard | 白色/系统 surface，12-14px 圆角，1px 低透明描边；内部内容可按控件需要做横向或纵向布局，但 section 层级必须保持上下分布；多行设置之间统一使用 1px 浅灰分割线和一致的行内边距 | default, empty |
 | KeyCaptureBox | 单个可点击输入框，只显示当前快捷键，例如 `Option + Space` 或 `Right Option`；点击后同一个框进入 capturing 状态并显示 `Press new shortcut`，不得同时并排展示“当前值”和“录制中”两个框 | default, capturing, saved, error |
-| ProviderCard | Header：Provider role + mode/status；Body：云端模式展示厂商下拉、可编辑模型 ID、自动配置摘要和 API Key；自定义厂商额外展示厂商名与 Base URL；ASR 本地模式展示模型描述、来源、下载状态和本地路径；Footer：测试按钮与状态 | collapsed, expanded, saved, testing, success, error, missing key, local missing |
+| ProviderCard | Header：Provider role + mode/status；Body：云端模式展示厂商下拉、可编辑模型 ID 和 API Key；自定义厂商额外展示厂商名与 Base URL；ASR 本地模式展示模型描述、来源、下载状态和本地路径；Footer：API Key 保存/更新、测试按钮与状态 | collapsed, expanded, saved, testing, success, error, missing key, local missing |
 | PermissionRow | 权限名称、说明文案和一个可点击状态 pill；未允许时点击状态直接打开系统设置或触发授权请求；“可选”只出现在权限名称/说明里，状态 pill 必须展示真实状态如已允许/未开启；不得额外出现“重新检查”“打开设置”等并列按钮 | allowed, notDetermined, denied, optional, unknown |
 | InstalledAppRow | App 图标、App 名称、Bundle ID 或路径、Added 状态或移除按钮；未添加 App 只出现在搜索下拉结果中 | added, loading icon |
 | Waveform | 5-9 根细圆角条，播报/录音时动画，空闲时静态 | idle, speaking, listening |
@@ -302,18 +302,18 @@ AI 页面不得出现“基础配置”或跨模型联动配置。ASR、LLM、TT
 1. **ASR ProviderCard**
    - Fields：Mode (`Cloud API/Local model`)、厂商下拉、可编辑模型 ID、API Key；云端模板包含阿里百炼 Paraformer 和 OpenAI Transcriptions；选择自定义厂商时展示厂商名与 Base URL。
    - Local mode elements：SenseVoice Small INT8 descriptor、download/status button、local path/status。
-   - Actions：Update config、Test ASR。
+   - Actions：Save/Update API Key、Test ASR。
 
 2. **LLM ProviderCard**
    - Fields：厂商下拉、可编辑模型 ID、API Key；默认 DeepSeek，也可选择 Xiaomi MiMo、OpenAI、阿里百炼、Moonshot Kimi、智谱 GLM、火山方舟 Doubao、腾讯混元模板；选择自定义厂商时展示厂商名与 Base URL。
    - Default template：DeepSeek / `deepseek-v4-flash`。
-   - Actions：Update config、Test LLM。
+   - Actions：Save/Update API Key、Test LLM。
    - Test states：成功展示延迟、模型和语言返回状态；失败展示错误摘要，例如 API Key 无效、Base URL 不可用或模型 ID 错误。
 
 3. **TTS ProviderCard**
    - Fields：厂商下拉、可编辑模型 ID、API Key；默认 Xiaomi MiMo，也可选择 OpenAI 和阿里百炼模板；选择自定义厂商时展示厂商名与 Base URL。
    - No local TTS mode.
-   - Actions：Update config、Test TTS。
+   - Actions：Save/Update API Key、Test TTS。
 
 ### Settings / Voice & Language Structure
 

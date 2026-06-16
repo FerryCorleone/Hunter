@@ -1,8 +1,8 @@
 # Hunter Technical Evaluation
 
-版本：v0.9
-日期：2026-06-06
-状态：TTS 回滚为云端 API only
+版本：v1.0.0
+日期：2026-06-16
+状态：第一版公开发布，TTS 只走云端 API
 
 ## Decision Summary
 
@@ -59,7 +59,7 @@ Hunter 的语音链路不是端到端实时大模型，第一版明确采用：
   "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
   "model": "qwen-turbo",
   "authType": "bearer",
-  "apiKeyRef": "keychain://hunter/providers/aliyun-qwen-turbo",
+  "apiKeyRef": "env.local://DASHSCOPE_API_KEY",
   "headers": {},
   "supportsStreaming": true,
   "languages": ["zh-CN", "en-US", "mixed"],
@@ -70,7 +70,7 @@ Hunter 的语音链路不是端到端实时大模型，第一版明确采用：
 
 ### Built-in Templates
 
-MVP 内置模板只提供默认字段，不提供密钥。设置页模型字段是可编辑下拉：默认值保持稳定，候选项跟随厂商官方模型 ID 维护；用户输入自定义模型 ID 后可点击“更新配置”保存并获得 toast/状态反馈。
+MVP 内置模板只提供默认字段，不提供密钥。设置页模型字段是可编辑下拉：默认值保持稳定，候选项跟随厂商官方模型 ID 维护；用户输入自定义模型 ID 后写入本机配置草稿，API Key 通过输入框后的保存/更新按钮提交并获得 toast/状态反馈。
 
 - DeepSeek：默认 LLM `deepseek-v4-flash`；候选包含 `deepseek-v4-flash`、`deepseek-v4-pro`、`deepseek-chat`。
 - Xiaomi MiMo：默认 LLM `mimo-v2.5`，候选包含 `mimo-v2.5-pro`、`mimo-v2.5`、`mimo-v2-pro`、`mimo-v2-flash`；ASR 候选 `mimo-v2.5-asr`；TTS 候选 `mimo-v2.5-tts`、`mimo-v2.5-tts-voicedesign`、`mimo-v2.5-tts-voiceclone`，支持预置音色和 inline 授权样本克隆。

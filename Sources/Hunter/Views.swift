@@ -4322,8 +4322,6 @@ struct ProviderEditor: View {
     @State private var apiKey = ""
     @State private var hasSavedAPIKey = false
     @State private var saveMessage = ""
-    @State private var configurationMessage = ""
-    @State private var lastAppliedProvider: ProviderEndpoint?
     @State private var installMessage = ""
     @State private var installProgress: Double?
     @State private var isInstalling = false
@@ -4384,7 +4382,6 @@ struct ProviderEditor: View {
         .background(HunterUI.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(HunterUI.lineSoft))
         .onAppear {
-            lastAppliedProvider = provider
             refreshSavedKeyState()
         }
         .onDisappear {
@@ -4449,18 +4446,6 @@ struct ProviderEditor: View {
                 .frame(maxWidth: .infinity)
             }
 
-            HStack(spacing: 8) {
-                Image(systemName: "slider.horizontal.3")
-                    .foregroundStyle(HunterUI.secondaryText)
-                Text(providerTechnicalSummary)
-                    .font(.footnote)
-                    .foregroundStyle(HunterUI.secondaryText)
-                    .lineLimit(2)
-                Spacer(minLength: 0)
-            }
-            .padding(10)
-            .background(HunterUI.surfaceSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
             providerField("API KEY") {
                 HStack(spacing: 10) {
                     SecureField(apiKeyPlaceholder, text: $apiKey)
@@ -4493,29 +4478,6 @@ struct ProviderEditor: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 10) {
-                Button {
-                    applyConfiguration()
-                } label: {
-                    Label(copy("更新配置", "Update config"), systemImage: "checkmark.circle")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .disabled(!hasProviderConfigurationChanges)
-
-                if hasProviderConfigurationChanges {
-                    Text(copy("模型或厂商配置有改动，点击后应用当前配置。", "Provider or model changed. Click to apply the current config."))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else if !configurationMessage.isEmpty {
-                    Text(configurationMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 0)
-            }
-
             if !testStatus.isEmpty {
                 Text(testStatus)
                     .font(.footnote)
@@ -4526,14 +4488,20 @@ struct ProviderEditor: View {
 
     private func saveAPIKey() {
         do {
-            let storageName = provider.apiKeyEnvironmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let defaultStorageName = provider.apiKeyEnvironmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? role.apiKeyName(for: provider.providerName)
                 : provider.apiKeyEnvironmentName
-            provider.apiKeyEnvironmentName = storageName
-            if provider.authorizationScheme.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            provider.authorizationScheme = "Bearer"
+            let next = provider.normalizedForCloudConfiguration(defaultAPIKeyName: defaultStorageName)
+            provider = next
+            guard next.hasRequiredCloudFields else {
+                saveMessage = copy(
+                    "配置未填完整，请检查厂商、Base URL、模型 ID 和 API Key 名称。",
+                    "Configuration is incomplete. Check provider, Base URL, model ID, and API key name."
+                )
+                onApplyConfiguration?(role, next, false)
+                return
             }
-            try SecretStore().saveAPIKey(apiKey, environmentName: storageName)
+            try SecretStore().saveAPIKey(apiKey, environmentName: next.apiKeyEnvironmentName)
             apiKey = ""
             hasSavedAPIKey = true
             saveMessage = copy("已保存，本机运行会直接读取。", "Saved. \(AppBrand.displayName) will use it automatically.")
@@ -4542,36 +4510,6 @@ struct ProviderEditor: View {
             saveMessage = copy("密钥保存失败：\(error.localizedDescription)", "Secret save failed: \(error.localizedDescription)")
             onApplyConfiguration?(role, provider, false)
         }
-    }
-
-    private var hasProviderConfigurationChanges: Bool {
-        guard !isUsingLocalModel else { return false }
-        return provider != (lastAppliedProvider ?? provider)
-    }
-
-    private func applyConfiguration() {
-        var next = provider
-        next.providerName = next.providerName.trimmingCharacters(in: .whitespacesAndNewlines)
-        next.baseURL = next.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        next.model = next.model.trimmingCharacters(in: .whitespacesAndNewlines)
-        next.apiKeyEnvironmentName = next.apiKeyEnvironmentName.trimmingCharacters(in: .whitespacesAndNewlines)
-        next.authorizationScheme = next.authorizationScheme.trimmingCharacters(in: .whitespacesAndNewlines)
-        if next.apiKeyEnvironmentName.isEmpty {
-            next.apiKeyEnvironmentName = role.apiKeyName(for: next.providerName)
-        }
-        if next.authorizationScheme.isEmpty {
-            next.authorizationScheme = "Bearer"
-        }
-        provider = next
-        guard next.hasRequiredCloudFields else {
-            configurationMessage = copy("配置未填完整，请检查厂商、Base URL、模型 ID 和 API Key 名称。", "Configuration is incomplete. Check provider, Base URL, model ID, and API key name.")
-            onApplyConfiguration?(role, next, false)
-            return
-        }
-        lastAppliedProvider = next
-        configurationMessage = copy("配置已更新。", "Configuration updated.")
-        onApplyConfiguration?(role, next, true)
-        refreshSavedKeyState()
     }
 
     private var apiKeyPlaceholder: String {
@@ -4653,32 +4591,14 @@ struct ProviderEditor: View {
     private var providerModelBinding: Binding<String> {
         Binding(
             get: { provider.model },
-            set: {
-                provider.model = $0
-                configurationMessage = ""
-            }
+            set: { provider.model = $0 }
         )
     }
 
     private var providerBaseURLBinding: Binding<String> {
         Binding(
             get: { provider.baseURL },
-            set: {
-                provider.baseURL = $0
-                configurationMessage = ""
-            }
-        )
-    }
-
-    private var providerTechnicalSummary: String {
-        let auth = provider.authorizationScheme.trimmingCharacters(in: .whitespacesAndNewlines)
-        let authLabel = auth.isEmpty ? copy("默认鉴权", "default auth") : auth
-        if isCustomProvider {
-            return "\(role.customProtocolHint(language: language)) \(copy("厂商名、Base URL、模型和 API Key 由你填写；密钥仍只保存到本机。", "Provider name, Base URL, model, and API key are user-defined; the key still stays local."))"
-        }
-        return copy(
-            "\(AppBrand.displayName)按厂商预设 Base URL、鉴权头、region 和语言提示；模型 ID 可按该厂商支持情况修改：\(provider.baseURL) · \(authLabel)。",
-            "\(AppBrand.displayName) presets Base URL, auth headers, region, and language hints for this provider; the model ID remains editable: \(provider.baseURL) · \(authLabel)."
+            set: { provider.baseURL = $0 }
         )
     }
 

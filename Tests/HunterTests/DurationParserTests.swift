@@ -391,6 +391,29 @@ struct DurationParserTests {
         #expect(settings.voice == ProviderSettings.defaultCloudVoice)
     }
 
+    @Test func providerEndpointNormalizesCloudConfigurationDefaults() {
+        let endpoint = ProviderEndpoint(
+            providerName: " Custom AI ",
+            baseURL: " https://api.example.com/v1 ",
+            model: " demo-model ",
+            apiKeyEnvironmentName: " ",
+            authorizationScheme: " ",
+            extraHeaders: "",
+            region: "",
+            supportsStreaming: true,
+            languageHint: ""
+        )
+
+        let normalized = endpoint.normalizedForCloudConfiguration(defaultAPIKeyName: "HUNTER_LLM_CUSTOM_API_KEY")
+
+        #expect(normalized.providerName == "Custom AI")
+        #expect(normalized.baseURL == "https://api.example.com/v1")
+        #expect(normalized.model == "demo-model")
+        #expect(normalized.apiKeyEnvironmentName == "HUNTER_LLM_CUSTOM_API_KEY")
+        #expect(normalized.authorizationScheme == "Bearer")
+        #expect(normalized.hasRequiredCloudFields)
+    }
+
     @Test func providerSettingsDecodeMigratesUnavailableCloudVoiceToDefault() throws {
         let unsupported = try JSONDecoder.hunter.decode(ProviderSettings.self, from: Data(#"{"voice":"longwanqing"}"#.utf8))
         let simulatedClone = try JSONDecoder.hunter.decode(ProviderSettings.self, from: Data(#"{"voice":"voice_hunter_custom_01"}"#.utf8))

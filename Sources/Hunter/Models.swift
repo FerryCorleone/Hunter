@@ -634,6 +634,22 @@ struct ProviderEndpoint: Codable, Equatable {
             && !apiKeyEnvironmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    func normalizedForCloudConfiguration(defaultAPIKeyName: String) -> ProviderEndpoint {
+        var copy = self
+        copy.providerName = copy.providerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.baseURL = copy.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.model = copy.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.apiKeyEnvironmentName = copy.apiKeyEnvironmentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.authorizationScheme = copy.authorizationScheme.trimmingCharacters(in: .whitespacesAndNewlines)
+        if copy.apiKeyEnvironmentName.isEmpty {
+            copy.apiKeyEnvironmentName = defaultAPIKeyName
+        }
+        if copy.authorizationScheme.isEmpty {
+            copy.authorizationScheme = "Bearer"
+        }
+        return copy
+    }
+
     func isCompatible(with voiceReference: VoiceReference) -> Bool {
         switch voiceReference.kind {
         case .presetVoice:

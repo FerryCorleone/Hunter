@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Hunter.Windows;
 
 public sealed class WindowsSecretStore

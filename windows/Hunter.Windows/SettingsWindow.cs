@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Hunter.Windows.Core;
+using WpfBrushes = System.Windows.Media.Brushes;
 using WpfButton = System.Windows.Controls.Button;
 using WpfTextBox = System.Windows.Controls.TextBox;
 
@@ -97,7 +98,7 @@ public sealed class SettingsWindow : Window
             Margin = new Thickness(0, 0, 0, 8),
             Padding = new Thickness(12, 10, 12, 10),
             BorderThickness = new Thickness(0),
-            Background = Brushes.Transparent,
+            Background = WpfBrushes.Transparent,
             Foreground = new SolidColorBrush(Theme.Text)
         };
         button.Click += (_, _) => RenderPanel(panel);
@@ -332,7 +333,7 @@ public sealed class SettingsWindow : Window
             MinWidth = 300,
             Padding = new Thickness(8),
             BorderBrush = new SolidColorBrush(Color.FromRgb(220, 220, 226)),
-            Background = Brushes.White
+            Background = WpfBrushes.White
         };
     }
 

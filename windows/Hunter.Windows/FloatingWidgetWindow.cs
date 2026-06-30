@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WpfBrushes = System.Windows.Media.Brushes;
 using WpfButton = System.Windows.Controls.Button;
 
 namespace Hunter.Windows;
@@ -23,7 +24,7 @@ public sealed class FloatingWidgetWindow : Window
         Height = 72;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
-        Background = Brushes.Transparent;
+        Background = WpfBrushes.Transparent;
         Topmost = true;
         ShowInTaskbar = false;
         ResizeMode = ResizeMode.NoResize;
@@ -97,7 +98,7 @@ public sealed class FloatingWidgetWindow : Window
 
         Width = 72;
         Height = 72;
-        card.Background = Brushes.Transparent;
+        card.Background = WpfBrushes.Transparent;
         card.Padding = new Thickness(4);
         card.Effect = null;
         RenderOrb();

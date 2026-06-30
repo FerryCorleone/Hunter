@@ -54,11 +54,16 @@ Windows：
 GitHub Actions 验证记录：
 
 - Workflow：`Windows Build`
-- Run：`28452102114`
-- Job：`84316868613`
+- Run：`28452630413`
+- Job：`84318738172`
 - 结论：Success
 - 产物：`Hunter-Windows-win-x64.zip`
 - UI 截图：`hunter-windows-ui-smoke.png`
+
+发布包校验：
+
+- `Hunter.dmg` SHA-256：`d241c6d0a4d7a4049b17edd20910ea39e0688137e29aaed6c40ec62e8b58e567`
+- `Hunter-Windows-win-x64.zip` SHA-256：`39570b96f6e010e86e1fa653aba32e4308b59617398c07124ab380d91b2a67cb`
 
 ## 发布边界
 

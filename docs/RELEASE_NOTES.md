@@ -25,7 +25,10 @@
 
 - Mac 包：使用本机 `swift test`、Universal DMG 打包、`lipo`、`codesign` 和 `hdiutil verify` 验证。
 - Windows 包：使用 GitHub Actions `windows-latest` 验证构建、核心测试、打包、前台窗口 smoke、UI 渲染 smoke，并上传 Windows zip 和 UI 截图 artifact。
-- 本次 Windows CI 验证 run：`28452102114`。
+- 本次 Windows CI 验证 run：`28452630413`。
+- 发布包 SHA-256：
+  - `Hunter.dmg`：`d241c6d0a4d7a4049b17edd20910ea39e0688137e29aaed6c40ec62e8b58e567`
+  - `Hunter-Windows-win-x64.zip`：`39570b96f6e010e86e1fa653aba32e4308b59617398c07124ab380d91b2a67cb`
 
 ## v1.0.1 - Universal Mac 版
 

@@ -2,6 +2,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Hunter.Windows.Core;
+using MediaColor = System.Windows.Media.Color;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using WpfOrientation = System.Windows.Controls.Orientation;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfButton = System.Windows.Controls.Button;
 using WpfTextBox = System.Windows.Controls.TextBox;
@@ -94,7 +97,7 @@ public sealed class SettingsWindow : Window
         var button = new WpfButton
         {
             Content = label,
-            HorizontalContentAlignment = HorizontalAlignment.Left,
+            HorizontalContentAlignment = WpfHorizontalAlignment.Left,
             Margin = new Thickness(0, 0, 0, 8),
             Padding = new Thickness(12, 10, 12, 10),
             BorderThickness = new Thickness(0),
@@ -138,10 +141,10 @@ public sealed class SettingsWindow : Window
     private UIElement WatchlistPanel()
     {
         var stack = Panel("黑名单", "配置会触发抓包的网站和 Windows 应用。");
-        var newPattern = new TextBox { MinWidth = 240, Margin = new Thickness(0, 0, 8, 0) };
+        var newPattern = new WpfTextBox { MinWidth = 240, Margin = new Thickness(0, 0, 8, 0) };
         stack.Children.Add(Card(new StackPanel
         {
-            Orientation = Orientation.Horizontal,
+            Orientation = WpfOrientation.Horizontal,
             Children =
             {
                 newPattern,
@@ -332,7 +335,7 @@ public sealed class SettingsWindow : Window
             Text = value,
             MinWidth = 300,
             Padding = new Thickness(8),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(220, 220, 226)),
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(220, 220, 226)),
             Background = WpfBrushes.White
         };
     }
@@ -344,7 +347,7 @@ public sealed class SettingsWindow : Window
             Content = label,
             Padding = new Thickness(12, 7, 12, 7),
             Margin = new Thickness(8, 0, 0, 0),
-            Background = new SolidColorBrush(Color.FromRgb(238, 244, 255)),
+            Background = new SolidColorBrush(MediaColor.FromRgb(238, 244, 255)),
             Foreground = new SolidColorBrush(Theme.Accent),
             BorderThickness = new Thickness(0)
         };

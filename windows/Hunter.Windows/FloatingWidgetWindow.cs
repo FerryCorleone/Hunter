@@ -4,8 +4,12 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using MediaColor = System.Windows.Media.Color;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfButton = System.Windows.Controls.Button;
+using WpfCursors = System.Windows.Input.Cursors;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using WpfOrientation = System.Windows.Controls.Orientation;
 
 namespace Hunter.Windows;
 
@@ -113,8 +117,8 @@ public sealed class FloatingWidgetWindow : Window
             Height = 64,
             CornerRadius = new CornerRadius(32),
             BorderThickness = new Thickness(state.IsListening ? 4 : 3),
-            BorderBrush = new SolidColorBrush(state.IsListening ? Theme.Success : state.IsMonitoring ? Theme.Accent : Color.FromRgb(205, 205, 210)),
-            Background = new SolidColorBrush(Color.FromRgb(255, 255, 255))
+            BorderBrush = new SolidColorBrush(state.IsListening ? Theme.Success : state.IsMonitoring ? Theme.Accent : MediaColor.FromRgb(205, 205, 210)),
+            Background = new SolidColorBrush(MediaColor.FromRgb(255, 255, 255))
         };
         var label = new TextBlock
         {
@@ -122,7 +126,7 @@ public sealed class FloatingWidgetWindow : Window
             FontWeight = FontWeights.Bold,
             FontSize = 24,
             Foreground = new SolidColorBrush(Theme.Text),
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = WpfHorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
         grid.Children.Add(ring);
@@ -211,7 +215,7 @@ public sealed class FloatingWidgetWindow : Window
 
     private static StackPanel ButtonRow(params WpfButton[] buttons)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        var row = new StackPanel { Orientation = WpfOrientation.Horizontal };
         foreach (var button in buttons)
         {
             button.Margin = new Thickness(0, 0, 8, 0);
@@ -227,9 +231,9 @@ public sealed class FloatingWidgetWindow : Window
             Content = text,
             Padding = new Thickness(12, 7, 12, 7),
             BorderThickness = new Thickness(0),
-            Background = new SolidColorBrush(Color.FromRgb(238, 244, 255)),
+            Background = new SolidColorBrush(MediaColor.FromRgb(238, 244, 255)),
             Foreground = new SolidColorBrush(Theme.Accent),
-            Cursor = Cursors.Hand
+            Cursor = WpfCursors.Hand
         };
         button.Click += (_, _) => action();
         return button;
@@ -254,7 +258,7 @@ public sealed class FloatingWidgetWindow : Window
     {
         return new System.Windows.Media.Effects.DropShadowEffect
         {
-            Color = Color.FromRgb(0, 0, 0),
+            Color = MediaColor.FromRgb(0, 0, 0),
             BlurRadius = 24,
             ShadowDepth = 8,
             Opacity = 0.16

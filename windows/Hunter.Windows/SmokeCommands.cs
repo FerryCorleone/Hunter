@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hunter.Windows.Core;
+using WpfApplication = System.Windows.Application;
 
 namespace Hunter.Windows;
 
@@ -88,7 +89,7 @@ public static class SmokeCommands
 
     private static void RunUiRender(string outputPath)
     {
-        var app = Application.Current ?? new Application();
+        var app = WpfApplication.Current ?? new WpfApplication();
         app.Resources.MergedDictionaries.Add(Theme.Create());
         var store = new WindowsSettingsStore();
         var state = new HunterAppState(new AppSettings());

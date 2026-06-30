@@ -1,12 +1,13 @@
 using System.Windows;
+using WpfApplication = System.Windows.Application;
 
 namespace Hunter.Windows;
 
 public sealed class WindowsBootstrapper
 {
-    private readonly Application app;
+    private readonly WpfApplication app;
 
-    public WindowsBootstrapper(Application app)
+    public WindowsBootstrapper(WpfApplication app)
     {
         this.app = app;
     }

@@ -1,4 +1,5 @@
 using System.Windows;
+using WpfApplication = System.Windows.Application;
 
 namespace Hunter.Windows;
 
@@ -12,7 +13,7 @@ public static class Program
             return exitCode;
         }
 
-        var app = new Application
+        var app = new WpfApplication
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown
         };

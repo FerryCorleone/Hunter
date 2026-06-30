@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WpfButton = System.Windows.Controls.Button;
 
 namespace Hunter.Windows;
 
@@ -207,7 +208,7 @@ public sealed class FloatingWidgetWindow : Window
             : $"{(int)Math.Ceiling(remaining.TotalMinutes)} min";
     }
 
-    private static StackPanel ButtonRow(params Button[] buttons)
+    private static StackPanel ButtonRow(params WpfButton[] buttons)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         foreach (var button in buttons)
@@ -218,9 +219,9 @@ public sealed class FloatingWidgetWindow : Window
         return row;
     }
 
-    private static Button Button(string text, Action action)
+    private static WpfButton Button(string text, Action action)
     {
-        var button = new Button
+        var button = new WpfButton
         {
             Content = text,
             Padding = new Thickness(12, 7, 12, 7),

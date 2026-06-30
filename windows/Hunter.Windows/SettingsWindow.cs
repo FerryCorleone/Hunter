@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Hunter.Windows.Core;
+using WpfButton = System.Windows.Controls.Button;
+using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace Hunter.Windows;
 
@@ -86,9 +88,9 @@ public sealed class SettingsWindow : Window
         return root;
     }
 
-    private Button Nav(string label, string panel)
+    private WpfButton Nav(string label, string panel)
     {
-        var button = new Button
+        var button = new WpfButton
         {
             Content = label,
             HorizontalContentAlignment = HorizontalAlignment.Left,
@@ -311,7 +313,7 @@ public sealed class SettingsWindow : Window
         return new TextBlock { Text = value, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) };
     }
 
-    private static Grid FieldRow(string label, TextBox textBox)
+    private static Grid FieldRow(string label, WpfTextBox textBox)
     {
         var grid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
@@ -322,9 +324,9 @@ public sealed class SettingsWindow : Window
         return grid;
     }
 
-    private static TextBox Field(string value, bool secret = false)
+    private static WpfTextBox Field(string value, bool secret = false)
     {
-        return new TextBox
+        return new WpfTextBox
         {
             Text = value,
             MinWidth = 300,
@@ -334,9 +336,9 @@ public sealed class SettingsWindow : Window
         };
     }
 
-    private static Button Button(string label, Action action)
+    private static WpfButton Button(string label, Action action)
     {
-        var button = new Button
+        var button = new WpfButton
         {
             Content = label,
             Padding = new Thickness(12, 7, 12, 7),
@@ -349,7 +351,7 @@ public sealed class SettingsWindow : Window
         return button;
     }
 
-    private static Button ToggleButton(string label, Action action) => Button(label, action);
+    private static WpfButton ToggleButton(string label, Action action) => Button(label, action);
 
     private static ScrollViewer Scroll(UIElement child)
     {

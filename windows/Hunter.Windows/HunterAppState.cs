@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using Hunter.Windows.Core;
+using WpfApplication = System.Windows.Application;
 
 namespace Hunter.Windows;
 
@@ -151,7 +152,7 @@ public sealed class HunterAppState : INotifyPropertyChanged
     public void ShowToast(string text)
     {
         ToastText = text;
-        var dispatcher = Application.Current?.Dispatcher;
+        var dispatcher = WpfApplication.Current?.Dispatcher;
         _ = Task.Run(async () =>
         {
             await Task.Delay(3500);

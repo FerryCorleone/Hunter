@@ -191,7 +191,7 @@ public sealed class SettingsWindow : Window
         var apiKey = Field("", true);
 
         var stack = new StackPanel();
-        stack.Children.Add(Title(role + " Provider"));
+        stack.Children.Add(SectionTitle(role + " Provider"));
         stack.Children.Add(FieldRow("Vendor", vendor));
         stack.Children.Add(FieldRow("Model", model));
         stack.Children.Add(FieldRow("Base URL", baseUrl));
@@ -306,7 +306,7 @@ public sealed class SettingsWindow : Window
         return grid;
     }
 
-    private static TextBlock Title(string value)
+    private static TextBlock SectionTitle(string value)
     {
         return new TextBlock { Text = value, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) };
     }

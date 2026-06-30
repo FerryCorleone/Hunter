@@ -49,7 +49,7 @@ public sealed class FloatingWidgetWindow : Window
             Render();
         };
 
-        state.PropertyChanged += StateChanged;
+        state.PropertyChanged += OnStatePropertyChanged;
         refreshTimer.Tick += (_, _) => Render();
         refreshTimer.Start();
         Render();
@@ -61,7 +61,7 @@ public sealed class FloatingWidgetWindow : Window
         Activate();
     }
 
-    private void StateChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    private void OnStatePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         Render();
     }

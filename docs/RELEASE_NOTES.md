@@ -1,5 +1,32 @@
 # 更新记录
 
+## v1.1.0 - Mac + Windows 桌面版
+
+发布日期：2026-06-30
+
+这是监管者的跨平台桌面更新。Mac 版继续提供 Universal DMG，Windows 版新增 x64 自包含 zip 安装包。
+
+### 下载
+
+- Mac：`Hunter.dmg`，支持 macOS 14 Sonoma 及以上，支持 Apple Silicon 和 Intel 芯片 Mac。
+- Windows：`Hunter-Windows-win-x64.zip`，支持 Windows 10 / 11 x64。
+- 暂不支持 iOS、Android 或浏览器插件。
+
+### Windows 版新增
+
+- 使用 WPF 实现原生桌面悬浮球、抓包小组件、设置窗口和托盘入口。
+- 使用 Win32 API 检测当前前台 App。
+- 使用 Windows UI Automation 尝试读取 Chrome、Edge、Brave、Firefox 当前地址栏。
+- 支持网站黑名单、App 黑名单、监督开关、时长监督、抓包历史和本地设置。
+- 支持 OpenAI-compatible ASR / LLM / TTS、MiMo TTS 以及本地 `.env.local` / 环境变量 API Key。
+- 提供 `windows/build-windows.ps1`，可在 Windows 上恢复、构建、测试、发布并生成 zip。
+
+### 验证
+
+- Mac 包：使用本机 `swift test`、Universal DMG 打包、`lipo`、`codesign` 和 `hdiutil verify` 验证。
+- Windows 包：使用 GitHub Actions `windows-latest` 验证构建、核心测试、打包、前台窗口 smoke、UI 渲染 smoke，并上传 Windows zip 和 UI 截图 artifact。
+- 本次 Windows CI 验证 run：`28452102114`。
+
 ## v1.0.1 - Universal Mac 版
 
 发布日期：2026-06-30

@@ -1,12 +1,13 @@
 # 当前状态
 
 日期：2026-06-30
-版本：v1.0.1 Universal Mac 版
-状态：macOS Universal DMG 公开版整理完成
+版本：v1.1.0 Mac + Windows 桌面版
+状态：Mac Universal DMG 和 Windows x64 zip 公开版整理完成
 
 ## 面向用户的可用能力
 
 - 原生 macOS App，可通过 `Hunter.dmg` 安装。
+- 原生 Windows App，可通过 `Hunter-Windows-win-x64.zip` 解压运行。
 - App 内显示中文名称“监管者”，保留英文项目名 Hunter 作为仓库和安装包识别名。
 - 桌面悬浮球、快捷菜单、抓包弹窗和时长任务 toast。
 - 网站黑名单和本机 App 黑名单。
@@ -20,9 +21,9 @@
 
 ## 下载与分发
 
-- 只支持 macOS 14 Sonoma 及以上。
-- `build/Hunter.dmg` 是 Universal Mac 安装包，支持 Apple Silicon 和 Intel 芯片 Mac。
-- 暂不提供 Windows、iOS、Android 或浏览器插件版本。
+- Mac：`build/Hunter.dmg` 是 Universal 安装包，支持 macOS 14 Sonoma 及以上、Apple Silicon 和 Intel 芯片 Mac。
+- Windows：`artifacts/Hunter-Windows-win-x64.zip` 是 win-x64 自包含包，支持 Windows 10 / 11 x64。
+- 暂不提供 iOS、Android 或浏览器插件版本。
 
 ## 模型配置口径
 
@@ -38,8 +39,9 @@
 
 公开版验收关注三层：
 
-1. 本地工程质量：`swift test`。
-2. 可分发包：`./scripts/package_dmg.sh`、`lipo -info build/Hunter.app/Contents/MacOS/Hunter`、`codesign --verify --deep --strict build/Hunter.app`、`hdiutil verify build/Hunter.dmg`。
-3. 用户主链路：安装、授权、添加黑名单、保存模型 Key、开始监督、命中黑名单、播放吐槽。
+1. Mac 工程质量：`swift test`。
+2. Mac 可分发包：`./scripts/package_dmg.sh`、`lipo -info build/Hunter.app/Contents/MacOS/Hunter`、`codesign --verify --deep --strict build/Hunter.app`、`hdiutil verify build/Hunter.dmg`。
+3. Windows 自动化验收：GitHub Actions `windows-latest` 跑 `windows/build-windows.ps1`、core tests、package smoke、foreground smoke、UI render smoke。
+4. 用户主链路：安装、授权、添加黑名单、保存模型 Key、开始监督、命中黑名单、播放吐槽。
 
 真实云端 ASR / LLM / TTS 测试依赖用户自己的 API Key；仓库不提交任何密钥。

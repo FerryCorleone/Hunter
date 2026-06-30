@@ -1,19 +1,24 @@
 # 监管者（Hunter）
 
-一个 Mac 端 AI 摸鱼监工。你主动开启监督后，它会盯着你当前打开的 App 和网站；一旦发现你进了黑名单，就会当场弹出悬浮小组件，用 AI 语音吐槽你。你还可以按住快捷键语音反驳，和它继续对喷。
+一个桌面端 AI 摸鱼监工。你主动开启监督后，它会盯着你当前打开的 App 和网站；一旦发现你进了黑名单，就会当场弹出悬浮小组件，用 AI 语音吐槽你。你还可以按住快捷键语音反驳，和它继续对喷。
 
 它不是老板监控员工的软件，也不会偷偷上传你的浏览历史。它更像一个自愿开启的桌面整活工具：好玩、有点压力、适合录屏，也适合给自己来一点“别刷了”的外部刺激。
 
 ## 下载
 
-目前只支持 **macOS 14 Sonoma 及以上**，并且提供 Mac 版 Universal DMG 安装包，支持 Apple Silicon 和 Intel 芯片 Mac。
+目前提供 Mac 和 Windows 两个桌面版本：
 
-- 下载最新版：[Hunter.dmg](https://github.com/FerryCorleone/Hunter/releases/latest/download/Hunter.dmg)
+- Mac：`Hunter.dmg`，支持 macOS 14 Sonoma 及以上，支持 Apple Silicon 和 Intel 芯片 Mac。
+- Windows：`Hunter-Windows-win-x64.zip`，支持 Windows 10 / 11 x64。
+- 下载 Mac 版：[Hunter.dmg](https://github.com/FerryCorleone/Hunter/releases/latest/download/Hunter.dmg)
+- 下载 Windows 版：[Hunter-Windows-win-x64.zip](https://github.com/FerryCorleone/Hunter/releases/latest/download/Hunter-Windows-win-x64.zip)
 - 查看发布页：[GitHub Releases](https://github.com/FerryCorleone/Hunter/releases/latest)
 
-暂不支持 Windows、iPhone、iPad、Android，也没有浏览器插件版。
+暂不支持 iPhone、iPad、Android，也没有浏览器插件版。
 
 ## 安装
+
+### Mac
 
 1. 下载 `Hunter.dmg`。
 2. 双击打开 DMG。
@@ -22,6 +27,16 @@
 5. 按提示允许麦克风、浏览器自动化和通知权限。
 
 浏览器自动化权限只用于读取当前 Chrome / Safari 等浏览器的当前标签页 URL，用来判断有没有命中你自己设置的黑名单。
+
+### Windows
+
+1. 下载 `Hunter-Windows-win-x64.zip`。
+2. 解压到一个固定目录，例如 `C:\Users\你\Apps\Hunter`。
+3. 双击 `Hunter.Windows.exe`。
+4. 按系统提示允许麦克风和通知权限。
+5. 如果 Windows SmartScreen 提示未知发布者，选择“更多信息”后继续运行。
+
+Windows 版会尝试通过系统前台窗口和 UI Automation 读取当前 App / 浏览器地址栏，用来匹配你自己设置的黑名单。
 
 ## 它好玩在哪
 
@@ -69,7 +84,7 @@
 
 ## 当前版本
 
-当前最新版：`v1.0.1`，已将 DMG 更新为同时支持 Apple Silicon 和 Intel Mac 的 Universal 版本。
+当前最新版：`v1.1.0`，提供 Mac Universal DMG 和 Windows x64 zip。
 
 - 面向普通用户的项目报告：[docs/REPORT.md](docs/REPORT.md)
 - 更新记录：[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
@@ -78,13 +93,22 @@
 
 ## 开发者
 
-本项目是原生 macOS 应用，主要使用 SwiftUI + AppKit。
+本项目包含两个原生桌面端：
+
+- Mac：SwiftUI + AppKit。
+- Windows：WPF + Win32 / Windows UI Automation。
 
 ```bash
 swift test
 ./scripts/package_app.sh
 ./scripts/package_dmg.sh
 open build/Hunter.app
+```
+
+Windows 构建需要在 Windows 环境执行：
+
+```powershell
+./windows/build-windows.ps1
 ```
 
 本地开发密钥放在 `.env.local` 或 Hunter 的 Application Support 目录，不要提交到仓库。

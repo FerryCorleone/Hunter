@@ -25,6 +25,8 @@ The script restores, builds, runs the core tests, publishes a win-x64 self-conta
 artifacts/Hunter-Windows-win-x64.zip
 ```
 
+The zip is self-contained for win-x64. Users do not need to install .NET separately.
+
 ## Smoke Commands
 
 ```powershell
@@ -37,3 +39,17 @@ Hunter.Windows.exe --smoke-ui-render artifacts/hunter-windows-ui-smoke.png
 ```
 
 GitHub Actions runs the Windows build and smoke checks on `windows-latest`.
+
+## Verification Without A Windows PC
+
+The repository verifies the Windows port on GitHub-hosted `windows-latest` runners:
+
+- restore and build `Hunter.Windows`;
+- run `Hunter.Windows.Tests`;
+- publish the self-contained win-x64 app;
+- run package/core smoke commands;
+- render the floating catch widget to a PNG;
+- run foreground-window smoke detection;
+- upload `Hunter-Windows-win-x64.zip` and `hunter-windows-ui-smoke.png` as artifacts.
+
+This does not replace final manual QA on a real Windows desktop with user API keys, but it gives a repeatable build-and-run gate when no Windows machine is available locally.

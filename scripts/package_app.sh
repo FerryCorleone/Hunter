@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIGURATION="${CONFIGURATION:-release}"
-APP_VERSION="${APP_VERSION:-1.0.1}"
-APP_BUILD="${APP_BUILD:-2}"
+APP_VERSION="${APP_VERSION:-1.1.0}"
+APP_BUILD="${APP_BUILD:-3}"
 ARCHS="${ARCHS:-arm64 x86_64}"
 APP_NAME="Hunter"
 APP_DIR="$ROOT_DIR/build/${APP_NAME}.app"

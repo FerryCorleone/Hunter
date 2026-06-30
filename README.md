@@ -6,7 +6,7 @@
 
 ## 下载
 
-目前只支持 **macOS 14 Sonoma 及以上**，并且只提供 Mac 版 DMG 安装包。
+目前只支持 **macOS 14 Sonoma 及以上**，并且提供 Mac 版 Universal DMG 安装包，支持 Apple Silicon 和 Intel 芯片 Mac。
 
 - 下载最新版：[Hunter.dmg](https://github.com/FerryCorleone/Hunter/releases/latest/download/Hunter.dmg)
 - 查看发布页：[GitHub Releases](https://github.com/FerryCorleone/Hunter/releases/latest)
@@ -69,10 +69,10 @@
 
 ## 当前版本
 
-当前把最新版整理为第一版发布：`v1.0.0`。
+当前最新版：`v1.0.1`，已将 DMG 更新为同时支持 Apple Silicon 和 Intel Mac 的 Universal 版本。
 
 - 面向普通用户的项目报告：[docs/REPORT.md](docs/REPORT.md)
-- 第一版更新记录：[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
+- 更新记录：[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
 - 产品需求文档：[docs/PRD.md](docs/PRD.md)
 - 设计说明：[docs/DESIGN.md](docs/DESIGN.md)
 

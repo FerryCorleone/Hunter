@@ -1,5 +1,26 @@
 # 更新记录
 
+## v1.0.1 - Universal Mac 版
+
+发布日期：2026-06-30
+
+这是监管者的 Mac 兼容性更新。`Hunter.dmg` 现在打包为 Universal 应用，同时包含 `arm64` 和 `x86_64` 两种架构。
+
+### 下载
+
+- 支持 macOS 14 Sonoma 及以上。
+- 支持 Apple Silicon 和 Intel 芯片 Mac。
+- 仍然只提供 Mac 版 DMG 安装包：`Hunter.dmg`。
+- 暂不支持 Windows、iOS、Android 或浏览器插件。
+
+### 本版整理
+
+- 打包脚本默认构建 Universal binary。
+- App 版本号更新为 `1.0.1`，build 号更新为 `2`。
+- 使用 `lipo` 验证发布包内主程序同时包含 `arm64` 和 `x86_64`。
+- 使用 Rosetta 在 Apple Silicon 机器上执行 `x86_64` slice 的命令行烟测。
+- 通过 `swift test`、签名验证和 DMG 校验。
+
 ## v1.0.0 - 第一版
 
 发布日期：2026-06-16

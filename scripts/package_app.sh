@@ -3,16 +3,32 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIGURATION="${CONFIGURATION:-release}"
+APP_VERSION="${APP_VERSION:-1.0.1}"
+APP_BUILD="${APP_BUILD:-2}"
+ARCHS="${ARCHS:-arm64 x86_64}"
 APP_NAME="Hunter"
-BUILD_DIR="$ROOT_DIR/.build/${CONFIGURATION}"
 APP_DIR="$ROOT_DIR/build/${APP_NAME}.app"
 
 cd "$ROOT_DIR"
-swift build -c "$CONFIGURATION"
+BUILD_ARGS=(-c "$CONFIGURATION")
+read -r -a ARCH_ARRAY <<< "$ARCHS"
+for arch in "${ARCH_ARRAY[@]}"; do
+  if [[ -n "$arch" ]]; then
+    BUILD_ARGS+=(--arch "$arch")
+  fi
+done
+
+swift build "${BUILD_ARGS[@]}"
+BUILD_DIR="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)"
+EXECUTABLE="$BUILD_DIR/$APP_NAME"
+if [[ ! -x "$EXECUTABLE" ]]; then
+  echo "Built executable not found at $EXECUTABLE" >&2
+  exit 1
+fi
 
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
-cp "$BUILD_DIR/$APP_NAME" "$APP_DIR/Contents/MacOS/$APP_NAME"
+cp "$EXECUTABLE" "$APP_DIR/Contents/MacOS/$APP_NAME"
 
 for resource_path in \
   "$BUILD_DIR/${APP_NAME}_${APP_NAME}.resources" \
@@ -47,7 +63,7 @@ if [[ -f "$ICON_SOURCE" ]] && command -v sips >/dev/null 2>&1 && command -v icon
   rm -rf "$ICONSET_DIR" "$TMP_ICON_DIR"
 fi
 
-cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
+cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -67,9 +83,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>1.0.0</string>
+  <string>$APP_VERSION</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>$APP_BUILD</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>LSMinimumSystemVersion</key>

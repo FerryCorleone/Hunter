@@ -1,7 +1,7 @@
 # 监管者项目报告
 
-日期：2026-06-16  
-版本：v1.0.0 第一版  
+日期：2026-06-30
+版本：v1.0.1 Universal Mac 版
 面向读者：看完视频过来的粉丝、对 AI 工具感兴趣的普通 Mac 用户
 
 ## 这是什么
@@ -23,11 +23,11 @@
 
 ## 怎么下载
 
-目前只支持 Mac。
+目前只支持 Mac，安装包支持 Apple Silicon 和 Intel 芯片 Mac。
 
 - 下载文件：`Hunter.dmg`
 - 下载位置：[GitHub Releases](https://github.com/FerryCorleone/Hunter/releases/latest)
-- 系统要求：macOS 14 Sonoma 或更高版本
+- 系统要求：macOS 14 Sonoma 或更高版本，Apple Silicon 或 Intel 芯片 Mac
 
 暂不支持 Windows、iPhone、iPad、Android。
 
@@ -68,7 +68,7 @@
 ## 当前限制
 
 - 只支持 macOS。
-- 第一版只提供 DMG 安装包。
+- 只提供 DMG 安装包。
 - 云端 ASR / LLM / TTS 需要用户自己的 API Key。
 - 浏览器 URL 读取依赖 macOS 自动化权限。
 - 第一次运行可能需要手动允许麦克风和浏览器自动化权限。

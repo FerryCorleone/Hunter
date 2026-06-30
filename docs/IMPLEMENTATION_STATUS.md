@@ -1,8 +1,8 @@
 # 当前状态
 
-日期：2026-06-16
-版本：v1.0.0 第一版
-状态：macOS DMG 公开版整理完成
+日期：2026-06-30
+版本：v1.0.1 Universal Mac 版
+状态：macOS Universal DMG 公开版整理完成
 
 ## 面向用户的可用能力
 
@@ -21,7 +21,7 @@
 ## 下载与分发
 
 - 只支持 macOS 14 Sonoma 及以上。
-- 第一版只提供 DMG 下载：`build/Hunter.dmg`。
+- `build/Hunter.dmg` 是 Universal Mac 安装包，支持 Apple Silicon 和 Intel 芯片 Mac。
 - 暂不提供 Windows、iOS、Android 或浏览器插件版本。
 
 ## 模型配置口径
@@ -39,7 +39,7 @@
 公开版验收关注三层：
 
 1. 本地工程质量：`swift test`。
-2. 可分发包：`./scripts/package_dmg.sh`、`codesign --verify --deep --strict build/Hunter.app`、`hdiutil verify build/Hunter.dmg`。
+2. 可分发包：`./scripts/package_dmg.sh`、`lipo -info build/Hunter.app/Contents/MacOS/Hunter`、`codesign --verify --deep --strict build/Hunter.app`、`hdiutil verify build/Hunter.dmg`。
 3. 用户主链路：安装、授权、添加黑名单、保存模型 Key、开始监督、命中黑名单、播放吐槽。
 
 真实云端 ASR / LLM / TTS 测试依赖用户自己的 API Key；仓库不提交任何密钥。

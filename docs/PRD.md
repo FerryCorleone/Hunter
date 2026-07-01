@@ -1,14 +1,14 @@
 # Hunter PRD
 
-版本：v1.1.0
-日期：2026-06-30
-状态：Mac + Windows 桌面版公开发布，TTS 只走云端 API
+版本：v1.0.0
+日期：2026-06-16
+状态：第一版公开发布，TTS 只走云端 API
 
 ## 0. Discovery Notes
 
 已知输入：
 
-- 目标平台：Mac 桌面端和 Windows 桌面端。Mac 版使用 SwiftUI + AppKit，Windows 版使用 WPF + Win32 / Windows UI Automation；两端保持同一产品玩法和隐私边界。
+- 目标平台：Mac 桌面端。
 - 核心玩法：用户主动开启监督或时长任务后，通过桌面悬浮球/小组件监控摸鱼网站/App，命中后 AI 语音高强度吐槽。
 - 语音互动路线：`ASR -> LLM -> TTS`；ASR 支持云端 API 和本地模型，TTS 只支持云端 Provider API。
 - ASR、LLM、TTS 均需要做成用户可配置 Provider；普通用户通过内置厂商模板下拉选择厂商，Base URL、鉴权头、region、语言提示等由 Hunter adapter 自动设置，模型 ID 独立为可编辑下拉字段，用户可选厂商推荐模型，也可自定义填写模型名；每类都提供“自定义厂商”，允许用户填写厂商名、Base URL、模型 ID 和 API Key。
@@ -33,7 +33,7 @@
 普通效率工具太严肃、太弱提醒，用户容易忽略；而“被 AI 当场抓包并开骂”的强冲突体验更容易制造自律压力和传播素材。
 
 **Proposed Solution**  
-开发一个桌面端轻量 AI 监工应用。主体验是桌面悬浮球/小组件：用户配置黑名单、时长任务和 ASR/LLM/TTS Provider 后，Hunter 在监督开启期间检测前台 App、浏览器 URL 与标签页标题；一旦命中摸鱼目标，先在后台调用 LLM 和 TTS 准备第一句吐槽音频，音频可播放后再展开悬浮小组件并同步播报。用户可以用快捷键或悬浮卡片按钮语音反驳，系统通过 ASR 转写后继续生成语音回应。主窗口只承载设置、Provider、历史记录和语言/音色配置。
+开发一个 Mac 端轻量 AI 监工应用。主体验是桌面悬浮球/小组件：用户配置黑名单、时长任务和 ASR/LLM/TTS Provider 后，Hunter 在监督开启期间检测前台 App、浏览器 URL 与标签页标题；一旦命中摸鱼目标，先在后台调用 LLM 和 TTS 准备第一句吐槽音频，音频可播放后再展开悬浮小组件并同步播报。用户可以用快捷键或悬浮卡片按钮语音反驳，系统通过 ASR 转写后继续生成语音回应。主窗口只承载设置、Provider、历史记录和语言/音色配置。
 
 **Success Criteria**
 

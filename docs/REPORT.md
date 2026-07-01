@@ -1,12 +1,12 @@
 # 监管者项目报告
 
 日期：2026-06-30
-版本：v1.1.0 Mac + Windows 桌面版
-面向读者：看完视频过来的粉丝、对 AI 工具感兴趣的普通桌面用户
+版本：v1.0.1 Universal Mac 版
+面向读者：看完视频过来的粉丝、对 AI 工具感兴趣的普通 Mac 用户
 
 ## 这是什么
 
-监管者是一个桌面端 AI 摸鱼监工。你自己设置黑名单，自己开启监督。它发现你打开了黑名单里的网站或 App，就会弹出桌面悬浮小组件，用 AI 语音当场吐槽你。
+监管者是一个 Mac 端 AI 摸鱼监工。你自己设置黑名单，自己开启监督。它发现你打开了黑名单里的网站或 App，就会弹出桌面悬浮小组件，用 AI 语音当场吐槽你。
 
 它的重点不是“效率管理”，而是“被 AI 抓包”的冲突感和节目效果。你可以把它当成一个更好玩的自律提醒器，也可以拿来录屏做挑战视频。
 
@@ -23,33 +23,21 @@
 
 ## 怎么下载
 
-目前支持 Mac 和 Windows：
+目前只支持 Mac，安装包支持 Apple Silicon 和 Intel 芯片 Mac。
 
-- Mac 下载文件：`Hunter.dmg`
-- Windows 下载文件：`Hunter-Windows-win-x64.zip`
+- 下载文件：`Hunter.dmg`
 - 下载位置：[GitHub Releases](https://github.com/FerryCorleone/Hunter/releases/latest)
-- Mac 系统要求：macOS 14 Sonoma 或更高版本，Apple Silicon 或 Intel 芯片 Mac
-- Windows 系统要求：Windows 10 / 11 x64
+- 系统要求：macOS 14 Sonoma 或更高版本，Apple Silicon 或 Intel 芯片 Mac
 
-暂不支持 iPhone、iPad、Android。
+暂不支持 Windows、iPhone、iPad、Android。
 
 ## 怎么安装
 
-Mac：
-
 1. 下载 `Hunter.dmg`。
-2. 双击打开 DMG。
+2. 双击打开。
 3. 把 `监管者.app` 拖到 `Applications`。
 4. 第一次打开时，如果 macOS 拦截，右键 App 选择“打开”。
-
-Windows：
-
-1. 下载 `Hunter-Windows-win-x64.zip`。
-2. 解压到一个固定目录。
-3. 双击 `Hunter.Windows.exe`。
-4. 第一次打开时，如果 Windows SmartScreen 拦截，选择“更多信息”后继续运行。
-
-两端首次运行时都需要按提示允许麦克风、浏览器自动化或通知。
+5. 按提示允许麦克风、浏览器自动化和通知。
 
 ## 模型配置说明
 
@@ -79,10 +67,10 @@ Windows：
 
 ## 当前限制
 
-- Mac 和 Windows 的系统权限提示不同，浏览器 URL 读取能力也依赖各自系统 API。
-- Windows 版当前提供 x64 zip，暂未提供安装器。
+- 只支持 macOS。
+- 只提供 DMG 安装包。
 - 云端 ASR / LLM / TTS 需要用户自己的 API Key。
-- 浏览器 URL 读取依赖系统权限和浏览器地址栏可访问性。
+- 浏览器 URL 读取依赖 macOS 自动化权限。
 - 第一次运行可能需要手动允许麦克风和浏览器自动化权限。
 
 ## 给看视频来的朋友

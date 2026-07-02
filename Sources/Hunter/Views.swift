@@ -1191,7 +1191,9 @@ struct GeneralPanel: View {
                                 Text(state.copy("语音指令测试", "Voice command test"))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(HunterUI.text)
-                                Text(state.copy("例如：监督我接下来的 40 分钟。", "For example: keep me focused for 40 minutes."))
+                                Text(state.isVoiceCommandTestRecording
+                                    ? state.copy("请讲话；说完再次点击右侧按钮停止并识别。", "Speak now; click the button again to stop and transcribe.")
+                                    : state.copy("点击开始录音，例如：监督我接下来的 40 分钟。", "Click to start recording, for example: keep me focused for 40 minutes."))
                                     .font(.system(size: 12))
                                     .foregroundStyle(HunterUI.secondaryText)
                             }
@@ -1200,13 +1202,23 @@ struct GeneralPanel: View {
                             Button {
                                 onRecordVoiceCommand()
                             } label: {
-                                Label(state.copy("测试语音指令", "Test voice command"), systemImage: "mic")
-                                    .frame(minWidth: 132, minHeight: 28)
+                                Label(
+                                    state.isVoiceCommandTestRecording
+                                        ? state.copy("正在听，再点停止", "Listening, click to stop")
+                                        : state.copy("开始语音测试", "Start voice test"),
+                                    systemImage: state.isVoiceCommandTestRecording ? "stop.fill" : "mic"
+                                )
+                                .frame(minWidth: 156, minHeight: 28)
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.regular)
-                            .help(state.copy("录一段语音指令，例如：监督我接下来的 40 分钟", "Record a short voice command, for example: supervise me for the next 40 minutes"))
-                            .accessibilityLabel(state.copy("测试语音指令", "Test voice command"))
+                            .tint(state.isVoiceCommandTestRecording ? HunterUI.danger : HunterUI.accent)
+                            .help(state.isVoiceCommandTestRecording
+                                ? state.copy("再次点击会停止录音并开始识别", "Click again to stop recording and transcribe")
+                                : state.copy("录一段语音指令，例如：监督我接下来的 40 分钟", "Record a short voice command, for example: supervise me for the next 40 minutes"))
+                            .accessibilityLabel(state.isVoiceCommandTestRecording
+                                ? state.copy("停止语音指令测试", "Stop voice command test")
+                                : state.copy("开始语音指令测试", "Start voice command test"))
                         }
 
                         if !shortcutMessage.isEmpty {
@@ -1242,7 +1254,7 @@ struct GeneralPanel: View {
                             state: state.permissions.notifications,
                             language: state.interfaceLanguage,
                             isOptional: true,
-                            subtitle: state.copy("用于监督开始或异常提醒。", "Used for start and error notifications.")
+                            subtitle: state.copy("可选；抓包和语音对话只显示 Hunter 弹窗。", "Optional; catches and voice chat use Hunter popovers only.")
                         ) {
                             requestNotifications()
                         }

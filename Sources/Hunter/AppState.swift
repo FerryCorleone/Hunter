@@ -48,6 +48,7 @@ final class AppState: ObservableObject {
     @Published var toastMessage: String?
     @Published var voiceInteractionStatus: String?
     @Published var voiceActivity: VoiceActivity = .idle
+    @Published var isVoiceCommandTestRecording: Bool = false
     @Published var events: [Incident] = []
     @Published var providerStatus: String = ""
     @Published var permissionStatus: String = "Waiting for permissions"

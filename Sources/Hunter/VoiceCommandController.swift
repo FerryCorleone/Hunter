@@ -6,6 +6,12 @@ typealias ASRTestCompletionHandler = @MainActor (Result<String, Error>) -> Void
 
 @MainActor
 final class VoiceCommandController {
+    private enum RecordingPurpose {
+        case shortCommandTest
+        case manualReply
+        case asrTest
+    }
+
     enum VoiceCommandError: Error, LocalizedError {
         case busy
         case microphoneUnavailable
@@ -40,6 +46,7 @@ final class VoiceCommandController {
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
     private var isRecording = false
+    private var recordingPurpose: RecordingPurpose?
     private var finishAfterRecordingStarts = false
     private var manualReplyTimeoutTask: Task<Void, Never>?
 
@@ -55,16 +62,28 @@ final class VoiceCommandController {
     }
 
     func recordShortCommand(seconds: TimeInterval = VoiceCommandController.shortCommandDefaultSeconds) {
-        guard ensureProviderConfigurationReady() else { return }
-        guard !isRecording else {
-            state.toastMessage = state.interfaceLanguage == .english ? "Already listening..." : "正在听你说..."
+        if isRecording {
+            guard recordingPurpose == .shortCommandTest else {
+                state.toastMessage = state.copy("\(AppBrand.displayName)正在处理当前语音，稍后再试。", "\(AppBrand.displayName) is already processing voice. Try again shortly.")
+                state.voiceInteractionStatus = state.toastMessage
+                return
+            }
+            state.toastMessage = state.copy("正在停止录音并识别...", "Stopping and transcribing...")
             state.voiceInteractionStatus = state.toastMessage
+            finishRecording()
             return
         }
+        guard ensureProviderConfigurationReady() else { return }
         Task {
             do {
-                try await beginRecordingAsync()
+                let listenMessage = state.copy(
+                    "正在听，请说语音指令；说完再次点击停止。",
+                    "Listening. Say a voice command; click again to stop."
+                )
+                try await beginRecordingAsync(purpose: .shortCommandTest, listeningMessage: listenMessage)
+                guard isRecording, recordingPurpose == .shortCommandTest else { return }
                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                guard isRecording, recordingPurpose == .shortCommandTest else { return }
                 finishRecording()
             } catch {
                 stopRecordingSilently()
@@ -96,7 +115,7 @@ final class VoiceCommandController {
             do {
                 let listenMessage = state.copy("正在测试 ASR：请说一句话，\(Int(seconds)) 秒后自动转录。", "Testing ASR: say one sentence. \(AppBrand.displayName) will transcribe in \(Int(seconds)) seconds.")
                 status(state.copy("正在准备麦克风...", "Preparing microphone..."))
-                try await beginRecordingAsync()
+                try await beginRecordingAsync(purpose: .asrTest)
                 guard isRecording else {
                     throw VoiceCommandError.microphoneUnavailable
                 }
@@ -176,7 +195,7 @@ final class VoiceCommandController {
 
     func beginRecording() {
         guard !isRecording else {
-            state.toastMessage = state.interfaceLanguage == .english ? "Already listening..." : "正在听你说..."
+            state.toastMessage = state.copy("\(AppBrand.displayName)正在处理当前语音，稍后再试。", "\(AppBrand.displayName) is already processing voice. Try again shortly.")
             state.voiceInteractionStatus = state.toastMessage
             return
         }
@@ -184,7 +203,7 @@ final class VoiceCommandController {
         Task {
             do {
                 ASRDiagnostics.record("BEGIN_RECORDING_TASK_START")
-                try await beginRecordingAsync()
+                try await beginRecordingAsync(purpose: .manualReply)
                 if finishAfterRecordingStarts {
                     finishAfterRecordingStarts = false
                     finishRecording()
@@ -243,7 +262,7 @@ final class VoiceCommandController {
         }
     }
 
-    private func beginRecordingAsync() async throws {
+    private func beginRecordingAsync(purpose: RecordingPurpose, listeningMessage: String? = nil) async throws {
         state.toastMessage = state.interfaceLanguage == .english ? "Checking microphone..." : "正在检查麦克风..."
         state.voiceInteractionStatus = state.toastMessage
         let allowed = await microphoneAccessAllowed()
@@ -255,8 +274,8 @@ final class VoiceCommandController {
             state.voiceActivity = .idle
             return
         }
-        try startRecording()
-        state.toastMessage = state.interfaceLanguage == .english ? "Listening..." : "正在听你说..."
+        try startRecording(purpose: purpose)
+        state.toastMessage = listeningMessage ?? (state.interfaceLanguage == .english ? "Listening..." : "正在听你说...")
         state.voiceInteractionStatus = state.toastMessage
     }
 
@@ -289,7 +308,7 @@ final class VoiceCommandController {
         }
     }
 
-    private func startRecording() throws {
+    private func startRecording(purpose: RecordingPurpose) throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("hunter-command-\(UUID().uuidString)")
             .appendingPathExtension("wav")
@@ -308,6 +327,8 @@ final class VoiceCommandController {
         recorder = next
         recordingURL = url
         isRecording = true
+        recordingPurpose = purpose
+        state.isVoiceCommandTestRecording = purpose == .shortCommandTest
         state.voiceActivity = .listening
         ASRDiagnostics.record("RECORDING_STARTED url=\(url.lastPathComponent)")
     }
@@ -316,6 +337,8 @@ final class VoiceCommandController {
         recorder?.stop()
         recorder = nil
         isRecording = false
+        recordingPurpose = nil
+        state.isVoiceCommandTestRecording = false
         finishAfterRecordingStarts = false
         manualReplyTimeoutTask?.cancel()
         manualReplyTimeoutTask = nil
@@ -332,6 +355,8 @@ final class VoiceCommandController {
         recorder?.stop()
         recorder = nil
         isRecording = false
+        recordingPurpose = nil
+        state.isVoiceCommandTestRecording = false
         finishAfterRecordingStarts = false
         manualReplyTimeoutTask?.cancel()
         manualReplyTimeoutTask = nil

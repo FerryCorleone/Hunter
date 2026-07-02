@@ -5,7 +5,6 @@ final class IncidentController {
     private let state: AppState
     private let dashScope = DashScopeClient()
     private let speechPlayer = SpeechPlayer()
-    private let notifications = NotificationController()
     private let targetCloser = MatchedTargetCloser()
     private var nextIncidentAllowedAt: Date?
     private var playbackToken = UUID()
@@ -126,8 +125,7 @@ final class IncidentController {
                 target: state.copy("监督总结", "Focus summary"),
                 statusPrefix: state.copy("监督总结", "Focus summary"),
                 revealToast: text,
-                clearToastWhenPlaybackEnds: true,
-                notify: false
+                clearToastWhenPlaybackEnds: true
             )
         }
     }
@@ -146,8 +144,7 @@ final class IncidentController {
                 text: reply,
                 target: responseIncident.targetName,
                 statusPrefix: state.copy("语音 Agent", "Voice agent"),
-                revealIncident: responseIncident,
-                notify: false
+                revealIncident: responseIncident
             )
         }
 
@@ -161,8 +158,7 @@ final class IncidentController {
             target: state.copy("语音对话", "Voice chat"),
             statusPrefix: state.copy("语音 Agent", "Voice agent"),
             revealToast: reply,
-            clearToastWhenPlaybackEnds: true,
-            notify: false
+            clearToastWhenPlaybackEnds: true
         )
     }
 
@@ -179,8 +175,7 @@ final class IncidentController {
             target: state.copy("语音设置", "Voice setting"),
             statusPrefix: state.copy("语音设置", "Voice setting"),
             revealToast: text,
-            clearToastWhenPlaybackEnds: true,
-            notify: false
+            clearToastWhenPlaybackEnds: true
         )
     }
 
@@ -199,8 +194,7 @@ final class IncidentController {
         statusPrefix: String,
         revealIncident: Incident? = nil,
         revealToast: String? = nil,
-        clearToastWhenPlaybackEnds: Bool = false,
-        notify: Bool = true
+        clearToastWhenPlaybackEnds: Bool = false
     ) async -> Bool {
         let token = UUID()
         playbackToken = token
@@ -237,11 +231,6 @@ final class IncidentController {
                 if let revealToast {
                     state.toastMessage = revealToast
                 }
-                if notify {
-                    Task {
-                        await notifications.notifyCatch(target: target, roast: text)
-                    }
-                }
                 let completed = await waitForPlayback(duration, token: token)
                 if completed, playbackToken == token, state.voiceActivity == .speaking {
                     if clearToastWhenPlaybackEnds, let revealToast, state.toastMessage == revealToast {
@@ -275,11 +264,6 @@ final class IncidentController {
                 state.voiceActivity = .idle
             }
             TTSDiagnostics.record("TTS_FAILED mode=cloudAPI error=\(error.localizedDescription) fallback=none")
-            if notify {
-                Task {
-                    await notifications.notifyCatch(target: target, roast: text)
-                }
-            }
             return false
         }
     }

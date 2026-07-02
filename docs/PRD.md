@@ -103,6 +103,7 @@ Acceptance Criteria:
 - 用户点击悬浮球时可展开快捷控制菜单，直接开始 15/25/40 分钟监督、查看当前倒计时、暂停/恢复或取消监督，不需要打开主窗口；取消会立即结束当前时长任务并停止监督，不再保留后台倒计时。
 - 命中黑名单后先在后台准备吐槽音频；音频准备好后，悬浮球在原位置展开成小组件并开始播报。
 - 小组件只展示抓包对象、吐槽文案和用户可操作按钮，不展示 LLM、ASR、TTS、Provider、模型组合或“正在播放中”等内部状态；卡片背景必须是实体 popover 质感，不出现灰色半透明外圈。
+- 抓包和语音对话的主反馈只使用 Hunter 悬浮小组件或 toast，不额外发送系统通知，避免同一事件出现两层弹窗。
 - 抓包小组件在播报和用户录音期间显示动态声波；没有播放或录音时声波静止。
 - 抓包小组件播报结束且用户几秒内没有继续操作时自动收起，不要求用户手动关闭。
 - 命中黑名单后生成一条 10-25 秒内可播完的吐槽。
@@ -264,13 +265,13 @@ Acceptance Criteria:
 2. **Microphone Shortcut Section**
    - Visible elements：section 标题“麦克风快捷键”、说明、卡片内一个 KeyCaptureBox、Reset、`Test Voice Command`、一句交互提示“点击输入框后按下新的快捷键；松开后保存”。
    - Dynamic fields：`replyShortcut`、`isCapturingShortcut`、`permission.microphone`。
-   - Required behavior：点击框后按任意组合键或单键保存；支持 `Right Option` 等 modifier-only key。
+   - Required behavior：点击框后按任意组合键或单键保存；支持 `Right Option` 等 modifier-only key。语音指令测试按钮进入录音后必须把按钮文案切换为“正在听 / 再点停止”语义，并允许再次点击停止录音后识别；不得让用户只能等待固定时长结束。
    - Layout：KeyCaptureBox 和 `Test Voice Command` 都靠右排列，左侧只保留说明文案。
 
 3. **Permissions Section**
    - Visible elements：section 标题“权限”、说明、卡片内三条 PermissionRow：Microphone、Browser Automation、Notifications。
    - Dynamic fields：`permissions.microphone`、`permissions.browserAutomation`、`permissions.notifications`。
-   - UI rule：每条权限只保留一个可点击状态 pill；通知即使是可选增强，状态 pill 也必须显示真实状态，不能用“可选”代替“已允许/未开启”；未开启时点击状态直接打开系统设置或授权弹窗，回到 Hunter 后自动刷新。
+   - UI rule：每条权限只保留一个可点击状态 pill；通知即使是可选增强，状态 pill 也必须显示真实状态，不能用“可选”代替“已允许/未开启”；未开启时点击状态直接打开系统设置或授权弹窗，回到 Hunter 后自动刷新。通知权限不得用于抓包和语音对话的重复系统弹窗。
 
 4. **Launch Section**
    - Visible elements：一行文字“允许登录 macOS 后自动运行”、同一行状态文本和右侧 `Launch at Login` toggle。
